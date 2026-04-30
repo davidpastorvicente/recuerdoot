@@ -5,300 +5,300 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Recuerdoot</title>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
-
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
   * { margin: 0; padding: 0; box-sizing: border-box; }
-
   :root {
-    --bg: #0f0f13;
-    --surface: #1a1a24;
-    --surface-hover: #24243a;
-    --border: #2a2a3e;
-    --text: #e8e8f0;
-    --text-secondary: #8888a8;
-    --accent: #7c5cfc;
-    --accent-glow: rgba(124, 92, 252, 0.25);
-    --correct: #34d399;
-    --correct-bg: rgba(52, 211, 153, 0.12);
-    --wrong: #f87171;
-    --wrong-bg: rgba(248, 113, 113, 0.12);
-    --radius: 16px;
+    --bg: #0f0f13; --surface: #1a1a24; --surface-hover: #24243a;
+    --border: #2a2a3e; --text: #e8e8f0; --text-secondary: #8888a8;
+    --accent: #7c5cfc; --accent-glow: rgba(124,92,252,0.25);
+    --correct: #34d399; --correct-bg: rgba(52,211,153,0.15);
+    --wrong: #f87171; --wrong-bg: rgba(248,113,113,0.15);
+    --opt0: #e74c3c; --opt1: #3498db; --opt2: #f1c40f; --opt3: #2ecc71;
   }
-
   body {
-    font-family: 'Inter', -apple-system, sans-serif;
-    background: var(--bg);
-    color: var(--text);
-    min-height: 100dvh;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 24px;
+    font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text);
+    min-height: 100dvh; display: flex; flex-direction: column; align-items: center;
+    justify-content: center; padding: 32px; overflow: hidden;
   }
+  .screen { display: none; width: 100%; max-width: 900px; text-align: center; }
+  .screen.active { display: flex; flex-direction: column; align-items: center; }
 
-  #start-screen { text-align: center; max-width: 480px; }
-  .brand-title {
-    font-size: 2.8rem;
-    font-weight: 800;
-    letter-spacing: -0.04em;
-    margin-bottom: 10px;
+  /* Brand */
+  .brand { font-size: 3.2rem; font-weight: 900; letter-spacing: -0.04em; margin-bottom: 8px;
     background: linear-gradient(135deg, #faf7ff 0%, #b48cff 45%, #7c5cfc 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    text-shadow: 0 0 30px rgba(124, 92, 252, 0.2);
-  }
-  #start-screen h1 {
-    font-size: 1.1rem;
-    font-weight: 700;
-    letter-spacing: 0.08em;
-    margin-bottom: 12px;
-    color: var(--text-secondary);
-    text-transform: uppercase;
-  }
-  #start-screen p {
-    color: var(--text-secondary);
-    font-size: 1.05rem;
-    line-height: 1.6;
-    margin-bottom: 32px;
-  }
-  .btn-primary {
-    background: var(--accent);
-    color: white;
-    border: none;
-    padding: 16px 48px;
-    border-radius: 12px;
-    font-size: 1.1rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: transform 0.15s, box-shadow 0.15s;
-  }
-  .btn-primary:hover { transform: scale(1.04); box-shadow: 0 0 30px var(--accent-glow); }
-  .btn-primary:active { transform: scale(0.97); }
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
 
-  #game-screen { display: none; width: 100%; max-width: 520px; }
+  /* Start screen */
+  .start-subtitle { font-size: 1.1rem; font-weight: 700; letter-spacing: 0.08em; margin-bottom: 12px;
+    color: var(--text-secondary); text-transform: uppercase; }
+  .start-desc { color: var(--text-secondary); font-size: 1.05rem; line-height: 1.6; margin-bottom: 32px; }
+  .btn { background: var(--accent); color: white; border: none; padding: 18px 56px;
+    border-radius: 14px; font-size: 1.2rem; font-weight: 700; cursor: pointer;
+    transition: transform 0.15s, box-shadow 0.15s; font-family: 'Inter', sans-serif; }
+  .btn:hover { transform: scale(1.04); box-shadow: 0 0 30px var(--accent-glow); }
+  .btn:active { transform: scale(0.97); }
+  .btn:disabled { opacity: 0.4; cursor: default; transform: none; box-shadow: none; }
+  .btn-secondary { background: var(--surface); border: 2px solid var(--accent); }
+  .btn-row { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
 
-  .header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 24px;
-    gap: 16px;
-    flex-wrap: wrap;
-  }
-  .game-brand {
-    width: 100%;
-    text-align: center;
-    font-size: 1.7rem;
-    font-weight: 800;
-    letter-spacing: -0.03em;
-    background: linear-gradient(135deg, #faf7ff 0%, #b48cff 45%, #7c5cfc 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    text-shadow: 0 0 24px rgba(124, 92, 252, 0.18);
-    margin-bottom: 4px;
-  }
-  .round-label {
-    font-size: 0.85rem; font-weight: 600; color: var(--text-secondary);
-    text-transform: uppercase; letter-spacing: 0.08em; white-space: nowrap;
-  }
-  .progress-bar {
-    flex: 1; height: 6px; background: var(--border);
-    border-radius: 3px; margin: 0 16px; overflow: hidden;
-  }
-  .progress-fill {
-    height: 100%;
-    background: linear-gradient(90deg, #7c5cfc, #c084fc);
-    border-radius: 3px; transition: width 0.4s ease;
-  }
-  .score-label {
-    font-size: 0.85rem; font-weight: 600; color: var(--accent); white-space: nowrap;
-  }
+  /* Lobby */
+  .pin-display { font-size: 5rem; font-weight: 900; letter-spacing: 0.15em; color: var(--accent);
+    text-shadow: 0 0 40px var(--accent-glow); margin: 16px 0; }
+  .pin-label { font-size: 1.1rem; color: var(--text-secondary); text-transform: uppercase;
+    letter-spacing: 0.1em; font-weight: 600; }
+  .join-url { font-size: 0.95rem; color: var(--text-secondary); margin-bottom: 32px; }
+  .join-url span { color: var(--text); font-weight: 600; }
+  .player-grid { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center;
+    margin: 24px 0; min-height: 60px; }
+  .player-chip { background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+    padding: 12px 24px; font-weight: 700; font-size: 1.1rem;
+    display: inline-flex; align-items: center; justify-content: center; line-height: 1;
+    animation: popIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); }
+  @keyframes popIn { from { transform: scale(0); opacity: 0; } to { transform: scale(1); opacity: 1; } }
 
-  .question-card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 32px;
-    text-align: center;
-    margin-bottom: 24px;
-  }
-  .question-type-badge {
-    display: inline-block;
-    font-size: 0.7rem; font-weight: 700; text-transform: uppercase;
-    letter-spacing: 0.1em; color: var(--accent);
-    background: var(--accent-glow);
-    padding: 4px 12px; border-radius: 20px; margin-bottom: 16px;
-  }
-  .question-card h2 {
-    font-size: 1.25rem; font-weight: 700; line-height: 1.5;
-  }
-  .question-card h2 .hl { color: var(--accent); }
-  .question-card h2 .quote {
-    color: var(--correct);
-    font-style: italic;
-  }
+  /* Question screen */
+  .q-header { width: 100%; display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+  .q-counter { font-size: 0.9rem; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.08em; }
+  .q-progress { flex: 1; height: 6px; background: var(--border); border-radius: 3px; margin: 0 20px; overflow: hidden; }
+  .q-progress-fill { height: 100%; background: linear-gradient(90deg, #7c5cfc, #c084fc); border-radius: 3px; transition: width 0.4s; }
+  .q-info-right { font-size: 0.9rem; font-weight: 600; color: var(--accent); }
 
-  /* Audio player inline in question card */
-  .audio-inline {
-    display: none;
-    justify-content: center;
-    margin-top: 20px;
-  }
-  .audio-inline.show { display: flex; }
+  .q-card { background: var(--surface); border: 1px solid var(--border); border-radius: 20px;
+    padding: 40px; width: 100%; margin-bottom: 24px; }
+  .q-badge { display: inline-block; font-size: 0.75rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.1em; color: var(--accent); background: var(--accent-glow);
+    padding: 6px 16px; border-radius: 20px; margin-bottom: 16px; }
+  .q-text { font-size: 1.6rem; font-weight: 700; line-height: 1.5; }
+  .q-text .quote { color: var(--correct); font-style: italic; }
+  .q-text .hl { color: var(--accent); }
 
-  /* Audio player after answer */
-  .audio-after {
-    display: none;
-    align-items: center;
-    justify-content: center;
-    gap: 16px;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 16px 24px;
-    margin-bottom: 16px;
-  }
-  .audio-after.show { display: flex; }
+  /* Countdown ring */
+  .countdown-container { position: relative; margin: 20px auto; width: 100px; height: 100px; }
+  .countdown-ring { transform: rotate(-90deg); }
+  .countdown-ring circle { fill: none; stroke-width: 6; }
+  .countdown-ring .bg { stroke: var(--border); }
+  .countdown-ring .fg { stroke: var(--accent); stroke-linecap: round;
+    transition: stroke-dashoffset 1s linear; }
+  .countdown-number { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+    font-size: 2.4rem; font-weight: 900; color: var(--accent); }
 
-  .play-btn {
-    width: 52px; height: 52px;
-    border-radius: 50%;
-    background: var(--accent);
-    border: none; cursor: pointer;
-    display: inline-flex; align-items: center; justify-content: center;
-    transition: transform 0.15s, box-shadow 0.15s;
-    flex-shrink: 0;
-  }
+  /* Audio play */
+  .host-audio-area { margin: 16px 0; }
+  .play-btn { width: 60px; height: 60px; border-radius: 50%; background: var(--accent); border: none;
+    cursor: pointer; display: inline-flex; align-items: center; justify-content: center;
+    transition: transform 0.15s, box-shadow 0.15s; }
   .play-btn:hover { transform: scale(1.08); box-shadow: 0 0 30px var(--accent-glow); }
-  .play-btn:active { transform: scale(0.95); }
   .play-btn .icon-play, .play-btn .icon-pause { fill: white; }
   .play-btn .icon-pause { display: none; }
   .play-btn.playing .icon-play { display: none; }
   .play-btn.playing .icon-pause { display: block; }
 
-  .audio-label {
-    font-size: 0.9rem; color: var(--text-secondary);
-    text-align: left; line-height: 1.4;
-  }
-  .audio-label strong { color: var(--text); text-transform: capitalize; }
+  /* Option tiles (Kahoot-style colored blocks) */
+  .option-tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; width: 100%; }
+  .option-tile { border-radius: 14px; padding: 24px 16px; font-size: 1.25rem; font-weight: 700;
+    color: white; display: flex; align-items: center; gap: 14px; text-align: left;
+    transition: all 0.3s; opacity: 1; cursor: pointer; border: none; font-family: 'Inter', sans-serif; }
+  .option-tile .shape { width: 32px; height: 32px; flex-shrink: 0; }
+  .option-tile:nth-child(1) { background: var(--opt0); }
+  .option-tile:nth-child(2) { background: var(--opt1); }
+  .option-tile:nth-child(3) { background: var(--opt2); color: #1a1a24; }
+  .option-tile:nth-child(4) { background: var(--opt3); }
+  .option-tile:not(:disabled):hover { transform: scale(1.02); filter: brightness(1.1); }
+  .option-tile:not(:disabled):active { transform: scale(0.97); }
+  .option-tile:disabled { cursor: default; }
+  .option-tile.dim { opacity: 0.25; transform: scale(0.95); }
+  .option-tile.correct-tile { opacity: 1; transform: scale(1.05);
+    box-shadow: 0 0 30px rgba(52,211,153,0.4); outline: 3px solid var(--correct); }
+  .option-tile.wrong-tile { opacity: 0.5; outline: 3px solid var(--wrong); }
+  .option-tile .count-badge { margin-left: auto; background: rgba(0,0,0,0.25);
+    padding: 6px 14px; border-radius: 20px; font-size: 1rem; }
 
-  .options {
-    display: grid; grid-template-columns: 1fr 1fr;
-    gap: 12px; margin-bottom: 24px;
-  }
-  .option-btn {
-    background: var(--surface);
-    border: 2px solid var(--border);
-    border-radius: 12px;
-    padding: 16px 12px;
-    color: var(--text);
-    font-size: 1rem; font-weight: 600;
-    cursor: pointer; transition: all 0.15s;
-  }
-  .option-btn:hover:not(:disabled) { border-color: var(--accent); background: var(--surface-hover); }
-  .option-btn:active:not(:disabled) { transform: scale(0.97); }
-  .option-btn:disabled { cursor: default; }
-  .option-btn.correct { border-color: var(--correct); background: var(--correct-bg); color: var(--correct); }
-  .option-btn.wrong { border-color: var(--wrong); background: var(--wrong-bg); color: var(--wrong); }
-  .option-btn.no-cap { text-transform: none; }
+  /* Reveal info */
+  .reveal-info { background: var(--surface); border: 1px solid var(--border); border-radius: 14px;
+    padding: 20px 28px; margin: 16px 0; display: none; align-items: center; gap: 20px; }
+  .reveal-info.show { display: flex; }
+  .reveal-label { text-align: left; font-size: 0.95rem; color: var(--text-secondary); line-height: 1.5; }
+  .reveal-label strong { color: var(--text); }
 
-  .result-banner {
-    text-align: center; padding: 16px; border-radius: 12px;
-    font-weight: 600; font-size: 1rem; margin-bottom: 16px; display: none;
-  }
+  /* Bar chart (Kahoot-style reveal) */
+  .bar-chart { display: flex; align-items: flex-end; justify-content: center; gap: 16px;
+    width: 100%; height: 220px; margin-bottom: 24px; padding: 0 16px; }
+  .bar-col { display: flex; flex-direction: column; align-items: center; flex: 1; max-width: 160px; height: 100%; justify-content: flex-end; }
+  .bar-fill { width: 100%; border-radius: 8px 8px 0 0; transition: height 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+    position: relative; min-height: 0; margin-bottom: -1px; }
+  .bar-fill.c0 { background: var(--opt0); } .bar-fill.c1 { background: var(--opt1); }
+  .bar-fill.c2 { background: var(--opt2); } .bar-fill.c3 { background: var(--opt3); }
+  .bar-fill.dim-bar { opacity: 0.2; }
+  .bar-count { font-size: 1.1rem; font-weight: 800; color: var(--text); margin-bottom: 6px; }
+  .bar-check { margin-bottom: 4px; font-size: 1.4rem; min-height: 1.6em; }
+  .bar-base { width: 100%; padding: 10px 8px; border-radius: 0 0 8px 8px; display: flex;
+    align-items: center; justify-content: center; gap: 8px; color: white; font-weight: 700;
+    font-size: 0.85rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .bar-base.c0 { background: var(--opt0); } .bar-base.c1 { background: var(--opt1); }
+  .bar-base.c2 { background: var(--opt2); color: #1a1a24; } .bar-base.c3 { background: var(--opt3); }
+
+  /* Result banner (solo mode) */
+  .result-banner { text-align: center; padding: 16px; border-radius: 12px;
+    font-weight: 600; font-size: 1rem; margin-bottom: 16px; display: none; }
   .result-banner.show { display: block; }
   .result-banner.correct-banner { background: var(--correct-bg); color: var(--correct); }
   .result-banner.wrong-banner { background: var(--wrong-bg); color: var(--wrong); }
 
-  .btn-next {
-    display: none; width: 100%; padding: 16px;
-    background: var(--surface); border: 2px solid var(--border);
-    border-radius: 12px; color: var(--text);
-    font-size: 1rem; font-weight: 600; cursor: pointer;
-    transition: all 0.15s;
-  }
-  .btn-next:hover { border-color: var(--accent); background: var(--surface-hover); }
-
-  #end-screen { display: none; text-align: center; max-width: 480px; }
-  #end-screen h1 { font-size: 2.2rem; font-weight: 800; margin-bottom: 12px; }
-  .final-score {
-    font-size: 4rem; font-weight: 800;
+  /* End screen */
+  .final-score { font-size: 4rem; font-weight: 900;
     background: linear-gradient(135deg, #7c5cfc, #c084fc);
-    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-    margin-bottom: 8px;
-  }
-  #end-screen p { color: var(--text-secondary); font-size: 1.05rem; margin-bottom: 32px; }
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 8px; }
+  .end-msg { color: var(--text-secondary); font-size: 1.05rem; margin-bottom: 32px; }
+  .trophy { font-size: 5rem; margin-bottom: 16px; }
+  .winner-name { font-size: 2.8rem; font-weight: 900;
+    background: linear-gradient(135deg, #ffd700, #ffaa00);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 8px; }
+  .winner-score { font-size: 1.2rem; color: var(--text-secondary); margin-bottom: 32px; }
+  .leaderboard { width: 100%; max-width: 600px; margin: 24px auto; }
+  .lb-row { display: flex; align-items: center; padding: 16px 24px; background: var(--surface);
+    border: 1px solid var(--border); border-radius: 12px; margin-bottom: 8px;
+    animation: slideIn 0.4s ease both; }
+  .lb-row:nth-child(1) { border-color: #ffd700; }
+  .lb-row:nth-child(2) { border-color: #c0c0c0; }
+  .lb-row:nth-child(3) { border-color: #cd7f32; }
+  @keyframes slideIn { from { transform: translateX(-30px); opacity: 0; } to { transform: none; opacity: 1; } }
+  .lb-rank { font-size: 1.5rem; font-weight: 900; width: 48px; color: var(--accent); }
+  .lb-name { flex: 1; font-weight: 700; font-size: 1.15rem; text-align: left; }
+  .lb-score { font-weight: 800; font-size: 1.2rem; color: var(--accent); }
 </style>
 </head>
 <body>
 
-<div id="start-screen">
-  <div class="brand-title">Recuerdoot</div>
-  <h1>Juego de recuerdos</h1>
-  <p>Preguntas sobre vuestros audios. Adivina quién lo dijo, de qué año es... y después escucha el audio para recordar el momento.</p>
-  <div style="display:flex; gap:12px; justify-content:center; flex-wrap:wrap;">
-    <button class="btn-primary" onclick="startGame()">Jugar solo</button>
-    <button class="btn-primary" onclick="location.href='host.html'" style="background:#24243a; border:2px solid var(--accent);">Multijugador</button>
+<!-- START -->
+<div id="start-screen" class="screen active">
+  <div class="brand">Recuerdoot</div>
+  <div class="start-subtitle">Juego de recuerdos</div>
+  <div class="start-desc">Preguntas sobre vuestros audios. Adivina quién lo dijo, de qué año es... y después escucha el audio para recordar el momento.</div>
+  <div class="btn-row">
+    <button class="btn" onclick="initSolo()">Jugar solo</button>
+    <button class="btn btn-secondary" onclick="initMultiplayer()">Multijugador</button>
   </div>
 </div>
 
-<div id="game-screen">
-  <div class="header">
-    <div class="game-brand">Recuerdoot</div>
-    <span class="round-label" id="round-label">1 / 24</span>
-    <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
-    <span class="score-label" id="score-label">0 aciertos</span>
-  </div>
+<!-- LOBBY (multiplayer only) -->
+<div id="lobby" class="screen">
+  <div class="brand">Recuerdoot</div>
+  <div class="pin-label">PIN de la partida</div>
+  <div class="pin-display" id="pin-display">------</div>
+  <div class="join-url">Unirse en: <span id="join-url"></span></div>
+  <div class="player-grid" id="player-grid"></div>
+  <button class="btn" id="btn-lobby-start" disabled onclick="lobbyStart()">Esperando jugadores...</button>
+</div>
 
-  <div class="question-card">
-    <div class="question-type-badge" id="question-type-badge"></div>
-    <h2 id="question-text"></h2>
-    <div class="audio-inline" id="audio-inline">
-      <button class="play-btn" id="play-btn-inline" onclick="togglePlay()">
-        <svg class="icon-play" width="24" height="24" viewBox="0 0 24 24"><polygon points="6,3 20,12 6,21"/></svg>
-        <svg class="icon-pause" width="24" height="24" viewBox="0 0 24 24"><rect x="5" y="3" width="5" height="18" rx="1"/><rect x="14" y="3" width="5" height="18" rx="1"/></svg>
+<!-- QUESTION -->
+<div id="question-screen" class="screen">
+  <div class="q-header">
+    <span class="q-counter" id="q-counter">1 / 22</span>
+    <div class="q-progress"><div class="q-progress-fill" id="q-progress-fill"></div></div>
+    <span class="q-info-right" id="q-info-right"></span>
+  </div>
+  <div class="q-card">
+    <div class="q-badge" id="q-badge"></div>
+    <div class="q-text" id="q-text"></div>
+    <div class="host-audio-area" id="host-audio-area" style="display:none;">
+      <button class="play-btn" id="host-play-btn" onclick="toggleAudio()">
+        <svg class="icon-play" width="28" height="28" viewBox="0 0 24 24"><polygon points="6,3 20,12 6,21"/></svg>
+        <svg class="icon-pause" width="28" height="28" viewBox="0 0 24 24"><rect x="5" y="3" width="5" height="18" rx="1"/><rect x="14" y="3" width="5" height="18" rx="1"/></svg>
       </button>
     </div>
+    <div class="countdown-container" id="countdown-container">
+      <svg class="countdown-ring" width="100" height="100" viewBox="0 0 100 100">
+        <circle class="bg" cx="50" cy="50" r="44"/>
+        <circle class="fg" id="countdown-fg" cx="50" cy="50" r="44"
+          stroke-dasharray="276.46" stroke-dashoffset="0"/>
+      </svg>
+      <div class="countdown-number" id="countdown-number">15</div>
+    </div>
   </div>
-
-  <div class="options" id="options"></div>
+  <div class="option-tiles" id="option-tiles"></div>
   <div class="result-banner" id="result-banner"></div>
-
-  <div class="audio-after" id="audio-after">
-    <button class="play-btn" id="play-btn-after" onclick="togglePlay()">
-      <svg class="icon-play" width="24" height="24" viewBox="0 0 24 24"><polygon points="6,3 20,12 6,21"/></svg>
-      <svg class="icon-pause" width="24" height="24" viewBox="0 0 24 24"><rect x="5" y="3" width="5" height="18" rx="1"/><rect x="14" y="3" width="5" height="18" rx="1"/></svg>
+  <div class="reveal-info" id="reveal-info">
+    <button class="play-btn" id="reveal-play-btn" onclick="toggleAudio()">
+      <svg class="icon-play" width="28" height="28" viewBox="0 0 24 24"><polygon points="6,3 20,12 6,21"/></svg>
+      <svg class="icon-pause" width="28" height="28" viewBox="0 0 24 24"><rect x="5" y="3" width="5" height="18" rx="1"/><rect x="14" y="3" width="5" height="18" rx="1"/></svg>
     </button>
-    <div class="audio-label" id="audio-label"></div>
+    <div class="reveal-label" id="reveal-label"></div>
   </div>
-
-  <button class="btn-next" id="btn-next" onclick="nextRound()">Siguiente</button>
+  <button class="btn" id="btn-next" style="display:none;" onclick="nextQuestion()">Siguiente</button>
 </div>
 
-<div id="end-screen">
-  <h1>Fin del juego</h1>
+<!-- REVEAL (multiplayer only) -->
+<div id="reveal-screen" class="screen">
+  <div class="q-card" style="margin-bottom:16px;">
+    <div class="q-badge" id="r-badge"></div>
+    <div class="q-text" id="r-text"></div>
+  </div>
+  <div class="bar-chart" id="r-bar-chart"></div>
+  <div class="reveal-info" id="r-reveal-info">
+    <button class="play-btn" id="r-reveal-play-btn" onclick="toggleAudio()">
+      <svg class="icon-play" width="28" height="28" viewBox="0 0 24 24"><polygon points="6,3 20,12 6,21"/></svg>
+      <svg class="icon-pause" width="28" height="28" viewBox="0 0 24 24"><rect x="5" y="3" width="5" height="18" rx="1"/><rect x="14" y="3" width="5" height="18" rx="1"/></svg>
+    </button>
+    <div class="reveal-label" id="r-reveal-label"></div>
+  </div>
+  <div class="leaderboard" id="r-leaderboard"></div>
+  <button class="btn" id="btn-mp-next" onclick="mpNext()">Siguiente</button>
+</div>
+
+<!-- END (solo) -->
+<div id="end-solo" class="screen">
+  <div class="brand">Recuerdoot</div>
+  <h1 style="font-size:2.2rem;font-weight:800;margin-bottom:12px;">Fin del juego</h1>
   <div class="final-score" id="final-score"></div>
-  <p id="end-message"></p>
-  <button class="btn-primary" onclick="startGame()">Jugar otra vez</button>
+  <div class="end-msg" id="end-message"></div>
+  <button class="btn" onclick="initSolo()">Jugar otra vez</button>
+  <button class="btn btn-secondary" style="margin-top:12px;" onclick="backToStart()">Volver</button>
 </div>
 
-<audio id="audio-player"></audio>
+<!-- END (multiplayer) -->
+<div id="end-mp" class="screen">
+  <div class="brand">Recuerdoot</div>
+  <div class="trophy">&#127942;</div>
+  <div class="winner-name" id="winner-name"></div>
+  <div class="winner-score" id="winner-score"></div>
+  <div class="leaderboard" id="end-leaderboard"></div>
+  <button class="btn" style="margin-top:24px;" onclick="backToStart()">Nueva partida</button>
+</div>
 
+<audio id="game-audio"></audio>
+
+<script src="/socket.io/socket.io.js"></script>
 <script>
+// ========== Shared ==========
 const months = ["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
+const shapes = [
+  `<svg viewBox="0 0 32 32" width="32" height="32"><polygon points="16,2 2,30 30,30" fill="white"/></svg>`,
+  `<svg viewBox="0 0 32 32" width="32" height="32"><rect x="2" y="2" width="28" height="28" rx="4" fill="white"/></svg>`,
+  `<svg viewBox="0 0 32 32" width="32" height="32"><circle cx="16" cy="16" r="14" fill="white"/></svg>`,
+  `<svg viewBox="0 0 32 32" width="32" height="32"><polygon points="16,2 30,16 16,30 2,16" fill="white"/></svg>`,
+];
+
+const audio = document.getElementById("game-audio");
+let isPlaying = false;
+let countdownInterval = null;
+let mode = null; // "solo" or "multi"
+
+function showScreen(id) {
+  document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
+  document.getElementById(id).classList.add("active");
+}
+
+function backToStart() {
+  audio.pause(); isPlaying = false;
+  clearInterval(countdownInterval);
+  showScreen("start-screen");
+}
 
 function parseDate(key) {
   const m = key.match(/(\d{4})(\d{2})(\d{2})/);
   if (!m) return { date: "", year: "" };
-  const y = m[1], mo = parseInt(m[2]), d = parseInt(m[3]);
-  return { date: `${d} ${months[mo - 1]} ${y}`, year: y };
+  return { date: `${parseInt(m[3])} ${months[parseInt(m[2]) - 1]} ${m[1]}`, year: m[1] };
 }
-
-let questions = [];
-let people = [];
-let years = [];
-let shuffled, current, score, player, isPlaying, currentQuestion;
 
 function shuffle(arr) {
   const a = [...arr];
@@ -309,260 +309,385 @@ function shuffle(arr) {
   return a;
 }
 
-async function loadConfig() {
-  if (questions.length) return;
-  const resp = await fetch("questions.json");
-  if (!resp.ok) throw new Error("No se pudo leer questions.json");
-  questions = await resp.json();
-
-  // Build people/years index from audio entries
-  const audioEntries = questions.filter(q => q.type === "audio");
-  people = [...new Set(audioEntries.map(a => a.person))].sort();
-  years = [...new Set(audioEntries.map(a => String(a.year)))].sort();
-}
-
-function buildQuestion(entry) {
-  if (entry.type === "audio") {
-    const subtype = entry.subtype || "person";
-    const yearStr = String(entry.year);
-
-    if (subtype === "custom" && entry.question && entry.correctAnswer && Array.isArray(entry.wrongAnswers)) {
-      return {
-        badge: "Pregunta especial",
-        html: entry.question,
-        options: shuffle([entry.correctAnswer, ...entry.wrongAnswers]),
-        correct: entry.correctAnswer,
-        audioBefore: entry.audioBefore === true,
-        useFiltered: false,
-        isPersonType: false,
-      };
-    }
-    if (subtype === "text" && entry.text) {
-      const wrong = shuffle(people.filter(p => p !== entry.person)).slice(0, 3);
-      return {
-        badge: "¿Quién dijo esto?",
-        html: `¿Quién dijo <span class="quote">"${entry.text}"</span>?`,
-        options: shuffle([entry.person, ...wrong]),
-        correct: entry.person,
-        audioBefore: false,
-        useFiltered: false,
-        isPersonType: false,
-      };
-    }
-    if (subtype === "year") {
-      const wrongYears = shuffle(years.filter(y => y !== yearStr)).slice(0, 3);
-      return {
-        badge: "¿De qué año es?",
-        html: `Este audio es de <span class="hl">${entry.person}</span>. ¿De qué año es?`,
-        options: shuffle([yearStr, ...wrongYears]),
-        correct: yearStr,
-        audioBefore: true,
-        useFiltered: false,
-        isPersonType: false,
-      };
-    }
-    // person
-    const wrong = shuffle(people.filter(p => p !== entry.person && (entry.person === "Laura" || p !== "Laura"))).slice(0, 3);
-    return {
-      badge: "¿Quién es?",
-      html: `Escucha el audio y adivina <span class="hl">quién</span> es`,
-      options: shuffle([entry.person, ...wrong]),
-      correct: entry.person,
-      audioBefore: true,
-      useFiltered: true,
-      isPersonType: true,
-    };
-  }
-
-  if (entry.type === "photo") {
-    return {
-      badge: "Pregunta con foto",
-      html: entry.question + (entry.photo ? `<br><img src="${entry.photo}" style="max-width:100%;max-height:300px;border-radius:12px;margin-top:16px;">` : ""),
-      options: shuffle([entry.correctAnswer, ...entry.wrongAnswers]),
-      correct: entry.correctAnswer,
-      audioBefore: false,
-      useFiltered: false,
-      isPersonType: false,
-    };
-  }
-
-  // plain
-  return {
-    badge: "Pregunta",
-    html: entry.question,
-    options: shuffle([entry.correctAnswer, ...entry.wrongAnswers]),
-    correct: entry.correctAnswer,
-    audioBefore: false,
-    useFiltered: false,
-    isPersonType: false,
-  };
-}
-
-function getAudioSource(entry) {
-  if (entry.type !== "audio") return "";
-  const key = entry.audio;
-  return currentQuestion.useFiltered ? `audios-filtered/${key}.mp3` : `audios/${key}.mp3`;
-}
-
-async function startGame() {
-  await loadConfig();
-  if (!questions.length) throw new Error("No hay preguntas en questions.json.");
-
-  shuffled = [...questions]; // keep the defined order
-  current = 0;
-  score = 0;
-  isPlaying = false;
-  player = document.getElementById("audio-player");
-  player.pause();
-
-  document.getElementById("start-screen").style.display = "none";
-  document.getElementById("end-screen").style.display = "none";
-  document.getElementById("game-screen").style.display = "block";
-  loadRound();
-}
-
-function loadRound() {
-  const entry = shuffled[current];
-  const total = shuffled.length;
-  currentQuestion = buildQuestion(entry);
-
-  document.getElementById("round-label").textContent = `${current + 1} / ${total}`;
-  document.getElementById("progress-fill").style.width = `${((current + 1) / total) * 100}%`;
-  document.getElementById("score-label").textContent = `${score} acierto${score !== 1 ? 's' : ''}`;
-
-  // Question card
-  document.getElementById("question-type-badge").textContent = currentQuestion.badge;
-  document.getElementById("question-text").innerHTML = currentQuestion.html;
-
-  // Audio inline (before answer)
-  const inlineArea = document.getElementById("audio-inline");
-  if (currentQuestion.audioBefore && entry.type === "audio") {
-    inlineArea.classList.add("show");
+function toggleAudio() {
+  if (isPlaying) {
+    audio.pause(); isPlaying = false;
+    document.querySelectorAll(".play-btn").forEach(b => b.classList.remove("playing"));
   } else {
-    inlineArea.classList.remove("show");
+    audio.play(); isPlaying = true;
+    document.querySelectorAll(".play-btn").forEach(b => b.classList.add("playing"));
+  }
+}
+audio.addEventListener("ended", () => {
+  isPlaying = false;
+  document.querySelectorAll(".play-btn").forEach(b => b.classList.remove("playing"));
+});
+
+function startCountdown(seconds, onEnd) {
+  let remaining = seconds;
+  const circumference = 2 * Math.PI * 44;
+  const fg = document.getElementById("countdown-fg");
+  const num = document.getElementById("countdown-number");
+  fg.style.transition = "none";
+  fg.style.strokeDashoffset = "0";
+  num.textContent = remaining;
+  num.style.color = "var(--accent)";
+  fg.getBoundingClientRect();
+  fg.style.transition = "stroke-dashoffset 1s linear";
+
+  clearInterval(countdownInterval);
+  countdownInterval = setInterval(() => {
+    remaining--;
+    if (remaining < 0) { clearInterval(countdownInterval); if (onEnd) onEnd(); return; }
+    num.textContent = remaining;
+    fg.style.strokeDashoffset = circumference * (1 - remaining / seconds);
+    if (remaining <= 5) num.style.color = "var(--wrong)";
+    else num.style.color = "var(--accent)";
+  }, 1000);
+}
+
+function renderQuestion(data) {
+  showScreen("question-screen");
+  document.getElementById("q-counter").textContent = `${data.index + 1} / ${data.total}`;
+  document.getElementById("q-progress-fill").style.width = `${((data.index + 1) / data.total) * 100}%`;
+  document.getElementById("q-badge").textContent = data.badge;
+
+  const qText = document.getElementById("q-text");
+  const quoteMatch = data.question.match(/"([^"]+)"/);
+  if (quoteMatch) {
+    qText.innerHTML = data.question.replace(`"${quoteMatch[1]}"`, `<span class="quote">"${quoteMatch[1]}"</span>`);
+  } else {
+    qText.textContent = data.question;
+  }
+
+  // Audio area
+  const audioArea = document.getElementById("host-audio-area");
+  if (data.audioBefore && data.audioSrc) {
+    audioArea.style.display = "";
+    audio.src = data.audioSrc;
+    audio.load();
+    isPlaying = false;
+    document.getElementById("host-play-btn").classList.remove("playing");
+  } else {
+    audioArea.style.display = "none";
   }
 
   // Options
-  const optionsEl = document.getElementById("options");
-  optionsEl.innerHTML = "";
-  currentQuestion.options.forEach(opt => {
-    const btn = document.createElement("button");
-    btn.className = "option-btn no-cap";
-    btn.textContent = opt;
-    btn.dataset.value = opt;
-    btn.onclick = () => checkAnswer(opt);
-    optionsEl.appendChild(btn);
+  const tiles = document.getElementById("option-tiles");
+  tiles.innerHTML = data.options.map((opt, i) =>
+    `<button class="option-tile" data-value="${esc(opt)}" style="${data.audioBefore ? 'opacity:0.15' : ''}"><span class="shape">${shapes[i]}</span>${esc(opt)}</button>`
+  ).join("");
+
+  // Hide post-answer stuff
+  document.getElementById("result-banner").className = "result-banner";
+  document.getElementById("reveal-info").classList.remove("show");
+  document.getElementById("btn-next").style.display = "none";
+  document.getElementById("countdown-container").style.display = "";
+
+  return tiles;
+}
+
+function esc(s) { const d = document.createElement("div"); d.textContent = s; return d.innerHTML; }
+
+function renderLeaderboard(containerId, list) {
+  document.getElementById(containerId).innerHTML = list.map((p, i) =>
+    `<div class="lb-row" style="animation-delay:${i * 0.08}s">
+      <span class="lb-rank">${i + 1}</span>
+      <span class="lb-name">${p.name}</span>
+      <span class="lb-score">${p.score}</span>
+    </div>`
+  ).join("");
+}
+
+// ========== SOLO MODE ==========
+let soloQuestions = [], soloPeople = [], soloYears = [];
+let soloCurrent = 0, soloScore = 0, soloCurrentQ = null, soloAnswered = false;
+
+function buildSoloQuestion(entry) {
+  if (entry.type === "audio") {
+    const subtype = entry.subtype || "person";
+    const yearStr = String(entry.year);
+    if (subtype === "custom" && entry.question && entry.correctAnswer) {
+      return { badge: "Pregunta especial", question: entry.question,
+        options: shuffle([entry.correctAnswer, ...entry.wrongAnswers]), correct: entry.correctAnswer,
+        audioBefore: entry.audioBefore === true, useFiltered: false, isPersonType: false };
+    }
+    if (subtype === "text" && entry.text) {
+      const wrong = shuffle(soloPeople.filter(p => p !== entry.person)).slice(0, 3);
+      return { badge: "¿Quién dijo esto?", question: `¿Quién dijo "${entry.text}"?`,
+        options: shuffle([entry.person, ...wrong]), correct: entry.person,
+        audioBefore: false, useFiltered: false, isPersonType: false };
+    }
+    if (subtype === "year") {
+      const wrongYears = shuffle(soloYears.filter(y => y !== yearStr)).slice(0, 3);
+      return { badge: "¿De qué año es?", question: `Este audio es de ${entry.person}. ¿De qué año es?`,
+        options: shuffle([yearStr, ...wrongYears]), correct: yearStr,
+        audioBefore: true, useFiltered: false, isPersonType: false };
+    }
+    const wrong = shuffle(soloPeople.filter(p => p !== entry.person && (entry.person === "Laura" || p !== "Laura"))).slice(0, 3);
+    return { badge: "¿Quién es?", question: "Escucha el audio y adivina quién es",
+      options: shuffle([entry.person, ...wrong]), correct: entry.person,
+      audioBefore: true, useFiltered: true, isPersonType: true };
+  }
+  if (entry.type === "photo") {
+    return { badge: "Pregunta con foto", question: entry.question,
+      options: shuffle([entry.correctAnswer, ...entry.wrongAnswers]), correct: entry.correctAnswer,
+      audioBefore: false, useFiltered: false, isPersonType: false, photo: entry.photo };
+  }
+  return { badge: "Pregunta", question: entry.question,
+    options: shuffle([entry.correctAnswer, ...entry.wrongAnswers]), correct: entry.correctAnswer,
+    audioBefore: false, useFiltered: false, isPersonType: false };
+}
+
+async function initSolo() {
+  mode = "solo";
+  if (!soloQuestions.length) {
+    const resp = await fetch("questions.json");
+    soloQuestions = await resp.json();
+    const audioEntries = soloQuestions.filter(q => q.type === "audio");
+    soloPeople = [...new Set(audioEntries.map(a => a.person))].sort();
+    soloYears = [...new Set(audioEntries.map(a => String(a.year)))].sort();
+  }
+  soloCurrent = 0; soloScore = 0;
+  soloLoadRound();
+}
+
+function soloLoadRound() {
+  soloAnswered = false;
+  const entry = soloQuestions[soloCurrent];
+  soloCurrentQ = buildSoloQuestion(entry);
+
+  const audioSrc = entry.type === "audio"
+    ? (soloCurrentQ.useFiltered ? `audios-filtered/${entry.audio}.mp3` : `audios/${entry.audio}.mp3`)
+    : null;
+
+  const data = {
+    index: soloCurrent, total: soloQuestions.length,
+    badge: soloCurrentQ.badge, question: soloCurrentQ.question,
+    options: soloCurrentQ.options, audioBefore: soloCurrentQ.audioBefore,
+    audioSrc,
+  };
+
+  document.getElementById("q-info-right").textContent = `${soloScore} acierto${soloScore !== 1 ? 's' : ''}`;
+  const tiles = renderQuestion(data);
+
+  // Bind click handlers for solo
+  tiles.querySelectorAll(".option-tile").forEach(btn => {
+    btn.onclick = () => soloAnswer(btn, btn.dataset.value);
   });
 
-  // Hide post-answer elements
-  document.getElementById("audio-after").classList.remove("show");
-  document.getElementById("result-banner").className = "result-banner";
-  document.getElementById("btn-next").style.display = "none";
+  if (data.audioBefore) {
+    document.getElementById("countdown-number").textContent = "\u00B7\u00B7\u00B7";
+    const fg = document.getElementById("countdown-fg");
+    fg.style.transition = "none"; fg.style.strokeDashoffset = "0";
 
-  // Reset audio
-  isPlaying = false;
-  resetPlayButtons();
-  if (entry.type === "audio") {
-    player.src = getAudioSource(entry);
-    player.load();
+    setTimeout(() => {
+      audio.play(); isPlaying = true;
+      document.getElementById("host-play-btn").classList.add("playing");
+      audio.onended = () => {
+        isPlaying = false;
+        document.getElementById("host-play-btn").classList.remove("playing");
+        tiles.querySelectorAll(".option-tile").forEach(t => t.style.opacity = "");
+        // No countdown in solo — just let them answer
+        document.getElementById("countdown-container").style.display = "none";
+        audio.onended = () => { isPlaying = false; document.querySelectorAll(".play-btn").forEach(b => b.classList.remove("playing")); };
+      };
+    }, 3000);
   } else {
-    player.src = "";
-  }
-  player.onended = () => { isPlaying = false; resetPlayButtons(); };
-}
-
-function resetPlayButtons() {
-  document.getElementById("play-btn-inline").classList.remove("playing");
-  document.getElementById("play-btn-after").classList.remove("playing");
-}
-
-function togglePlay() {
-  if (isPlaying) {
-    player.pause();
-    isPlaying = false;
-    resetPlayButtons();
-  } else {
-    player.play();
-    isPlaying = true;
-    document.getElementById("play-btn-inline").classList.add("playing");
-    document.getElementById("play-btn-after").classList.add("playing");
+    // No countdown in solo
+    document.getElementById("countdown-container").style.display = "none";
   }
 }
 
-function checkAnswer(selected) {
-  const correct = currentQuestion.correct;
-  const entry = shuffled[current];
+function soloAnswer(btn, selected) {
+  if (soloAnswered) return;
+  soloAnswered = true;
+  const correct = soloCurrentQ.correct;
+  const entry = soloQuestions[soloCurrent];
 
-  document.querySelectorAll(".option-btn").forEach(btn => {
-    btn.disabled = true;
-    if (btn.dataset.value === correct) btn.classList.add("correct");
-    if (btn.dataset.value === selected && selected !== correct) btn.classList.add("wrong");
+  document.querySelectorAll(".option-tile").forEach(b => {
+    b.disabled = true;
+    if (b.dataset.value === correct) b.classList.add("correct-tile");
+    else b.classList.add("dim");
+    if (b.dataset.value === selected && selected !== correct) {
+      b.classList.remove("dim"); b.classList.add("wrong-tile");
+    }
   });
 
   const banner = document.getElementById("result-banner");
   if (selected === correct) {
-    score++;
+    soloScore++;
     banner.className = "result-banner show correct-banner";
     banner.textContent = "¡Correcto!";
   } else {
     banner.className = "result-banner show wrong-banner";
     banner.textContent = `Nope! Era: ${correct}`;
   }
+  document.getElementById("q-info-right").textContent = `${soloScore} acierto${soloScore !== 1 ? 's' : ''}`;
 
-  document.getElementById("score-label").textContent = `${score} acierto${score !== 1 ? 's' : ''}`;
-
-  // Show audio after answer for audio questions
-  const afterArea = document.getElementById("audio-after");
-  if (entry.type === "audio" && (!currentQuestion.audioBefore || currentQuestion.isPersonType)) {
-    afterArea.classList.add("show");
-  }
-
-  if (currentQuestion.isPersonType && entry.type === "audio") {
-    player.pause();
-    isPlaying = false;
-    resetPlayButtons();
-    player.src = `audios/${entry.audio}.mp3`;
-    player.load();
-    player.onended = () => { isPlaying = false; resetPlayButtons(); };
-  }
-
-  if (entry.type === "audio") {
+  // Show original audio for audio questions
+  if (entry.type === "audio" && (!soloCurrentQ.audioBefore || soloCurrentQ.isPersonType)) {
+    document.getElementById("reveal-info").classList.add("show");
+    audio.pause(); isPlaying = false;
+    document.querySelectorAll(".play-btn").forEach(b => b.classList.remove("playing"));
+    audio.src = `audios/${entry.audio}.mp3`;
+    audio.load();
     const { date } = parseDate(entry.audio);
-    document.getElementById("audio-label").innerHTML =
-      `<strong>${entry.person}</strong><br>${date}`;
+    document.getElementById("reveal-label").innerHTML = `<strong>${entry.person}</strong><br>${date}`;
   }
 
-  document.getElementById("btn-next").style.display = "block";
+  document.getElementById("btn-next").style.display = "";
   document.getElementById("btn-next").textContent =
-    current < shuffled.length - 1 ? "Siguiente" : "Ver resultado";
+    soloCurrent < soloQuestions.length - 1 ? "Siguiente" : "Ver resultado";
 }
 
-function nextRound() {
-  player.pause();
-  isPlaying = false;
-  resetPlayButtons();
-  current++;
-  if (current >= shuffled.length) endGame();
-  else loadRound();
+function nextQuestion() {
+  if (mode === "solo") {
+    audio.pause(); isPlaying = false;
+    document.querySelectorAll(".play-btn").forEach(b => b.classList.remove("playing"));
+    soloCurrent++;
+    if (soloCurrent >= soloQuestions.length) soloEnd();
+    else soloLoadRound();
+  }
 }
 
-function endGame() {
-  document.getElementById("game-screen").style.display = "none";
-  const end = document.getElementById("end-screen");
-  end.style.display = "flex";
-  end.style.flexDirection = "column";
-  end.style.alignItems = "center";
-
-  const total = shuffled.length;
-  document.getElementById("final-score").textContent = `${score} / ${total}`;
-
-  const pct = score / total;
+function soloEnd() {
+  showScreen("end-solo");
+  const total = soloQuestions.length;
+  document.getElementById("final-score").textContent = `${soloScore} / ${total}`;
+  const pct = soloScore / total;
   let msg;
   if (pct === 1) msg = "Memoria perfecta. Conocéis a vuestras amigas mejor que nadie.";
   else if (pct >= 0.75) msg = "¡Muy bien! Casi acertáis todas.";
   else if (pct >= 0.5) msg = "No está mal, ¡pero hay que repasar esos audios!";
   else msg = "Uy... ¡toca volver a escuchar esos audios!";
   document.getElementById("end-message").textContent = msg;
+}
+
+// ========== MULTIPLAYER MODE ==========
+let socket = null;
+let mpCurrentQ = null;
+
+function initMultiplayer() {
+  mode = "multi";
+  if (!socket) socket = io();
+  socket.emit("host:create");
+
+  socket.on("host:created", ({ pin }) => {
+    showScreen("lobby");
+    document.getElementById("pin-display").textContent = pin;
+    document.getElementById("join-url").textContent = `${location.host}/player.html`;
+  });
+
+  socket.on("host:playerList", (players) => {
+    const grid = document.getElementById("player-grid");
+    grid.innerHTML = players.map(p => `<div class="player-chip">${p.name}</div>`).join("");
+    const btn = document.getElementById("btn-lobby-start");
+    btn.disabled = players.length === 0;
+    btn.textContent = players.length > 0 ? `Empezar (${players.length} jugador${players.length > 1 ? 'es' : ''})` : "Esperando jugadores...";
+  });
+
+  socket.on("host:question", (data) => {
+    mpCurrentQ = data;
+    document.getElementById("q-info-right").textContent = "0 respuestas";
+    renderQuestion(data);
+
+    // In multiplayer, tiles are NOT clickable
+    document.querySelectorAll(".option-tile").forEach(b => b.onclick = null);
+
+    if (data.audioBefore) {
+      document.getElementById("countdown-number").textContent = "5";
+      document.getElementById("countdown-number").style.color = "var(--accent)";
+      const fg = document.getElementById("countdown-fg");
+      fg.style.transition = "none"; fg.style.strokeDashoffset = "0";
+      document.getElementById("q-info-right").textContent = "Escuchad...";
+
+      setTimeout(() => {
+        audio.play(); isPlaying = true;
+        document.getElementById("host-play-btn").classList.add("playing");
+        audio.onended = () => {
+          isPlaying = false;
+          document.getElementById("host-play-btn").classList.remove("playing");
+          document.getElementById("q-info-right").textContent = "0 respuestas";
+          document.querySelectorAll(".option-tile").forEach(t => t.style.opacity = "");
+          startCountdown(5, () => socket.emit("host:timeUp"));
+          socket.emit("host:answersOpen");
+        };
+      }, 3000);
+    } else {
+      startCountdown(data.countdown, () => socket.emit("host:timeUp"));
+    }
+  });
+
+  socket.on("host:answerCount", ({ answered, total }) => {
+    document.getElementById("q-info-right").textContent = `${answered} / ${total} respuestas`;
+  });
+
+  socket.on("host:reveal", (data) => {
+    clearInterval(countdownInterval);
+    audio.pause(); isPlaying = false;
+
+    showScreen("reveal-screen");
+    document.getElementById("r-badge").textContent = mpCurrentQ.badge;
+
+    const rText = document.getElementById("r-text");
+    const quoteMatch = mpCurrentQ.question.match(/"([^"]+)"/);
+    if (quoteMatch) {
+      rText.innerHTML = mpCurrentQ.question.replace(`"${quoteMatch[1]}"`, `<span class="quote">"${quoteMatch[1]}"</span>`);
+    } else {
+      rText.textContent = mpCurrentQ.question;
+    }
+
+    // Bar chart
+    const maxCount = Math.max(1, ...mpCurrentQ.options.map(o => data.optionCounts[o] || 0));
+    document.getElementById("r-bar-chart").innerHTML = mpCurrentQ.options.map((opt, i) => {
+      const count = data.optionCounts[opt] || 0;
+      const isCorrect = opt === data.correct;
+      const heightPct = count > 0 ? Math.max(10, (count / maxCount) * 100) : 4;
+      return `<div class="bar-col">
+        <div class="bar-check">${isCorrect ? "\u2714" : ""}</div>
+        <div class="bar-count">${count}</div>
+        <div class="bar-fill c${i} ${isCorrect ? "" : "dim-bar"}" style="height:${heightPct}%"></div>
+        <div class="bar-base c${i}">${shapes[i]} ${esc(opt)}</div>
+      </div>`;
+    }).join("");
+
+    // Reveal audio
+    const revealInfo = document.getElementById("r-reveal-info");
+    if (data.type === "audio" && (data.showOriginal || !mpCurrentQ.audioBefore)) {
+      revealInfo.classList.add("show");
+      audio.src = data.originalAudio;
+      audio.load(); isPlaying = false;
+      document.getElementById("r-reveal-play-btn").classList.remove("playing");
+      document.getElementById("r-reveal-label").innerHTML = `<strong>${data.person}</strong><br>${data.date}`;
+    } else {
+      revealInfo.classList.remove("show");
+    }
+
+    renderLeaderboard("r-leaderboard", data.leaderboard);
+    document.getElementById("btn-mp-next").textContent =
+      mpCurrentQ.index < mpCurrentQ.total - 1 ? "Siguiente" : "Ver resultados";
+  });
+
+  socket.on("game:end", ({ leaderboard }) => {
+    clearInterval(countdownInterval);
+    audio.pause();
+    showScreen("end-mp");
+    if (leaderboard.length > 0) {
+      document.getElementById("winner-name").textContent = leaderboard[0].name;
+      document.getElementById("winner-score").textContent = `${leaderboard[0].score} puntos`;
+    }
+    renderLeaderboard("end-leaderboard", leaderboard);
+  });
+}
+
+function lobbyStart() {
+  if (socket) socket.emit("host:start");
+}
+
+function mpNext() {
+  audio.pause(); isPlaying = false;
+  if (socket) socket.emit("host:next");
 }
 </script>
 </body>

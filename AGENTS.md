@@ -7,8 +7,7 @@ A Kahoot-style multiplayer quiz game built with Node.js (Express + Socket.IO). A
 ## Architecture
 
 - **server.js** — Single Node.js server handling both static file serving and WebSocket game logic. Express serves files, Socket.IO manages real-time multiplayer communication.
-- **index.html** — Solo play mode (standalone, reads questions.json directly)
-- **host.html** — Multiplayer host screen (connects via Socket.IO, controls game flow)
+- **index.html** — Main app: start screen, solo mode, and multiplayer host screen (lobby, questions, countdown, bar chart, leaderboard) all in one file
 - **player.html** — Multiplayer player screen (phone-optimized, join via PIN)
 - **questions.json** — Ordered array of questions. Three types: `audio` (with subtypes: person, year, text, custom), `photo`, `plain`.
 
@@ -39,7 +38,7 @@ sox -v 0.5 input.mp3 output.mp3 pitch -320 highpass 120 lowpass 3200 bass 3 equa
 
 ## Multiplayer flow
 
-1. Host opens `/host.html` → creates game → shows PIN
+1. Host opens `/` and clicks Multijugador → creates game → shows PIN
 2. Players open `/player.html` → enter PIN + name → wait in lobby
 3. Host starts game → questions cycle through:
    - Audio-before questions: 3s read → auto-play audio → 5s countdown to answer
