@@ -4,86 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <title>Recuerdoot - Jugar</title>
-<style>
-  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  :root {
-    --bg: #0f0f13; --surface: #1a1a24; --surface-hover: #24243a;
-    --border: #2a2a3e; --text: #e8e8f0; --text-secondary: #8888a8;
-    --accent: #7c5cfc; --accent-glow: rgba(124,92,252,0.25);
-    --correct: #34d399; --correct-bg: rgba(52,211,153,0.15);
-    --wrong: #f87171; --wrong-bg: rgba(248,113,113,0.15);
-    --opt0: #e74c3c; --opt1: #3498db; --opt2: #f1c40f; --opt3: #2ecc71;
-  }
-  body {
-    font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text);
-    min-height: 100dvh; display: flex; flex-direction: column; align-items: center;
-    justify-content: center; padding: 20px;
-    -webkit-tap-highlight-color: transparent;
-  }
-  .screen { display: none; width: 100%; max-width: 400px; text-align: center; }
-  .screen.active { display: flex; flex-direction: column; align-items: center; }
-
-  .brand { font-size: 2rem; font-weight: 900; letter-spacing: -0.04em; margin-bottom: 24px;
-    background: linear-gradient(135deg, #faf7ff 0%, #b48cff 45%, #7c5cfc 100%);
-    -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-
-  /* Join */
-  .join-form { width: 100%; }
-  .input-group { margin-bottom: 16px; }
-  .input-group label { display: block; text-align: left; font-size: 0.85rem; font-weight: 600;
-    color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px; }
-  .input-group input { width: 100%; padding: 16px; background: var(--surface); border: 2px solid var(--border);
-    border-radius: 12px; color: var(--text); font-size: 1.2rem; font-weight: 600; text-align: center;
-    font-family: 'Inter', sans-serif; outline: none; transition: border-color 0.2s; }
-  .input-group input:focus { border-color: var(--accent); }
-  .input-group input::placeholder { color: var(--text-secondary); font-weight: 400; }
-  .btn { width: 100%; background: var(--accent); color: white; border: none; padding: 18px;
-    border-radius: 14px; font-size: 1.15rem; font-weight: 700; cursor: pointer;
-    transition: transform 0.15s; font-family: 'Inter', sans-serif; }
-  .btn:active { transform: scale(0.97); }
-  .btn:disabled { opacity: 0.4; }
-  .error-msg { color: var(--wrong); font-size: 0.9rem; font-weight: 600; margin-top: 12px; min-height: 1.2em; }
-
-  /* Waiting */
-  .waiting-text { font-size: 1.1rem; color: var(--text-secondary); margin-top: 16px; }
-  .player-name-display { font-size: 2rem; font-weight: 800; color: var(--accent); margin: 16px 0; }
-  .pulse { animation: pulse 2s ease-in-out infinite; }
-  @keyframes pulse { 0%,100% { opacity: 0.5; } 50% { opacity: 1; } }
-
-  /* Answer buttons - Kahoot style full screen colored */
-  .answer-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; width: 100%; flex: 1; }
-  .answer-btn { border: none; border-radius: 14px; padding: 24px 12px; font-size: 1.1rem;
-    font-weight: 700; color: white; cursor: pointer; transition: transform 0.15s, opacity 0.3s;
-    display: flex; align-items: center; justify-content: center; gap: 10px; min-height: 80px;
-    font-family: 'Inter', sans-serif; }
-  .answer-btn:active { transform: scale(0.95); }
-  .answer-btn:disabled { cursor: default; }
-  .answer-btn:nth-child(1) { background: var(--opt0); }
-  .answer-btn:nth-child(2) { background: var(--opt1); }
-  .answer-btn:nth-child(3) { background: var(--opt2); color: #1a1a24; }
-  .answer-btn:nth-child(4) { background: var(--opt3); }
-  .answer-btn.dim { opacity: 0.2; }
-  .answer-btn.selected { transform: scale(1.05); box-shadow: 0 0 20px rgba(255,255,255,0.3); }
-
-  .q-info { font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 12px;
-    text-transform: uppercase; letter-spacing: 0.08em; font-weight: 600; }
-
-  /* Result */
-  .result-icon { font-size: 4rem; margin-bottom: 12px; }
-  .result-text { font-size: 1.5rem; font-weight: 800; margin-bottom: 8px; }
-  .result-points { font-size: 1.1rem; color: var(--text-secondary); margin-bottom: 4px; }
-  .result-score { font-size: 2rem; font-weight: 900; color: var(--accent); margin: 12px 0; }
-  .result-streak { font-size: 0.9rem; color: var(--text-secondary); }
-  .result-correct { color: var(--correct); }
-  .result-wrong { color: var(--wrong); }
-
-  /* End */
-  .end-rank { font-size: 5rem; font-weight: 900; color: var(--accent); margin: 16px 0; }
-  .end-score { font-size: 1.2rem; color: var(--text-secondary); }
-</style>
+<link rel="stylesheet" href="styles.css">
 </head>
-<body>
+<body class="player">
 
 <!-- JOIN -->
 <div id="join-screen" class="screen active">

@@ -109,8 +109,8 @@ function loadQuestions() {
         correct,
         audioBefore,
         useFiltered,
-        audioFile: `audios/${entry.audio}.mp3`,
-        filteredFile: `audios-filtered/${entry.audio}.mp3`,
+        audioFile: `media/audios/${entry.audio}`,
+        filteredFile: `media/audios-filtered/${entry.audio}`,
       };
     } else if (entry.type === "photo") {
       return {
@@ -119,7 +119,7 @@ function loadQuestions() {
         question: entry.question,
         options: shuffle([entry.correctAnswer, ...entry.wrongAnswers]),
         correct: entry.correctAnswer,
-        photo: entry.photo,
+        photo: `media/images/${entry.photo}`,
         audioBefore: false,
         useFiltered: false,
       };

@@ -15,7 +15,7 @@ A Kahoot-style multiplayer quiz game built with Node.js (Express + Socket.IO). A
 
 - All UI text is in Spanish
 - Dark theme with Inter font, purple accent (`#7c5cfc`)
-- Audio files live in `audios/` (originals) and `audios-filtered/` (sox pitch-shifted for person questions). Both are gitignored.
+- Audio files live in `media/audios/` (originals) and `media/audios-filtered/` (sox pitch-shifted for person questions). The `media/` folder is gitignored.
 - Questions play in the order defined in questions.json (no shuffle)
 - For audio person questions: filtered audio plays before answering, original revealed after
 - For audio text questions: quote shown as text, no audio before, audio revealed after

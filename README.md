@@ -20,8 +20,8 @@ For multiplayer, players join from their phones at `http://<your-ip>:8000/player
 - `host.html` — Host/projector screen for multiplayer (lobby, questions, countdown, leaderboard)
 - `player.html` — Player phone screen (join, answer, results)
 - `questions.json` — Ordered list of questions
-- `audios/` — Original audio files (not in repo, add locally)
-- `audios-filtered/` — Filtered audio files for "person" questions (not in repo)
+- `media/audios/` — Original audio files (not in repo, add locally)
+- `media/audios-filtered/` — Filtered audio files for "person" questions (not in repo)
 
 ## `questions.json` format
 
@@ -133,13 +133,13 @@ Text-only question, no media.
 
 Audio files are personal and excluded from the repo via `.gitignore`. Place them in:
 
-- `audios/` — Original MP3 files named `<audio-key>.mp3`
-- `audios-filtered/` — Filtered versions (used for `person` subtype)
+- `media/audios/` — Original MP3 files named `<audio-key>.mp3`
+- `media/audios-filtered/` — Filtered versions (used for `person` subtype)
 
 To generate filtered audios from originals:
 
 ```bash
-for f in audios/*.mp3; do
-  sox -v 0.5 "$f" "audios-filtered/$(basename "$f")" pitch -320 highpass 120 lowpass 3200 bass 3 equalizer 500 1.0q 4 overdrive 8 compand 0.005,0.08 -24,-24,-12,-10,-6,-5 0 -24
+for f in media/audios/*.mp3; do
+  sox -v 0.5 "$f" "media/audios-filtered/$(basename "$f")" pitch -320 highpass 120 lowpass 3200 bass 3 equalizer 500 1.0q 4 overdrive 8 compand 0.005,0.08 -24,-24,-12,-10,-6,-5 0 -24
 done
 ```

@@ -4,168 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Recuerdoot</title>
-<style>
-  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  :root {
-    --bg: #0f0f13; --surface: #1a1a24; --surface-hover: #24243a;
-    --border: #2a2a3e; --text: #e8e8f0; --text-secondary: #8888a8;
-    --accent: #7c5cfc; --accent-glow: rgba(124,92,252,0.25);
-    --correct: #34d399; --correct-bg: rgba(52,211,153,0.15);
-    --wrong: #f87171; --wrong-bg: rgba(248,113,113,0.15);
-    --opt0: #e74c3c; --opt1: #3498db; --opt2: #f1c40f; --opt3: #2ecc71;
-  }
-  body {
-    font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text);
-    min-height: 100dvh; display: flex; flex-direction: column; align-items: center;
-    justify-content: center; padding: 32px; overflow: hidden;
-  }
-  .screen { display: none; width: 100%; max-width: 900px; text-align: center; }
-  .screen.active { display: flex; flex-direction: column; align-items: center; }
-
-  /* Brand */
-  .brand { font-size: 3.2rem; font-weight: 900; letter-spacing: -0.04em; margin-bottom: 8px;
-    background: linear-gradient(135deg, #faf7ff 0%, #b48cff 45%, #7c5cfc 100%);
-    -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-
-  /* Start screen */
-  .start-subtitle { font-size: 1.1rem; font-weight: 700; letter-spacing: 0.08em; margin-bottom: 12px;
-    color: var(--text-secondary); text-transform: uppercase; }
-  .start-desc { color: var(--text-secondary); font-size: 1.05rem; line-height: 1.6; margin-bottom: 32px; }
-  .btn { background: var(--accent); color: white; border: none; padding: 18px 56px;
-    border-radius: 14px; font-size: 1.2rem; font-weight: 700; cursor: pointer;
-    transition: transform 0.15s, box-shadow 0.15s; font-family: 'Inter', sans-serif; }
-  .btn:hover { transform: scale(1.04); box-shadow: 0 0 30px var(--accent-glow); }
-  .btn:active { transform: scale(0.97); }
-  .btn:disabled { opacity: 0.4; cursor: default; transform: none; box-shadow: none; }
-  .btn-secondary { background: var(--surface); border: 2px solid var(--accent); }
-  .btn-row { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
-
-  /* Lobby */
-  .pin-display { font-size: 5rem; font-weight: 900; letter-spacing: 0.15em; color: var(--accent);
-    text-shadow: 0 0 40px var(--accent-glow); margin: 16px 0; }
-  .pin-label { font-size: 1.1rem; color: var(--text-secondary); text-transform: uppercase;
-    letter-spacing: 0.1em; font-weight: 600; }
-  .join-url { font-size: 0.95rem; color: var(--text-secondary); margin-bottom: 32px; }
-  .join-url span { color: var(--text); font-weight: 600; }
-  .player-grid { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center;
-    margin: 24px 0; min-height: 60px; }
-  .player-chip { background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
-    padding: 12px 24px; font-weight: 700; font-size: 1.1rem;
-    display: inline-flex; align-items: center; justify-content: center; line-height: 1;
-    animation: popIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); }
-  @keyframes popIn { from { transform: scale(0); opacity: 0; } to { transform: scale(1); opacity: 1; } }
-
-  /* Question screen */
-  .q-header { width: 100%; display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
-  .q-counter { font-size: 0.9rem; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.08em; }
-  .q-progress { flex: 1; height: 6px; background: var(--border); border-radius: 3px; margin: 0 20px; overflow: hidden; }
-  .q-progress-fill { height: 100%; background: linear-gradient(90deg, #7c5cfc, #c084fc); border-radius: 3px; transition: width 0.4s; }
-  .q-info-right { font-size: 0.9rem; font-weight: 600; color: var(--accent); }
-
-  .q-card { background: var(--surface); border: 1px solid var(--border); border-radius: 20px;
-    padding: 40px; width: 100%; margin-bottom: 24px; }
-  .q-badge { display: inline-block; font-size: 0.75rem; font-weight: 700; text-transform: uppercase;
-    letter-spacing: 0.1em; color: var(--accent); background: var(--accent-glow);
-    padding: 6px 16px; border-radius: 20px; margin-bottom: 16px; }
-  .q-text { font-size: 1.6rem; font-weight: 700; line-height: 1.5; }
-  .q-text .quote { color: var(--correct); font-style: italic; }
-  .q-text .hl { color: var(--accent); }
-
-  /* Countdown ring */
-  .countdown-container { position: relative; margin: 20px auto; width: 100px; height: 100px; }
-  .countdown-ring { transform: rotate(-90deg); }
-  .countdown-ring circle { fill: none; stroke-width: 6; }
-  .countdown-ring .bg { stroke: var(--border); }
-  .countdown-ring .fg { stroke: var(--accent); stroke-linecap: round;
-    transition: stroke-dashoffset 1s linear; }
-  .countdown-number { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-    font-size: 2.4rem; font-weight: 900; color: var(--accent); }
-
-  /* Audio play */
-  .host-audio-area { margin: 16px 0; }
-  .play-btn { width: 60px; height: 60px; border-radius: 50%; background: var(--accent); border: none;
-    cursor: pointer; display: inline-flex; align-items: center; justify-content: center;
-    transition: transform 0.15s, box-shadow 0.15s; }
-  .play-btn:hover { transform: scale(1.08); box-shadow: 0 0 30px var(--accent-glow); }
-  .play-btn .icon-play, .play-btn .icon-pause { fill: white; }
-  .play-btn .icon-pause { display: none; }
-  .play-btn.playing .icon-play { display: none; }
-  .play-btn.playing .icon-pause { display: block; }
-
-  /* Option tiles (Kahoot-style colored blocks) */
-  .option-tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; width: 100%; }
-  .option-tile { border-radius: 14px; padding: 24px 16px; font-size: 1.25rem; font-weight: 700;
-    color: white; display: flex; align-items: center; gap: 14px; text-align: left;
-    transition: all 0.3s; opacity: 1; cursor: pointer; border: none; font-family: 'Inter', sans-serif; }
-  .option-tile .shape { width: 32px; height: 32px; flex-shrink: 0; }
-  .option-tile:nth-child(1) { background: var(--opt0); }
-  .option-tile:nth-child(2) { background: var(--opt1); }
-  .option-tile:nth-child(3) { background: var(--opt2); color: #1a1a24; }
-  .option-tile:nth-child(4) { background: var(--opt3); }
-  .option-tile:not(:disabled):hover { transform: scale(1.02); filter: brightness(1.1); }
-  .option-tile:not(:disabled):active { transform: scale(0.97); }
-  .option-tile:disabled { cursor: default; }
-  .option-tile.dim { opacity: 0.25; transform: scale(0.95); }
-  .option-tile.correct-tile { opacity: 1; transform: scale(1.05);
-    box-shadow: 0 0 30px rgba(52,211,153,0.4); outline: 3px solid var(--correct); }
-  .option-tile.wrong-tile { opacity: 0.5; outline: 3px solid var(--wrong); }
-  .option-tile .count-badge { margin-left: auto; background: rgba(0,0,0,0.25);
-    padding: 6px 14px; border-radius: 20px; font-size: 1rem; }
-
-  /* Reveal info */
-  .reveal-info { background: var(--surface); border: 1px solid var(--border); border-radius: 14px;
-    padding: 20px 28px; margin: 16px 0; display: none; align-items: center; gap: 20px; }
-  .reveal-info.show { display: flex; }
-  .reveal-label { text-align: left; font-size: 0.95rem; color: var(--text-secondary); line-height: 1.5; }
-  .reveal-label strong { color: var(--text); }
-
-  /* Bar chart (Kahoot-style reveal) */
-  .bar-chart { display: flex; align-items: flex-end; justify-content: center; gap: 16px;
-    width: 100%; height: 220px; margin-bottom: 24px; padding: 0 16px; }
-  .bar-col { display: flex; flex-direction: column; align-items: center; flex: 1; max-width: 160px; height: 100%; justify-content: flex-end; }
-  .bar-fill { width: 100%; border-radius: 8px 8px 0 0; transition: height 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
-    position: relative; min-height: 0; margin-bottom: -1px; }
-  .bar-fill.c0 { background: var(--opt0); } .bar-fill.c1 { background: var(--opt1); }
-  .bar-fill.c2 { background: var(--opt2); } .bar-fill.c3 { background: var(--opt3); }
-  .bar-fill.dim-bar { opacity: 0.2; }
-  .bar-count { font-size: 1.1rem; font-weight: 800; color: var(--text); margin-bottom: 6px; }
-  .bar-check { margin-bottom: 4px; font-size: 1.4rem; min-height: 1.6em; }
-  .bar-base { width: 100%; padding: 10px 8px; border-radius: 0 0 8px 8px; display: flex;
-    align-items: center; justify-content: center; gap: 8px; color: white; font-weight: 700;
-    font-size: 0.85rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .bar-base.c0 { background: var(--opt0); } .bar-base.c1 { background: var(--opt1); }
-  .bar-base.c2 { background: var(--opt2); color: #1a1a24; } .bar-base.c3 { background: var(--opt3); }
-
-  /* Result banner (solo mode) */
-  .result-banner { text-align: center; padding: 16px; border-radius: 12px;
-    font-weight: 600; font-size: 1rem; margin-bottom: 16px; display: none; }
-  .result-banner.show { display: block; }
-  .result-banner.correct-banner { background: var(--correct-bg); color: var(--correct); }
-  .result-banner.wrong-banner { background: var(--wrong-bg); color: var(--wrong); }
-
-  /* End screen */
-  .final-score { font-size: 4rem; font-weight: 900;
-    background: linear-gradient(135deg, #7c5cfc, #c084fc);
-    -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 8px; }
-  .end-msg { color: var(--text-secondary); font-size: 1.05rem; margin-bottom: 32px; }
-  .trophy { font-size: 5rem; margin-bottom: 16px; }
-  .winner-name { font-size: 2.8rem; font-weight: 900;
-    background: linear-gradient(135deg, #ffd700, #ffaa00);
-    -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 8px; }
-  .winner-score { font-size: 1.2rem; color: var(--text-secondary); margin-bottom: 32px; }
-  .leaderboard { width: 100%; max-width: 600px; margin: 24px auto; }
-  .lb-row { display: flex; align-items: center; padding: 16px 24px; background: var(--surface);
-    border: 1px solid var(--border); border-radius: 12px; margin-bottom: 8px;
-    animation: slideIn 0.4s ease both; }
-  .lb-row:nth-child(1) { border-color: #ffd700; }
-  .lb-row:nth-child(2) { border-color: #c0c0c0; }
-  .lb-row:nth-child(3) { border-color: #cd7f32; }
-  @keyframes slideIn { from { transform: translateX(-30px); opacity: 0; } to { transform: none; opacity: 1; } }
-  .lb-rank { font-size: 1.5rem; font-weight: 900; width: 48px; color: var(--accent); }
-  .lb-name { flex: 1; font-weight: 700; font-size: 1.15rem; text-align: left; }
-  .lb-score { font-weight: 800; font-size: 1.2rem; color: var(--accent); }
-</style>
+<link rel="stylesheet" href="styles.css">
 </head>
 <body>
 
@@ -199,6 +38,7 @@
   </div>
   <div class="q-card">
     <div class="q-badge" id="q-badge"></div>
+    <img class="q-photo" id="q-photo" style="display:none;" alt="">
     <div class="q-text" id="q-text"></div>
     <div class="host-audio-area" id="host-audio-area" style="display:none;">
       <button class="play-btn" id="host-play-btn" onclick="toggleAudio()">
@@ -352,6 +192,16 @@ function renderQuestion(data) {
   document.getElementById("q-progress-fill").style.width = `${((data.index + 1) / data.total) * 100}%`;
   document.getElementById("q-badge").textContent = data.badge;
 
+  // Photo
+  const qPhoto = document.getElementById("q-photo");
+  if (data.photo) {
+    qPhoto.src = data.photo;
+    qPhoto.style.display = "";
+  } else {
+    qPhoto.style.display = "none";
+    qPhoto.src = "";
+  }
+
   const qText = document.getElementById("q-text");
   const quoteMatch = data.question.match(/"([^"]+)"/);
   if (quoteMatch) {
@@ -432,7 +282,7 @@ function buildSoloQuestion(entry) {
   if (entry.type === "photo") {
     return { badge: "Pregunta con foto", question: entry.question,
       options: shuffle([entry.correctAnswer, ...entry.wrongAnswers]), correct: entry.correctAnswer,
-      audioBefore: false, useFiltered: false, isPersonType: false, photo: entry.photo };
+      audioBefore: false, useFiltered: false, isPersonType: false, photo: `media/images/${entry.photo}` };
   }
   return { badge: "Pregunta", question: entry.question,
     options: shuffle([entry.correctAnswer, ...entry.wrongAnswers]), correct: entry.correctAnswer,
@@ -458,14 +308,14 @@ function soloLoadRound() {
   soloCurrentQ = buildSoloQuestion(entry);
 
   const audioSrc = entry.type === "audio"
-    ? (soloCurrentQ.useFiltered ? `audios-filtered/${entry.audio}.mp3` : `audios/${entry.audio}.mp3`)
+    ? (soloCurrentQ.useFiltered ? `media/audios-filtered/${entry.audio}` : `media/audios/${entry.audio}`)
     : null;
 
   const data = {
     index: soloCurrent, total: soloQuestions.length,
     badge: soloCurrentQ.badge, question: soloCurrentQ.question,
     options: soloCurrentQ.options, audioBefore: soloCurrentQ.audioBefore,
-    audioSrc,
+    audioSrc, photo: soloCurrentQ.photo || null,
   };
 
   document.getElementById("q-info-right").textContent = `${soloScore} acierto${soloScore !== 1 ? 's' : ''}`;
@@ -530,7 +380,7 @@ function soloAnswer(btn, selected) {
     document.getElementById("reveal-info").classList.add("show");
     audio.pause(); isPlaying = false;
     document.querySelectorAll(".play-btn").forEach(b => b.classList.remove("playing"));
-    audio.src = `audios/${entry.audio}.mp3`;
+    audio.src = `media/audios/${entry.audio}`;
     audio.load();
     const { date } = parseDate(entry.audio);
     document.getElementById("reveal-label").innerHTML = `<strong>${entry.person}</strong><br>${date}`;
