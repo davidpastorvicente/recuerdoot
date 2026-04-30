@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Recuerdoot</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --bg: #0f0f13;
+    --surface: #1a1a24;
+    --surface-hover: #24243a;
+    --border: #2a2a3e;
+    --text: #e8e8f0;
+    --text-secondary: #8888a8;
+    --accent: #7c5cfc;
+    --accent-glow: rgba(124, 92, 252, 0.25);
+    --correct: #34d399;
+    --correct-bg: rgba(52, 211, 153, 0.12);
+    --wrong: #f87171;
+    --wrong-bg: rgba(248, 113, 113, 0.12);
+    --radius: 16px;
+  }
+
+  body {
+    font-family: 'Inter', -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+  }
+
+  #start-screen { text-align: center; max-width: 480px; }
+  .brand-title {
+    font-size: 2.8rem;
+    font-weight: 800;
+    letter-spacing: -0.04em;
+    margin-bottom: 10px;
+    background: linear-gradient(135deg, #faf7ff 0%, #b48cff 45%, #7c5cfc 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    text-shadow: 0 0 30px rgba(124, 92, 252, 0.2);
+  }
+  #start-screen h1 {
+    font-size: 1.1rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    margin-bottom: 12px;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+  }
+  #start-screen p {
+    color: var(--text-secondary);
+    font-size: 1.05rem;
+    line-height: 1.6;
+    margin-bottom: 32px;
+  }
+  .btn-primary {
+    background: var(--accent);
+    color: white;
+    border: none;
+    padding: 16px 48px;
+    border-radius: 12px;
+    font-size: 1.1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.15s, box-shadow 0.15s;
+  }
+  .btn-primary:hover { transform: scale(1.04); box-shadow: 0 0 30px var(--accent-glow); }
+  .btn-primary:active { transform: scale(0.97); }
+
+  #game-screen { display: none; width: 100%; max-width: 520px; }
+
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  .game-brand {
+    width: 100%;
+    text-align: center;
+    font-size: 1.7rem;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    background: linear-gradient(135deg, #faf7ff 0%, #b48cff 45%, #7c5cfc 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    text-shadow: 0 0 24px rgba(124, 92, 252, 0.18);
+    margin-bottom: 4px;
+  }
+  .round-label {
+    font-size: 0.85rem; font-weight: 600; color: var(--text-secondary);
+    text-transform: uppercase; letter-spacing: 0.08em; white-space: nowrap;
+  }
+  .progress-bar {
+    flex: 1; height: 6px; background: var(--border);
+    border-radius: 3px; margin: 0 16px; overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #7c5cfc, #c084fc);
+    border-radius: 3px; transition: width 0.4s ease;
+  }
+  .score-label {
+    font-size: 0.85rem; font-weight: 600; color: var(--accent); white-space: nowrap;
+  }
+
+  .question-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 32px;
+    text-align: center;
+    margin-bottom: 24px;
+  }
+  .question-type-badge {
+    display: inline-block;
+    font-size: 0.7rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.1em; color: var(--accent);
+    background: var(--accent-glow);
+    padding: 4px 12px; border-radius: 20px; margin-bottom: 16px;
+  }
+  .question-card h2 {
+    font-size: 1.25rem; font-weight: 700; line-height: 1.5;
+  }
+  .question-card h2 .hl { color: var(--accent); }
+  .question-card h2 .quote {
+    color: var(--correct);
+    font-style: italic;
+  }
+
+  /* Audio player inline in question card */
+  .audio-inline {
+    display: none;
+    justify-content: center;
+    margin-top: 20px;
+  }
+  .audio-inline.show { display: flex; }
+
+  /* Audio player after answer */
+  .audio-after {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px 24px;
+    margin-bottom: 16px;
+  }
+  .audio-after.show { display: flex; }
+
+  .play-btn {
+    width: 52px; height: 52px;
+    border-radius: 50%;
+    background: var(--accent);
+    border: none; cursor: pointer;
+    display: inline-flex; align-items: center; justify-content: center;
+    transition: transform 0.15s, box-shadow 0.15s;
+    flex-shrink: 0;
+  }
+  .play-btn:hover { transform: scale(1.08); box-shadow: 0 0 30px var(--accent-glow); }
+  .play-btn:active { transform: scale(0.95); }
+  .play-btn .icon-play, .play-btn .icon-pause { fill: white; }
+  .play-btn .icon-pause { display: none; }
+  .play-btn.playing .icon-play { display: none; }
+  .play-btn.playing .icon-pause { display: block; }
+
+  .audio-label {
+    font-size: 0.9rem; color: var(--text-secondary);
+    text-align: left; line-height: 1.4;
+  }
+  .audio-label strong { color: var(--text); text-transform: capitalize; }
+
+  .options {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 12px; margin-bottom: 24px;
+  }
+  .option-btn {
+    background: var(--surface);
+    border: 2px solid var(--border);
+    border-radius: 12px;
+    padding: 16px 12px;
+    color: var(--text);
+    font-size: 1rem; font-weight: 600;
+    cursor: pointer; transition: all 0.15s;
+  }
+  .option-btn:hover:not(:disabled) { border-color: var(--accent); background: var(--surface-hover); }
+  .option-btn:active:not(:disabled) { transform: scale(0.97); }
+  .option-btn:disabled { cursor: default; }
+  .option-btn.correct { border-color: var(--correct); background: var(--correct-bg); color: var(--correct); }
+  .option-btn.wrong { border-color: var(--wrong); background: var(--wrong-bg); color: var(--wrong); }
+  .option-btn.no-cap { text-transform: none; }
+
+  .result-banner {
+    text-align: center; padding: 16px; border-radius: 12px;
+    font-weight: 600; font-size: 1rem; margin-bottom: 16px; display: none;
+  }
+  .result-banner.show { display: block; }
+  .result-banner.correct-banner { background: var(--correct-bg); color: var(--correct); }
+  .result-banner.wrong-banner { background: var(--wrong-bg); color: var(--wrong); }
+
+  .btn-next {
+    display: none; width: 100%; padding: 16px;
+    background: var(--surface); border: 2px solid var(--border);
+    border-radius: 12px; color: var(--text);
+    font-size: 1rem; font-weight: 600; cursor: pointer;
+    transition: all 0.15s;
+  }
+  .btn-next:hover { border-color: var(--accent); background: var(--surface-hover); }
+
+  #end-screen { display: none; text-align: center; max-width: 480px; }
+  #end-screen h1 { font-size: 2.2rem; font-weight: 800; margin-bottom: 12px; }
+  .final-score {
+    font-size: 4rem; font-weight: 800;
+    background: linear-gradient(135deg, #7c5cfc, #c084fc);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    margin-bottom: 8px;
+  }
+  #end-screen p { color: var(--text-secondary); font-size: 1.05rem; margin-bottom: 32px; }
+</style>
+</head>
+<body>
+
+<div id="start-screen">
+  <div class="brand-title">Recuerdoot</div>
+  <h1>Juego de recuerdos</h1>
+  <p>Preguntas sobre vuestros audios. Adivina quién lo dijo, de qué año es... y después escucha el audio para recordar el momento.</p>
+  <div style="display:flex; gap:12px; justify-content:center; flex-wrap:wrap;">
+    <button class="btn-primary" onclick="startGame()">Jugar solo</button>
+    <button class="btn-primary" onclick="location.href='host.html'" style="background:#24243a; border:2px solid var(--accent);">Multijugador</button>
+  </div>
+</div>
+
+<div id="game-screen">
+  <div class="header">
+    <div class="game-brand">Recuerdoot</div>
+    <span class="round-label" id="round-label">1 / 24</span>
+    <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+    <span class="score-label" id="score-label">0 aciertos</span>
+  </div>
+
+  <div class="question-card">
+    <div class="question-type-badge" id="question-type-badge"></div>
+    <h2 id="question-text"></h2>
+    <div class="audio-inline" id="audio-inline">
+      <button class="play-btn" id="play-btn-inline" onclick="togglePlay()">
+        <svg class="icon-play" width="24" height="24" viewBox="0 0 24 24"><polygon points="6,3 20,12 6,21"/></svg>
+        <svg class="icon-pause" width="24" height="24" viewBox="0 0 24 24"><rect x="5" y="3" width="5" height="18" rx="1"/><rect x="14" y="3" width="5" height="18" rx="1"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <div class="options" id="options"></div>
+  <div class="result-banner" id="result-banner"></div>
+
+  <div class="audio-after" id="audio-after">
+    <button class="play-btn" id="play-btn-after" onclick="togglePlay()">
+      <svg class="icon-play" width="24" height="24" viewBox="0 0 24 24"><polygon points="6,3 20,12 6,21"/></svg>
+      <svg class="icon-pause" width="24" height="24" viewBox="0 0 24 24"><rect x="5" y="3" width="5" height="18" rx="1"/><rect x="14" y="3" width="5" height="18" rx="1"/></svg>
+    </button>
+    <div class="audio-label" id="audio-label"></div>
+  </div>
+
+  <button class="btn-next" id="btn-next" onclick="nextRound()">Siguiente</button>
+</div>
+
+<div id="end-screen">
+  <h1>Fin del juego</h1>
+  <div class="final-score" id="final-score"></div>
+  <p id="end-message"></p>
+  <button class="btn-primary" onclick="startGame()">Jugar otra vez</button>
+</div>
+
+<audio id="audio-player"></audio>
+
+<script>
+const months = ["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
+
+function parseDate(key) {
+  const m = key.match(/(\d{4})(\d{2})(\d{2})/);
+  if (!m) return { date: "", year: "" };
+  const y = m[1], mo = parseInt(m[2]), d = parseInt(m[3]);
+  return { date: `${d} ${months[mo - 1]} ${y}`, year: y };
+}
+
+let questions = [];
+let people = [];
+let years = [];
+let shuffled, current, score, player, isPlaying, currentQuestion;
+
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+async function loadConfig() {
+  if (questions.length) return;
+  const resp = await fetch("questions.json");
+  if (!resp.ok) throw new Error("No se pudo leer questions.json");
+  questions = await resp.json();
+
+  // Build people/years index from audio entries
+  const audioEntries = questions.filter(q => q.type === "audio");
+  people = [...new Set(audioEntries.map(a => a.person))].sort();
+  years = [...new Set(audioEntries.map(a => String(a.year)))].sort();
+}
+
+function buildQuestion(entry) {
+  if (entry.type === "audio") {
+    const subtype = entry.subtype || "person";
+    const yearStr = String(entry.year);
+
+    if (subtype === "custom" && entry.question && entry.correctAnswer && Array.isArray(entry.wrongAnswers)) {
+      return {
+        badge: "Pregunta especial",
+        html: entry.question,
+        options: shuffle([entry.correctAnswer, ...entry.wrongAnswers]),
+        correct: entry.correctAnswer,
+        audioBefore: entry.audioBefore === true,
+        useFiltered: false,
+        isPersonType: false,
+      };
+    }
+    if (subtype === "text" && entry.text) {
+      const wrong = shuffle(people.filter(p => p !== entry.person)).slice(0, 3);
+      return {
+        badge: "¿Quién dijo esto?",
+        html: `¿Quién dijo <span class="quote">"${entry.text}"</span>?`,
+        options: shuffle([entry.person, ...wrong]),
+        correct: entry.person,
+        audioBefore: false,
+        useFiltered: false,
+        isPersonType: false,
+      };
+    }
+    if (subtype === "year") {
+      const wrongYears = shuffle(years.filter(y => y !== yearStr)).slice(0, 3);
+      return {
+        badge: "¿De qué año es?",
+        html: `Este audio es de <span class="hl">${entry.person}</span>. ¿De qué año es?`,
+        options: shuffle([yearStr, ...wrongYears]),
+        correct: yearStr,
+        audioBefore: true,
+        useFiltered: false,
+        isPersonType: false,
+      };
+    }
+    // person
+    const wrong = shuffle(people.filter(p => p !== entry.person && (entry.person === "Laura" || p !== "Laura"))).slice(0, 3);
+    return {
+      badge: "¿Quién es?",
+      html: `Escucha el audio y adivina <span class="hl">quién</span> es`,
+      options: shuffle([entry.person, ...wrong]),
+      correct: entry.person,
+      audioBefore: true,
+      useFiltered: true,
+      isPersonType: true,
+    };
+  }
+
+  if (entry.type === "photo") {
+    return {
+      badge: "Pregunta con foto",
+      html: entry.question + (entry.photo ? `<br><img src="${entry.photo}" style="max-width:100%;max-height:300px;border-radius:12px;margin-top:16px;">` : ""),
+      options: shuffle([entry.correctAnswer, ...entry.wrongAnswers]),
+      correct: entry.correctAnswer,
+      audioBefore: false,
+      useFiltered: false,
+      isPersonType: false,
+    };
+  }
+
+  // plain
+  return {
+    badge: "Pregunta",
+    html: entry.question,
+    options: shuffle([entry.correctAnswer, ...entry.wrongAnswers]),
+    correct: entry.correctAnswer,
+    audioBefore: false,
+    useFiltered: false,
+    isPersonType: false,
+  };
+}
+
+function getAudioSource(entry) {
+  if (entry.type !== "audio") return "";
+  const key = entry.audio;
+  return currentQuestion.useFiltered ? `audios-filtered/${key}.mp3` : `audios/${key}.mp3`;
+}
+
+async function startGame() {
+  await loadConfig();
+  if (!questions.length) throw new Error("No hay preguntas en questions.json.");
+
+  shuffled = [...questions]; // keep the defined order
+  current = 0;
+  score = 0;
+  isPlaying = false;
+  player = document.getElementById("audio-player");
+  player.pause();
+
+  document.getElementById("start-screen").style.display = "none";
+  document.getElementById("end-screen").style.display = "none";
+  document.getElementById("game-screen").style.display = "block";
+  loadRound();
+}
+
+function loadRound() {
+  const entry = shuffled[current];
+  const total = shuffled.length;
+  currentQuestion = buildQuestion(entry);
+
+  document.getElementById("round-label").textContent = `${current + 1} / ${total}`;
+  document.getElementById("progress-fill").style.width = `${((current + 1) / total) * 100}%`;
+  document.getElementById("score-label").textContent = `${score} acierto${score !== 1 ? 's' : ''}`;
+
+  // Question card
+  document.getElementById("question-type-badge").textContent = currentQuestion.badge;
+  document.getElementById("question-text").innerHTML = currentQuestion.html;
+
+  // Audio inline (before answer)
+  const inlineArea = document.getElementById("audio-inline");
+  if (currentQuestion.audioBefore && entry.type === "audio") {
+    inlineArea.classList.add("show");
+  } else {
+    inlineArea.classList.remove("show");
+  }
+
+  // Options
+  const optionsEl = document.getElementById("options");
+  optionsEl.innerHTML = "";
+  currentQuestion.options.forEach(opt => {
+    const btn = document.createElement("button");
+    btn.className = "option-btn no-cap";
+    btn.textContent = opt;
+    btn.dataset.value = opt;
+    btn.onclick = () => checkAnswer(opt);
+    optionsEl.appendChild(btn);
+  });
+
+  // Hide post-answer elements
+  document.getElementById("audio-after").classList.remove("show");
+  document.getElementById("result-banner").className = "result-banner";
+  document.getElementById("btn-next").style.display = "none";
+
+  // Reset audio
+  isPlaying = false;
+  resetPlayButtons();
+  if (entry.type === "audio") {
+    player.src = getAudioSource(entry);
+    player.load();
+  } else {
+    player.src = "";
+  }
+  player.onended = () => { isPlaying = false; resetPlayButtons(); };
+}
+
+function resetPlayButtons() {
+  document.getElementById("play-btn-inline").classList.remove("playing");
+  document.getElementById("play-btn-after").classList.remove("playing");
+}
+
+function togglePlay() {
+  if (isPlaying) {
+    player.pause();
+    isPlaying = false;
+    resetPlayButtons();
+  } else {
+    player.play();
+    isPlaying = true;
+    document.getElementById("play-btn-inline").classList.add("playing");
+    document.getElementById("play-btn-after").classList.add("playing");
+  }
+}
+
+function checkAnswer(selected) {
+  const correct = currentQuestion.correct;
+  const entry = shuffled[current];
+
+  document.querySelectorAll(".option-btn").forEach(btn => {
+    btn.disabled = true;
+    if (btn.dataset.value === correct) btn.classList.add("correct");
+    if (btn.dataset.value === selected && selected !== correct) btn.classList.add("wrong");
+  });
+
+  const banner = document.getElementById("result-banner");
+  if (selected === correct) {
+    score++;
+    banner.className = "result-banner show correct-banner";
+    banner.textContent = "¡Correcto!";
+  } else {
+    banner.className = "result-banner show wrong-banner";
+    banner.textContent = `Nope! Era: ${correct}`;
+  }
+
+  document.getElementById("score-label").textContent = `${score} acierto${score !== 1 ? 's' : ''}`;
+
+  // Show audio after answer for audio questions
+  const afterArea = document.getElementById("audio-after");
+  if (entry.type === "audio" && (!currentQuestion.audioBefore || currentQuestion.isPersonType)) {
+    afterArea.classList.add("show");
+  }
+
+  if (currentQuestion.isPersonType && entry.type === "audio") {
+    player.pause();
+    isPlaying = false;
+    resetPlayButtons();
+    player.src = `audios/${entry.audio}.mp3`;
+    player.load();
+    player.onended = () => { isPlaying = false; resetPlayButtons(); };
+  }
+
+  if (entry.type === "audio") {
+    const { date } = parseDate(entry.audio);
+    document.getElementById("audio-label").innerHTML =
+      `<strong>${entry.person}</strong><br>${date}`;
+  }
+
+  document.getElementById("btn-next").style.display = "block";
+  document.getElementById("btn-next").textContent =
+    current < shuffled.length - 1 ? "Siguiente" : "Ver resultado";
+}
+
+function nextRound() {
+  player.pause();
+  isPlaying = false;
+  resetPlayButtons();
+  current++;
+  if (current >= shuffled.length) endGame();
+  else loadRound();
+}
+
+function endGame() {
+  document.getElementById("game-screen").style.display = "none";
+  const end = document.getElementById("end-screen");
+  end.style.display = "flex";
+  end.style.flexDirection = "column";
+  end.style.alignItems = "center";
+
+  const total = shuffled.length;
+  document.getElementById("final-score").textContent = `${score} / ${total}`;
+
+  const pct = score / total;
+  let msg;
+  if (pct === 1) msg = "Memoria perfecta. Conocéis a vuestras amigas mejor que nadie.";
+  else if (pct >= 0.75) msg = "¡Muy bien! Casi acertáis todas.";
+  else if (pct >= 0.5) msg = "No está mal, ¡pero hay que repasar esos audios!";
+  else msg = "Uy... ¡toca volver a escuchar esos audios!";
+  document.getElementById("end-message").textContent = msg;
+}
+</script>
+</body>
+</html>
