@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Recuerdoot - Jugar</title>
 <link rel="stylesheet" href="styles.css">
 </head>
@@ -13,15 +13,15 @@
   <div class="brand">Recuerdoot</div>
   <div class="join-form">
     <div class="input-group">
-      <label>PIN de la partida</label>
+      <label for="pin-input">PIN de la partida</label>
       <input type="tel" id="pin-input" placeholder="000000" maxlength="6" inputmode="numeric">
     </div>
     <div class="input-group">
-      <label>Tu nombre</label>
+      <label for="name-input">Tu nombre</label>
       <input type="text" id="name-input" placeholder="Nombre" maxlength="15">
     </div>
     <button class="btn" id="btn-join" onclick="joinGame()">Unirse</button>
-    <div class="error-msg" id="error-msg"></div>
+    <div class="error-msg" id="error-msg" role="alert" aria-live="polite"></div>
   </div>
 </div>
 
@@ -41,13 +41,17 @@
 <!-- LISTENING (pre-phase for audio questions) -->
 <div id="listen-screen" class="screen">
   <div class="q-info" id="listen-q-info">Pregunta 1 / 22</div>
-  <div style="font-size:3rem; margin:24px 0;">&#127911;</div>
+  <div class="listen-icon" aria-hidden="true">
+    <svg viewBox="0 0 64 64" width="64" height="64" role="img" focusable="false">
+      <path fill="currentColor" d="M22 18a10 10 0 0 1 20 0v4h2a8 8 0 0 1 8 8v10a8 8 0 0 1-8 8h-2v2a10 10 0 0 1-20 0v-2h-2a8 8 0 0 1-8-8V30a8 8 0 0 1 8-8h2v-4Zm6 0v30a4 4 0 0 0 8 0V18a4 4 0 0 0-8 0Z"/>
+    </svg>
+  </div>
   <div class="waiting-text pulse">Mira la pantalla y escucha...</div>
 </div>
 
 <!-- RESULT -->
 <div id="result-screen" class="screen">
-  <div class="result-icon" id="result-icon"></div>
+  <div class="result-icon" id="result-icon" aria-hidden="true"></div>
   <div class="result-text" id="result-text"></div>
   <div class="result-points" id="result-points"></div>
   <div class="result-score" id="result-score"></div>

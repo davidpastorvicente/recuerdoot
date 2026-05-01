@@ -38,13 +38,14 @@ Every question has the same structure:
 ## Key conventions
 
 - All UI text is in Spanish
-- Dark theme with Inter font, purple accent (`#7c5cfc`)
+- Dark theme with Archivo Black display typography, Outfit body typography, and a blue accent (`#4f8cff`)
 - Audio files live in `media/audios/` (originals and filtered versions with `_filtered` suffix). The `media/` folder is gitignored.
 - Questions play in the order defined in questions.json (no shuffle)
 - For filtered audio questions: filtered audio plays before answering, original revealed after
 - Multiplayer scoring: faster correct answers = more points (1000 max, 100 min, linear)
 - No inline JavaScript in HTML files — all JS lives in separate `.js` files
 - Multiplayer lobby shows a QR code for easy player joining
+- The full visual system and UI behavior guidance live in `DESIGN.md`
 
 ## Running
 

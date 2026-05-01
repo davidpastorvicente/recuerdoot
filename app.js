@@ -15,6 +15,7 @@ let mode = null; // "solo" or "multi"
 function showScreen(id) {
   document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
   document.getElementById(id).classList.add("active");
+  document.getElementById(id).scrollTop = 0;
 }
 
 function setQuestionScreenMode(isSolo) {
@@ -95,6 +96,7 @@ function renderQuestion(data) {
   const qImage = document.getElementById("q-image");
   if (data.image) {
     qImage.src = data.image;
+    qImage.alt = "Imagen de la pregunta";
     qImage.style.display = "";
   } else {
     qImage.style.display = "none";
@@ -250,6 +252,7 @@ function soloAnswer(btn, selected) {
   const audioRow = document.getElementById("result-modal-audio-row");
   if (soloCurrentQ.afterImage) {
     revealImg.src = soloCurrentQ.afterImage;
+    revealImg.alt = "Imagen revelada tras responder";
     revealImg.style.display = "";
   } else {
     revealImg.style.display = "none";
@@ -394,6 +397,7 @@ function initMultiplayer() {
     const rRevealImg = document.getElementById("r-reveal-image");
     if (data.afterImage) {
       rRevealImg.src = data.afterImage;
+      rRevealImg.alt = "Imagen revelada de la pregunta";
       rRevealImg.style.display = "";
     } else {
       rRevealImg.style.display = "none";

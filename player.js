@@ -62,24 +62,24 @@ function sendAnswer(btn) {
 socket.on("player:result", ({ isCorrect, points, score, streak, timeout }) => {
   showScreen("result-screen");
   if (timeout) {
-    document.getElementById("result-icon").textContent = "\u23F0";
+    document.getElementById("result-icon").innerHTML = `<svg viewBox="0 0 64 64" width="64" height="64" role="img" focusable="false"><path fill="currentColor" d="M32 10a22 22 0 1 1 0 44 22 22 0 0 1 0-44Zm0 6a2 2 0 0 0-2 2v14.8l8.4 5.6a2 2 0 1 0 2.2-3.3L34 30.8V18a2 2 0 0 0-2-2Zm-12.6-5.8a2 2 0 0 0 0 2.8l1.4 1.4a2 2 0 1 0 2.8-2.8l-1.4-1.4a2 2 0 0 0-2.8 0Zm24.8 0-1.4 1.4a2 2 0 1 0 2.8 2.8l1.4-1.4a2 2 0 0 0-2.8-2.8Z"/></svg>`;
     document.getElementById("result-text").textContent = "Se acabo el tiempo";
     document.getElementById("result-text").className = "result-text result-wrong";
     document.getElementById("result-points").textContent = "";
   } else if (isCorrect) {
-    document.getElementById("result-icon").textContent = "\u2705";
+    document.getElementById("result-icon").innerHTML = `<svg viewBox="0 0 64 64" width="64" height="64" role="img" focusable="false"><path fill="currentColor" d="M32 10a22 22 0 1 1 0 44 22 22 0 0 1 0-44Zm10.4 14.6a2 2 0 0 0-2.8 0L28 36.2l-3.6-3.6a2 2 0 1 0-2.8 2.8l5 5a2 2 0 0 0 2.8 0l13-13a2 2 0 0 0 0-2.8Z"/></svg>`;
     document.getElementById("result-text").textContent = "\u00A1Correcto!";
     document.getElementById("result-text").className = "result-text result-correct";
     document.getElementById("result-points").textContent = `+${points} puntos`;
   } else {
-    document.getElementById("result-icon").textContent = "\u274C";
+    document.getElementById("result-icon").innerHTML = `<svg viewBox="0 0 64 64" width="64" height="64" role="img" focusable="false"><path fill="currentColor" d="M32 10a22 22 0 1 1 0 44 22 22 0 0 1 0-44Zm-7.4 14.6a2 2 0 0 0 0 2.8l4.6 4.6-4.6 4.6a2 2 0 1 0 2.8 2.8l4.6-4.6 4.6 4.6a2 2 0 1 0 2.8-2.8L34.8 32l4.6-4.6a2 2 0 0 0-2.8-2.8L32 29.2l-4.6-4.6a2 2 0 0 0-2.8 0Z"/></svg>`;
     document.getElementById("result-text").textContent = "Incorrecto";
     document.getElementById("result-text").className = "result-text result-wrong";
     document.getElementById("result-points").textContent = "";
   }
   document.getElementById("result-score").textContent = `${score} pts`;
   if (streak > 1) {
-    document.getElementById("result-streak").textContent = `\uD83D\uDD25 Racha de ${streak}`;
+    document.getElementById("result-streak").textContent = `Racha de ${streak}`;
   } else {
     document.getElementById("result-streak").textContent = "";
   }
@@ -89,8 +89,13 @@ socket.on("game:end", ({ leaderboard }) => {
   showScreen("end-screen");
   const myIdx = leaderboard.findIndex(p => p.name === myName);
   const rank = myIdx + 1;
-  const medals = ["", "\uD83E\uDD47", "\uD83E\uDD48", "\uD83E\uDD49"];
-  document.getElementById("end-rank").textContent = medals[rank] || `#${rank}`;
+  const rankEl = document.getElementById("end-rank");
+  const rankLabels = ["", "Primera posicion", "Segunda posicion", "Tercera posicion"];
+  if (rank >= 1 && rank <= 3) {
+    rankEl.innerHTML = `<span class="rank-badge rank-${rank}" aria-label="${rankLabels[rank]}">${rank}</span>`;
+  } else {
+    rankEl.textContent = `#${rank}`;
+  }
   document.getElementById("end-position").textContent = rank === 1 ? "\u00A1Has ganado!" : `Puesto ${rank}`;
   document.getElementById("end-score").textContent = myIdx >= 0 ? `${leaderboard[myIdx].score} puntos` : "";
 });

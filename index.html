@@ -39,10 +39,10 @@
   </div>
   <div class="q-card">
     <div class="q-badge" id="q-badge"></div>
-    <img class="q-image" id="q-image" style="display:none;" alt="">
+    <img class="q-image" id="q-image" style="display:none;" alt="Imagen de la pregunta">
     <div class="q-text" id="q-text"></div>
     <div class="host-audio-area" id="host-audio-area" style="display:none;">
-      <button class="play-btn" id="host-play-btn" onclick="toggleAudio()">
+      <button class="play-btn" id="host-play-btn" onclick="toggleAudio()" aria-label="Reproducir o pausar audio de la pregunta">
         <svg class="icon-play" width="28" height="28" viewBox="0 0 24 24"><polygon points="6,3 20,12 6,21"/></svg>
         <svg class="icon-pause" width="28" height="28" viewBox="0 0 24 24"><rect x="5" y="3" width="5" height="18" rx="1"/><rect x="14" y="3" width="5" height="18" rx="1"/></svg>
       </button>
@@ -62,9 +62,9 @@
       <div class="result-modal-content">
         <div class="result-modal-status" id="result-modal-status"></div>
         <div class="result-modal-media" id="result-modal-media">
-          <img class="reveal-image" id="reveal-image" style="display:none;" alt="">
+          <img class="reveal-image" id="reveal-image" style="display:none;" alt="Imagen revelada tras responder">
           <div class="result-modal-audio-row" id="result-modal-audio-row" style="display:none;">
-            <button class="play-btn" id="reveal-play-btn" onclick="toggleAudio()">
+            <button class="play-btn" id="reveal-play-btn" onclick="toggleAudio()" aria-label="Reproducir o pausar audio revelado">
               <svg class="icon-play" width="28" height="28" viewBox="0 0 24 24"><polygon points="6,3 20,12 6,21"/></svg>
               <svg class="icon-pause" width="28" height="28" viewBox="0 0 24 24"><rect x="5" y="3" width="5" height="18" rx="1"/><rect x="14" y="3" width="5" height="18" rx="1"/></svg>
             </button>
@@ -85,8 +85,8 @@
   </div>
   <div class="bar-chart" id="r-bar-chart"></div>
   <div class="reveal-info" id="r-reveal-info">
-    <img class="reveal-image" id="r-reveal-image" style="display:none;" alt="">
-    <button class="play-btn" id="r-reveal-play-btn" onclick="toggleAudio()">
+    <img class="reveal-image" id="r-reveal-image" style="display:none;" alt="Imagen revelada de la pregunta">
+    <button class="play-btn" id="r-reveal-play-btn" onclick="toggleAudio()" aria-label="Reproducir o pausar audio revelado">
       <svg class="icon-play" width="28" height="28" viewBox="0 0 24 24"><polygon points="6,3 20,12 6,21"/></svg>
       <svg class="icon-pause" width="28" height="28" viewBox="0 0 24 24"><rect x="5" y="3" width="5" height="18" rx="1"/><rect x="14" y="3" width="5" height="18" rx="1"/></svg>
     </button>
@@ -109,7 +109,11 @@
 <!-- END (multiplayer) -->
 <div id="end-mp" class="screen">
   <div class="brand">Recuerdoot</div>
-  <div class="trophy">&#127942;</div>
+  <div class="trophy" aria-hidden="true">
+    <svg viewBox="0 0 64 64" width="64" height="64" role="img" focusable="false">
+      <path fill="currentColor" d="M20 8h24v8h8c0 8.8-5.2 16.1-12 18.7V42h6a4 4 0 0 1 4 4v2H14v-2a4 4 0 0 1 4-4h6v-7.3C17.2 32.1 12 24.8 12 16h8V8Zm-2 12c0 4.9 2.6 9.1 6.5 11.4A19.8 19.8 0 0 1 20 20h-2Zm28 0c0 4.1-1.6 8-4.5 11.4C45.4 29.1 48 24.9 48 20h-2Z"/>
+    </svg>
+  </div>
   <div class="winner-name" id="winner-name"></div>
   <div class="winner-score" id="winner-score"></div>
   <div class="leaderboard" id="end-leaderboard"></div>

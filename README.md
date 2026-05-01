@@ -2,6 +2,17 @@
 
 A Kahoot-style multiplayer quiz game. A host shows questions on a big screen while players answer from their phones. Supports audio, photo, and plain text questions.
 
+## Design system
+
+The UI uses a dark nostalgic quiz-night theme with:
+
+- `Archivo Black` for display moments and bold labels
+- `Outfit` for body copy and controls
+- Blue accent color `#4f8cff` for primary actions and progress states
+- Fixed multicolor answer tiles: red, blue, yellow, green
+
+The canonical visual system, component rules, and design tokens live in `DESIGN.md`.
+
 ## Setup
 
 ```bash
@@ -22,6 +33,7 @@ For multiplayer, players join from their phones at `http://<your-ip>:8000/player
 - `player.js` — Client-side JavaScript for player.html
 - `styles.css` — Shared styles
 - `questions.json` — Ordered list of questions
+- `DESIGN.md` — Design tokens and UI design guidance
 - `media/audios/` — Original and filtered audio files (not in repo, add locally)
 - `media/images/` — Photo files (not in repo)
 
