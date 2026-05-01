@@ -25,6 +25,7 @@
   <div class="pin-label">PIN de la partida</div>
   <div class="pin-display" id="pin-display">------</div>
   <div class="join-url">Unirse en: <span id="join-url"></span></div>
+  <canvas id="qr-canvas" style="margin:1rem auto;display:block;"></canvas>
   <div class="player-grid" id="player-grid"></div>
   <button class="btn" id="btn-lobby-start" disabled onclick="lobbyStart()">Esperando jugadores...</button>
 </div>
@@ -107,6 +108,7 @@
 
 <audio id="game-audio"></audio>
 
+<script src="https://cdn.jsdelivr.net/npm/qrious@4.0.2/dist/qrious.min.js"></script>
 <script src="/socket.io/socket.io.js"></script>
 <script>
 // ========== Shared ==========
@@ -171,16 +173,21 @@ function startCountdown(seconds, onEnd) {
   fg.style.transition = "none";
   fg.style.strokeDashoffset = "0";
   num.textContent = remaining;
-  num.style.color = "var(--accent)";
+  num.style.color = remaining <= 5 ? "var(--wrong)" : "var(--accent)";
   fg.getBoundingClientRect();
-  fg.style.transition = "stroke-dashoffset 1s linear";
+  fg.style.transition = `stroke-dashoffset ${seconds}s linear`;
+  fg.style.strokeDashoffset = circumference;
 
   clearInterval(countdownInterval);
   countdownInterval = setInterval(() => {
     remaining--;
-    if (remaining < 0) { clearInterval(countdownInterval); if (onEnd) onEnd(); return; }
+    if (remaining <= 0) {
+      clearInterval(countdownInterval);
+      num.textContent = "0";
+      if (onEnd) onEnd();
+      return;
+    }
     num.textContent = remaining;
-    fg.style.strokeDashoffset = circumference * (1 - remaining / seconds);
     if (remaining <= 5) num.style.color = "var(--wrong)";
     else num.style.color = "var(--accent)";
   }, 1000);
@@ -426,7 +433,9 @@ function initMultiplayer() {
   socket.on("host:created", ({ pin }) => {
     showScreen("lobby");
     document.getElementById("pin-display").textContent = pin;
+    const joinUrl = `${location.protocol}//${location.host}/player.html?pin=${pin}`;
     document.getElementById("join-url").textContent = `${location.host}/player.html`;
+    new QRious({ element: document.getElementById("qr-canvas"), value: joinUrl, size: 200, backgroundAlpha: 0, foreground: "#ffffff" });
   });
 
   socket.on("host:playerList", (players) => {

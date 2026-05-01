@@ -181,8 +181,17 @@ function esc(s) {
   return d.innerHTML;
 }
 
-// Auto-focus PIN input
-document.getElementById("pin-input").focus();
+// Auto-fill PIN from URL query param
+const urlPin = new URLSearchParams(location.search).get("pin");
+const pinInput = document.getElementById("pin-input");
+if (urlPin) {
+  pinInput.value = urlPin;
+  pinInput.readOnly = true;
+  pinInput.style.opacity = "0.7";
+  document.getElementById("name-input").focus();
+} else {
+  pinInput.focus();
+}
 
 // Allow Enter to submit
 document.querySelectorAll("#join-screen input").forEach(inp => {
