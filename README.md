@@ -28,10 +28,10 @@ For multiplayer, players join from their phones at `http://<your-ip>:8000/player
 
 - `server.js` — Node.js server (Express + Socket.IO) handling multiplayer game logic
 - `index.html` — HTML structure for host/solo screen
-- `app.js` — Client-side JavaScript for index.html
 - `player.html` — HTML structure for player phone screen
-- `player.js` — Client-side JavaScript for player.html
-- `styles.css` — Shared styles
+- `assets/js/host.js` — Client-side JavaScript for host and solo mode
+- `assets/js/player.js` — Client-side JavaScript for the player phone screen
+- `assets/css/main.css` — Shared application styles
 - `questions.json` — Ordered list of questions
 - `DESIGN.md` — Design tokens and UI design guidance
 - `media/audios/` — Original and filtered audio files (not in repo, add locally)

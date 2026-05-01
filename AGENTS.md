@@ -8,10 +8,10 @@ A Kahoot-style multiplayer quiz game built with Node.js (Express + Socket.IO). A
 
 - **server.js** — Single Node.js server handling both static file serving and WebSocket game logic. Express serves files, Socket.IO manages real-time multiplayer communication.
 - **index.html** — HTML structure only: start screen, solo mode, and multiplayer host screen (lobby, questions, countdown, bar chart, leaderboard)
-- **app.js** — All client-side JavaScript for index.html (shared utilities, solo mode, multiplayer host logic)
 - **player.html** — HTML structure for multiplayer player screen (phone-optimized, join via PIN or QR)
-- **player.js** — All client-side JavaScript for player.html
-- **styles.css** — Shared styles for both host and player screens
+- **assets/js/host.js** — All client-side JavaScript for index.html (shared utilities, solo mode, multiplayer host logic)
+- **assets/js/player.js** — All client-side JavaScript for player.html
+- **assets/css/main.css** — Shared styles for both host and player screens
 - **questions.json** — Ordered array of questions with a unified structure (no types/subtypes)
 
 ## questions.json format
