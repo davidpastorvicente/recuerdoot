@@ -17,6 +17,10 @@ function showScreen(id) {
   document.getElementById(id).classList.add("active");
 }
 
+function setQuestionScreenMode(isSolo) {
+  document.getElementById("question-screen").classList.toggle("solo-mode", isSolo);
+}
+
 function backToStart() {
   audio.pause(); isPlaying = false;
   clearInterval(countdownInterval);
@@ -57,10 +61,11 @@ function startCountdown(seconds, onEnd) {
   const circumference = 2 * Math.PI * 44;
   const fg = document.getElementById("countdown-fg");
   const num = document.getElementById("countdown-number");
+  const container = document.getElementById("countdown-container");
   fg.style.transition = "none";
   fg.style.strokeDashoffset = "0";
   num.textContent = remaining;
-  num.style.color = remaining <= 5 ? "var(--wrong)" : "var(--accent)";
+  container.classList.toggle("urgent", remaining <= 5);
   fg.getBoundingClientRect();
   fg.style.transition = `stroke-dashoffset ${seconds}s linear`;
   fg.style.strokeDashoffset = circumference;
@@ -71,12 +76,12 @@ function startCountdown(seconds, onEnd) {
     if (remaining <= 0) {
       clearInterval(countdownInterval);
       num.textContent = "0";
+      container.classList.add("urgent");
       if (onEnd) onEnd();
       return;
     }
     num.textContent = remaining;
-    if (remaining <= 5) num.style.color = "var(--wrong)";
-    else num.style.color = "var(--accent)";
+    container.classList.toggle("urgent", remaining <= 5);
   }, 1000);
 }
 
@@ -123,9 +128,7 @@ function renderQuestion(data) {
   ).join("");
 
   // Hide post-answer stuff
-  document.getElementById("result-banner").className = "result-banner";
-  document.getElementById("reveal-info").classList.remove("show");
-  document.getElementById("btn-next").style.display = "none";
+  document.getElementById("result-modal").classList.remove("show");
   document.getElementById("countdown-container").style.display = "";
 
   return tiles;
@@ -166,6 +169,7 @@ function buildSoloQuestion(entry) {
 
 async function initSolo() {
   mode = "solo";
+  setQuestionScreenMode(true);
   if (!soloQuestions.length) {
     const resp = await fetch("questions.json");
     soloQuestions = await resp.json();
@@ -230,45 +234,45 @@ function soloAnswer(btn, selected) {
     }
   });
 
-  const banner = document.getElementById("result-banner");
+  const statusEl = document.getElementById("result-modal-status");
   if (selected === correct) {
     soloScore++;
-    banner.className = "result-banner show correct-banner";
-    banner.textContent = "¡Correcto!";
+    statusEl.className = "result-modal-status correct";
+    statusEl.textContent = "¡Correcto!";
   } else {
-    banner.className = "result-banner show wrong-banner";
-    banner.textContent = `Nope! Era: ${correct}`;
+    statusEl.className = "result-modal-status wrong";
+    statusEl.textContent = `Nope! Era: ${correct}`;
   }
   document.getElementById("q-info-right").textContent = `${soloScore} acierto${soloScore !== 1 ? 's' : ''}`;
 
-  // Show after media on reveal
-  if (soloCurrentQ.afterAudioFile || soloCurrentQ.afterImage) {
-    document.getElementById("reveal-info").classList.add("show");
-    const revealImg = document.getElementById("reveal-image");
-    if (soloCurrentQ.afterImage) {
-      revealImg.src = soloCurrentQ.afterImage;
-      revealImg.style.display = "";
-    } else {
-      revealImg.style.display = "none";
-    }
-    if (soloCurrentQ.afterAudioFile) {
-      audio.pause(); isPlaying = false;
-      document.querySelectorAll(".play-btn").forEach(b => b.classList.remove("playing"));
-      audio.src = soloCurrentQ.afterAudioFile;
-      audio.load();
-      document.getElementById("reveal-play-btn").style.display = "";
-      const entry = soloQuestions[soloCurrent];
-      const { date } = parseDate(entry.after.audio);
-      document.getElementById("reveal-label").innerHTML = `${date}`;
-    } else {
-      document.getElementById("reveal-play-btn").style.display = "none";
-      document.getElementById("reveal-label").innerHTML = "";
-    }
+  // Show after media in modal
+  const revealImg = document.getElementById("reveal-image");
+  const audioRow = document.getElementById("result-modal-audio-row");
+  if (soloCurrentQ.afterImage) {
+    revealImg.src = soloCurrentQ.afterImage;
+    revealImg.style.display = "";
+  } else {
+    revealImg.style.display = "none";
+  }
+  if (soloCurrentQ.afterAudioFile) {
+    audio.pause(); isPlaying = false;
+    document.querySelectorAll(".play-btn").forEach(b => b.classList.remove("playing"));
+    audio.src = soloCurrentQ.afterAudioFile;
+    audio.load();
+    document.getElementById("reveal-play-btn").style.display = "";
+    const entry = soloQuestions[soloCurrent];
+    const { date } = parseDate(entry.after.audio);
+    document.getElementById("reveal-label").innerHTML = `${date}`;
+    audioRow.style.display = "";
+  } else {
+    document.getElementById("reveal-play-btn").style.display = "none";
+    document.getElementById("reveal-label").innerHTML = "";
+    audioRow.style.display = "none";
   }
 
-  document.getElementById("btn-next").style.display = "";
   document.getElementById("btn-next").textContent =
     soloCurrent < soloQuestions.length - 1 ? "Siguiente" : "Ver resultado";
+  document.getElementById("result-modal").classList.add("show");
 }
 
 function nextQuestion() {
@@ -300,14 +304,17 @@ let mpCurrentQ = null;
 
 function initMultiplayer() {
   mode = "multi";
+  setQuestionScreenMode(false);
   if (!socket) socket = io();
   socket.emit("host:create");
 
   socket.on("host:created", ({ pin }) => {
     showScreen("lobby");
     document.getElementById("pin-display").textContent = pin;
-    const joinUrl = `${location.protocol}//${location.host}/player.html?pin=${pin}`;
-    document.getElementById("join-url").textContent = `${location.host}/player.html`;
+    const joinUrl = `${location.origin}/player.html?pin=${pin}`;
+    const joinEl = document.getElementById("join-url");
+    joinEl.textContent = `${location.host}/player.html`;
+    joinEl.href = joinUrl;
     new QRious({ element: document.getElementById("qr-canvas"), value: joinUrl, size: 200, backgroundAlpha: 0, foreground: "#ffffff" });
   });
 
@@ -329,7 +336,7 @@ function initMultiplayer() {
 
     if (data.audioBefore) {
       document.getElementById("countdown-number").textContent = "5";
-      document.getElementById("countdown-number").style.color = "var(--accent)";
+      document.getElementById("countdown-container").classList.remove("urgent");
       const fg = document.getElementById("countdown-fg");
       fg.style.transition = "none"; fg.style.strokeDashoffset = "0";
       document.getElementById("q-info-right").textContent = "Escuchad...";
@@ -382,6 +389,15 @@ function initMultiplayer() {
         <div class="bar-base c${i}">${shapes[i]} ${esc(opt)}</div>
       </div>`;
     }).join("");
+
+    // Reveal image
+    const rRevealImg = document.getElementById("r-reveal-image");
+    if (data.afterImage) {
+      rRevealImg.src = data.afterImage;
+      rRevealImg.style.display = "";
+    } else {
+      rRevealImg.style.display = "none";
+    }
 
     // Reveal audio
     const revealInfo = document.getElementById("r-reveal-info");

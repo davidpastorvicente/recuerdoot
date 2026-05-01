@@ -24,7 +24,7 @@
   <div class="brand">Recuerdoot</div>
   <div class="pin-label">PIN de la partida</div>
   <div class="pin-display" id="pin-display">------</div>
-  <div class="join-url">Unirse en: <span id="join-url"></span></div>
+  <div class="join-url">Unirse en: <a id="join-url" target="_blank" rel="noopener"></a></div>
   <canvas id="qr-canvas" style="margin:1rem auto;display:block;"></canvas>
   <div class="player-grid" id="player-grid"></div>
   <button class="btn" id="btn-lobby-start" disabled onclick="lobbyStart()">Esperando jugadores...</button>
@@ -57,16 +57,24 @@
     </div>
   </div>
   <div class="option-tiles" id="option-tiles"></div>
-  <div class="result-banner" id="result-banner"></div>
-  <div class="reveal-info" id="reveal-info">
-    <img class="reveal-image" id="reveal-image" style="display:none;" alt="">
-    <button class="play-btn" id="reveal-play-btn" onclick="toggleAudio()">
-      <svg class="icon-play" width="28" height="28" viewBox="0 0 24 24"><polygon points="6,3 20,12 6,21"/></svg>
-      <svg class="icon-pause" width="28" height="28" viewBox="0 0 24 24"><rect x="5" y="3" width="5" height="18" rx="1"/><rect x="14" y="3" width="5" height="18" rx="1"/></svg>
-    </button>
-    <div class="reveal-label" id="reveal-label"></div>
+  <div class="q-feedback-area">
+    <div class="result-modal" id="result-modal">
+      <div class="result-modal-content">
+        <div class="result-modal-status" id="result-modal-status"></div>
+        <div class="result-modal-media" id="result-modal-media">
+          <img class="reveal-image" id="reveal-image" style="display:none;" alt="">
+          <div class="result-modal-audio-row" id="result-modal-audio-row" style="display:none;">
+            <button class="play-btn" id="reveal-play-btn" onclick="toggleAudio()">
+              <svg class="icon-play" width="28" height="28" viewBox="0 0 24 24"><polygon points="6,3 20,12 6,21"/></svg>
+              <svg class="icon-pause" width="28" height="28" viewBox="0 0 24 24"><rect x="5" y="3" width="5" height="18" rx="1"/><rect x="14" y="3" width="5" height="18" rx="1"/></svg>
+            </button>
+            <div class="reveal-label" id="reveal-label"></div>
+          </div>
+        </div>
+        <button class="btn" id="btn-next" onclick="nextQuestion()">Siguiente</button>
+      </div>
+    </div>
   </div>
-  <button class="btn" id="btn-next" style="display:none;" onclick="nextQuestion()">Siguiente</button>
 </div>
 
 <!-- REVEAL (multiplayer only) -->
