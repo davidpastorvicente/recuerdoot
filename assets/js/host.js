@@ -85,16 +85,16 @@ audio.addEventListener("ended", () => {
 function startCountdown(seconds, onEnd) {
   let remaining = seconds;
   const circumference = 2 * Math.PI * 44;
-  const fg = document.getElementById("countdown-fg");
+  const progressRing = document.getElementById("countdown-ring-progress");
   const num = document.getElementById("countdown-number");
   const container = document.getElementById("countdown-container");
-  fg.style.transition = "none";
-  fg.style.strokeDashoffset = "0";
+  progressRing.style.transition = "none";
+  progressRing.style.strokeDashoffset = "0";
   num.textContent = remaining;
   container.classList.toggle("urgent", remaining <= 5);
-  fg.getBoundingClientRect();
-  fg.style.transition = `stroke-dashoffset ${seconds}s linear`;
-  fg.style.strokeDashoffset = circumference;
+  progressRing.getBoundingClientRect();
+  progressRing.style.transition = `stroke-dashoffset ${seconds}s linear`;
+  progressRing.style.strokeDashoffset = circumference;
 
   clearInterval(countdownInterval);
   countdownInterval = setInterval(() => {
@@ -113,22 +113,22 @@ function startCountdown(seconds, onEnd) {
 
 function renderQuestion(data) {
   showScreen("question-screen");
-  document.getElementById("q-counter").textContent = `${data.index + 1} / ${data.total}`;
-  document.getElementById("q-progress-fill").style.width = `${((data.index + 1) / data.total) * 100}%`;
-  document.getElementById("q-badge").style.display = "none";
+  document.getElementById("question-counter").textContent = `${data.index + 1} / ${data.total}`;
+  document.getElementById("question-progress-fill").style.width = `${((data.index + 1) / data.total) * 100}%`;
+  document.getElementById("question-badge").style.display = "none";
 
   // Photo
-  const qImage = document.getElementById("q-image");
+  const questionImage = document.getElementById("question-image");
   if (data.image) {
-    qImage.src = data.image;
-    qImage.alt = "Imagen de la pregunta";
-    qImage.style.display = "";
+    questionImage.src = data.image;
+    questionImage.alt = "Imagen de la pregunta";
+    questionImage.style.display = "";
   } else {
-    qImage.style.display = "none";
-    qImage.src = "";
+    questionImage.style.display = "none";
+    questionImage.src = "";
   }
 
-  setHighlightedQuestionText(document.getElementById("q-text"), data.question);
+  setHighlightedQuestionText(document.getElementById("question-text"), data.question);
 
   // Audio area
   const audioArea = document.getElementById("host-audio-area");
@@ -143,9 +143,9 @@ function renderQuestion(data) {
   }
 
   // Options
-  const tiles = document.getElementById("option-tiles");
+  const tiles = document.getElementById("stage-answer-grid");
   tiles.innerHTML = data.options.map((opt, i) =>
-    `<button class="option-tile" data-value="${esc(opt)}"><span class="shape">${shapes[i]}</span>${esc(opt)}</button>`
+    `<button class="answer-choice stage-answer" data-value="${escapeHtml(opt)}"><span class="shape">${shapes[i]}</span>${escapeHtml(opt)}</button>`
   ).join("");
 
   // Hide post-answer stuff
@@ -155,21 +155,21 @@ function renderQuestion(data) {
   return tiles;
 }
 
-function esc(s) { const d = document.createElement("div"); d.textContent = s; return d.innerHTML; }
+function escapeHtml(value) { const div = document.createElement("div"); div.textContent = value; return div.innerHTML; }
 
 function renderLeaderboard(containerId, list) {
   document.getElementById(containerId).innerHTML = list.map((p, i) =>
-    `<div class="lb-row" style="animation-delay:${i * 0.08}s">
-      <span class="lb-rank">${i + 1}</span>
-      <span class="lb-name">${p.name}</span>
-      <span class="lb-score">${p.score}</span>
+    `<div class="leaderboard-row" style="animation-delay:${i * 0.08}s">
+      <span class="leaderboard-rank">${i + 1}</span>
+      <span class="leaderboard-name">${p.name}</span>
+      <span class="leaderboard-score">${p.score}</span>
     </div>`
   ).join("");
 }
 
 // ========== SOLO MODE ==========
 let soloQuestions = [];
-let soloCurrent = 0, soloScore = 0, soloCurrentQ = null, soloAnswered = false;
+let soloCurrent = 0, soloScore = 0, soloCurrentQuestion = null, soloAnswered = false;
 
 function buildSoloQuestion(entry) {
   const before = entry.before || {};
@@ -202,32 +202,32 @@ async function initSolo() {
 function soloLoadRound() {
   soloAnswered = false;
   const entry = soloQuestions[soloCurrent];
-  soloCurrentQ = buildSoloQuestion(entry);
+  soloCurrentQuestion = buildSoloQuestion(entry);
 
-  const audioSrc = soloCurrentQ.audioFile;
+  const audioSrc = soloCurrentQuestion.audioFile;
 
   const data = {
     index: soloCurrent, total: soloQuestions.length,
-    question: soloCurrentQ.question,
-    options: soloCurrentQ.options, audioBefore: soloCurrentQ.audioBefore,
-    audioSrc, image: soloCurrentQ.image,
+    question: soloCurrentQuestion.question,
+    options: soloCurrentQuestion.options, audioBefore: soloCurrentQuestion.audioBefore,
+    audioSrc, image: soloCurrentQuestion.image,
   };
 
-  document.getElementById("q-info-right").textContent = `${soloScore} acierto${soloScore !== 1 ? 's' : ''}`;
+  document.getElementById("question-meta").textContent = `${soloScore} acierto${soloScore !== 1 ? 's' : ''}`;
   const tiles = renderQuestion(data);
 
   // No countdown in solo mode
   document.getElementById("countdown-container").style.display = "none";
 
   // Bind click handlers for solo
-  tiles.querySelectorAll(".option-tile").forEach(btn => {
+  tiles.querySelectorAll(".stage-answer").forEach(btn => {
     btn.onclick = () => soloAnswer(btn, btn.dataset.value);
   });
 
   if (data.audioBefore) {
     document.getElementById("countdown-number").textContent = "\u00B7\u00B7\u00B7";
-    const fg = document.getElementById("countdown-fg");
-    fg.style.transition = "none"; fg.style.strokeDashoffset = "0";
+    const progressRing = document.getElementById("countdown-ring-progress");
+    progressRing.style.transition = "none"; progressRing.style.strokeDashoffset = "0";
 
     setTimeout(() => {
       audio.play(); isPlaying = true;
@@ -244,14 +244,14 @@ function soloLoadRound() {
 function soloAnswer(btn, selected) {
   if (soloAnswered) return;
   soloAnswered = true;
-  const correct = soloCurrentQ.correct;
+  const correct = soloCurrentQuestion.correct;
 
-  document.querySelectorAll(".option-tile").forEach(b => {
+  document.querySelectorAll(".stage-answer").forEach(b => {
     b.disabled = true;
-    if (b.dataset.value === correct) b.classList.add("correct-tile");
+    if (b.dataset.value === correct) b.classList.add("answer-correct");
     else b.classList.add("dim");
     if (b.dataset.value === selected && selected !== correct) {
-      b.classList.remove("dim"); b.classList.add("wrong-tile");
+      b.classList.remove("dim"); b.classList.add("answer-wrong");
     }
   });
 
@@ -259,29 +259,29 @@ function soloAnswer(btn, selected) {
   const detailEl = document.getElementById("result-modal-detail");
   if (selected === correct) {
     soloScore++;
-    statusEl.className = "result-modal-status correct";
+    statusEl.className = "correct";
     statusEl.textContent = "¡Correcto!";
     detailEl.style.display = "none";
     detailEl.textContent = "";
     detailEl.innerHTML = "";
   } else {
-    statusEl.className = "result-modal-status wrong";
+    statusEl.className = "wrong";
     statusEl.textContent = "¡Incorrecto!";
     detailEl.style.display = "block";
-    detailEl.innerHTML = `La respuesta correcta era <span class="text-highlight-success">${esc(correct)}</span>.`;
+    detailEl.innerHTML = `La respuesta correcta era <span class="text-highlight-success">${escapeHtml(correct)}</span>.`;
   }
-  document.getElementById("q-info-right").textContent = `${soloScore} acierto${soloScore !== 1 ? 's' : ''}`;
+  document.getElementById("question-meta").textContent = `${soloScore} acierto${soloScore !== 1 ? 's' : ''}`;
 
   // Show after media in modal
   const revealImg = document.getElementById("reveal-image");
   const mediaEl = document.getElementById("result-modal-media");
   const audioRow = document.getElementById("result-modal-audio-row");
-  const hasAfterImage = !!soloCurrentQ.afterImage;
-  const hasAfterAudio = !!soloCurrentQ.afterAudio;
+  const hasAfterImage = !!soloCurrentQuestion.afterImage;
+  const hasAfterAudio = !!soloCurrentQuestion.afterAudio;
 
   mediaEl.style.display = hasAfterImage || hasAfterAudio ? "flex" : "none";
   if (hasAfterImage) {
-    revealImg.src = soloCurrentQ.afterImage;
+    revealImg.src = soloCurrentQuestion.afterImage;
     revealImg.alt = "Imagen revelada tras responder";
     revealImg.style.display = "";
   } else {
@@ -289,7 +289,7 @@ function soloAnswer(btn, selected) {
   }
   if (hasAfterAudio) {
     stopAudioPlayback();
-    audio.src = soloCurrentQ.afterAudio;
+    audio.src = soloCurrentQuestion.afterAudio;
     audio.load();
     document.getElementById("reveal-play-btn").style.display = "";
     const entry = soloQuestions[soloCurrent];
@@ -302,7 +302,7 @@ function soloAnswer(btn, selected) {
     audioRow.style.display = "none";
   }
 
-  document.getElementById("btn-next").textContent =
+  document.getElementById("solo-next-button").textContent =
     soloCurrent < soloQuestions.length - 1 ? "Siguiente" : "Ver resultado";
   document.getElementById("result-modal").classList.add("show");
 }
@@ -317,7 +317,7 @@ function nextQuestion() {
 }
 
 function soloEnd() {
-  showScreen("end-solo");
+  showScreen("solo-end-screen");
   const total = soloQuestions.length;
   document.getElementById("final-score").textContent = `${soloScore} / ${total}`;
   const pct = soloScore / total;
@@ -331,7 +331,7 @@ function soloEnd() {
 
 // ========== MULTIPLAYER MODE ==========
 let socket = null;
-let mpCurrentQ = null;
+let multiplayerCurrentQuestion = null;
 
 function initMultiplayer() {
   mode = "multi";
@@ -352,25 +352,25 @@ function initMultiplayer() {
   socket.on("host:playerList", (players) => {
     const grid = document.getElementById("player-grid");
     grid.innerHTML = players.map(p => `<div class="player-chip">${p.name}</div>`).join("");
-    const btn = document.getElementById("btn-lobby-start");
-    btn.disabled = players.length === 0;
-    btn.textContent = players.length > 0 ? `Empezar (${players.length} jugador${players.length > 1 ? 'es' : ''})` : "Esperando jugadores...";
+    const startButton = document.getElementById("lobby-start-button");
+    startButton.disabled = players.length === 0;
+    startButton.textContent = players.length > 0 ? `Empezar (${players.length} jugador${players.length > 1 ? 'es' : ''})` : "Esperando jugadores...";
   });
 
   socket.on("host:question", (data) => {
-    mpCurrentQ = data;
-    document.getElementById("q-info-right").textContent = "0 respuestas";
+    multiplayerCurrentQuestion = data;
+    document.getElementById("question-meta").textContent = "0 respuestas";
     renderQuestion(data);
 
     // In multiplayer, tiles are NOT clickable
-    document.querySelectorAll(".option-tile").forEach(b => b.onclick = null);
+    document.querySelectorAll(".stage-answer").forEach(b => b.onclick = null);
 
     if (data.audioBefore) {
       document.getElementById("countdown-number").textContent = "5";
       document.getElementById("countdown-container").classList.remove("urgent");
-      const fg = document.getElementById("countdown-fg");
-      fg.style.transition = "none"; fg.style.strokeDashoffset = "0";
-      document.getElementById("q-info-right").textContent = "Escuchad...";
+      const progressRing = document.getElementById("countdown-ring-progress");
+      progressRing.style.transition = "none"; progressRing.style.strokeDashoffset = "0";
+      document.getElementById("question-meta").textContent = "Escuchad...";
 
       setTimeout(() => {
         audio.play(); isPlaying = true;
@@ -378,7 +378,7 @@ function initMultiplayer() {
         audio.onended = () => {
           isPlaying = false;
           document.getElementById("host-play-btn").classList.remove("playing");
-          document.getElementById("q-info-right").textContent = "0 respuestas";
+          document.getElementById("question-meta").textContent = "0 respuestas";
           startCountdown(5, () => socket.emit("host:timeUp"));
           socket.emit("host:answersOpen");
         };
@@ -389,7 +389,7 @@ function initMultiplayer() {
   });
 
   socket.on("host:answerCount", ({ answered, total }) => {
-    document.getElementById("q-info-right").textContent = `${answered} / ${total} respuestas`;
+    document.getElementById("question-meta").textContent = `${answered} / ${total} respuestas`;
   });
 
   socket.on("host:reveal", (data) => {
@@ -397,13 +397,13 @@ function initMultiplayer() {
     stopAudioPlayback();
 
     showScreen("reveal-screen");
-    document.getElementById("r-badge").style.display = "none";
+    document.getElementById("reveal-badge").style.display = "none";
 
-    setHighlightedQuestionText(document.getElementById("r-text"), mpCurrentQ.question);
+    setHighlightedQuestionText(document.getElementById("reveal-text"), multiplayerCurrentQuestion.question);
 
     // Bar chart
-    const maxCount = Math.max(1, ...mpCurrentQ.options.map(o => data.optionCounts[o] || 0));
-    document.getElementById("r-bar-chart").innerHTML = mpCurrentQ.options.map((opt, i) => {
+    const maxCount = Math.max(1, ...multiplayerCurrentQuestion.options.map(option => data.optionCounts[option] || 0));
+    document.getElementById("reveal-chart").innerHTML = multiplayerCurrentQuestion.options.map((opt, i) => {
       const count = data.optionCounts[opt] || 0;
       const isCorrect = opt === data.correct;
       const heightPct = count > 0 ? Math.max(10, (count / maxCount) * 100) : 4;
@@ -411,42 +411,42 @@ function initMultiplayer() {
         <div class="bar-check">${isCorrect ? "\u2714" : ""}</div>
         <div class="bar-count">${count}</div>
         <div class="bar-fill c${i} ${isCorrect ? "" : "dim-bar"}" style="height:${heightPct}%"></div>
-        <div class="bar-base c${i}">${shapes[i]} ${esc(opt)}</div>
+        <div class="bar-base c${i}">${shapes[i]} ${escapeHtml(opt)}</div>
       </div>`;
     }).join("");
 
     // Reveal image
-    const rRevealImg = document.getElementById("r-reveal-image");
+    const revealImage = document.getElementById("reveal-media-image");
     if (data.afterImage) {
-      rRevealImg.src = data.afterImage;
-      rRevealImg.alt = "Imagen revelada de la pregunta";
-      rRevealImg.style.display = "";
+      revealImage.src = data.afterImage;
+      revealImage.alt = "Imagen revelada de la pregunta";
+      revealImage.style.display = "";
     } else {
-      rRevealImg.style.display = "none";
+      revealImage.style.display = "none";
     }
 
     // Reveal audio
-    const revealInfo = document.getElementById("r-reveal-info");
+    const revealInfo = document.getElementById("reveal-media");
     if (data.afterAudio) {
       revealInfo.classList.add("show");
       audio.src = data.afterAudio;
       audio.load();
       isPlaying = false;
-      document.getElementById("r-reveal-play-btn").classList.remove("playing");
-      document.getElementById("r-reveal-label").innerHTML = data.date || "";
+      document.getElementById("reveal-media-play-button").classList.remove("playing");
+      document.getElementById("reveal-media-label").innerHTML = data.date || "";
     } else {
       revealInfo.classList.remove("show");
     }
 
-    renderLeaderboard("r-leaderboard", data.leaderboard);
-    document.getElementById("btn-mp-next").textContent =
-      mpCurrentQ.index < mpCurrentQ.total - 1 ? "Siguiente" : "Ver resultados";
+    renderLeaderboard("reveal-leaderboard", data.leaderboard);
+    document.getElementById("reveal-next-button").textContent =
+      multiplayerCurrentQuestion.index < multiplayerCurrentQuestion.total - 1 ? "Siguiente" : "Ver resultados";
   });
 
   socket.on("game:end", ({ leaderboard }) => {
     clearInterval(countdownInterval);
     stopAudioPlayback();
-    showScreen("end-mp");
+    showScreen("multiplayer-end-screen");
     if (leaderboard.length > 0) {
       document.getElementById("winner-name").textContent = leaderboard[0].name;
       document.getElementById("winner-score").textContent = `${leaderboard[0].score} puntos`;
@@ -459,7 +459,7 @@ function lobbyStart() {
   if (socket) socket.emit("host:start");
 }
 
-function mpNext() {
+function nextMultiplayerQuestion() {
   stopAudioPlayback();
   if (socket) socket.emit("host:next");
 }

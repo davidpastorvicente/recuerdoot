@@ -11,60 +11,60 @@
 <!-- START -->
 <div id="start-screen" class="screen active">
   <div class="brand">Recuerdoot</div>
-  <div class="start-subtitle">Juego de recuerdos</div>
-  <div class="start-desc">Preguntas sobre vuestros recuerdos con audios e imágenes. Adivina la respuesta correcta y descubre después el momento completo.</div>
-  <div class="btn-row">
+  <div id="start-subtitle">Juego de recuerdos</div>
+  <div id="start-description">Preguntas sobre vuestros recuerdos con audios e imágenes. Adivina la respuesta correcta y descubre después el momento completo.</div>
+  <div class="button-row">
     <button class="btn" onclick="initSolo()">Jugar solo</button>
-    <button class="btn btn-secondary" onclick="initMultiplayer()">Multijugador</button>
+    <button class="btn button-secondary" onclick="initMultiplayer()">Multijugador</button>
   </div>
 </div>
 
 <!-- LOBBY (multiplayer only) -->
 <div id="lobby" class="screen">
   <div class="brand">Recuerdoot</div>
-  <div class="pin-label">PIN de la partida</div>
-  <div class="pin-display" id="pin-display">------</div>
-  <div class="join-url">Unirse en: <a id="join-url" target="_blank" rel="noopener"></a></div>
+  <div id="pin-label">PIN de la partida</div>
+  <div id="pin-display">------</div>
+  <div id="join-url-container">Unirse en: <a id="join-url" target="_blank" rel="noopener"></a></div>
   <canvas id="qr-canvas" style="margin:1rem auto;display:block;"></canvas>
-  <div class="player-grid" id="player-grid"></div>
-  <button class="btn" id="btn-lobby-start" disabled onclick="lobbyStart()">Esperando jugadores...</button>
+  <div id="player-grid"></div>
+  <button class="btn" id="lobby-start-button" disabled onclick="lobbyStart()">Esperando jugadores...</button>
 </div>
 
 <!-- QUESTION -->
 <div id="question-screen" class="screen">
-  <div class="q-header">
-    <span class="q-counter" id="q-counter">1 / 22</span>
-    <div class="q-progress"><div class="q-progress-fill" id="q-progress-fill"></div></div>
-    <span class="q-info-right" id="q-info-right"></span>
+  <div id="question-header">
+    <span id="question-counter">1 / 22</span>
+    <div id="question-progress"><div id="question-progress-fill"></div></div>
+    <span id="question-meta"></span>
   </div>
-  <div class="q-card">
-    <div class="q-badge" id="q-badge"></div>
-    <img class="q-image" id="q-image" style="display:none;" alt="Imagen de la pregunta">
-    <div class="q-text" id="q-text"></div>
-    <div class="host-audio-area" id="host-audio-area" style="display:none;">
+  <div class="question-card">
+    <div class="question-badge" id="question-badge"></div>
+    <img id="question-image" style="display:none;" alt="Imagen de la pregunta">
+    <div class="question-text" id="question-text"></div>
+    <div id="host-audio-area" style="display:none;">
       <button class="play-btn" id="host-play-btn" onclick="toggleAudio()" aria-label="Reproducir o pausar audio de la pregunta">
         <svg class="icon-play" width="28" height="28" viewBox="0 0 24 24"><polygon points="6,3 20,12 6,21"/></svg>
         <svg class="icon-pause" width="28" height="28" viewBox="0 0 24 24"><rect x="5" y="3" width="5" height="18" rx="1"/><rect x="14" y="3" width="5" height="18" rx="1"/></svg>
       </button>
     </div>
-    <div class="countdown-container" id="countdown-container">
-      <svg class="countdown-ring" width="100" height="100" viewBox="0 0 100 100">
-        <circle class="bg" cx="50" cy="50" r="44"/>
-        <circle class="fg" id="countdown-fg" cx="50" cy="50" r="44"
+    <div id="countdown-container">
+      <svg id="countdown-ring" width="100" height="100" viewBox="0 0 100 100">
+        <circle id="countdown-ring-track" cx="50" cy="50" r="44"/>
+        <circle id="countdown-ring-progress" cx="50" cy="50" r="44"
           stroke-dasharray="276.46" stroke-dashoffset="0"/>
       </svg>
-      <div class="countdown-number" id="countdown-number">15</div>
+      <div id="countdown-number">15</div>
     </div>
   </div>
-  <div class="option-tiles" id="option-tiles"></div>
-  <div class="q-feedback-area">
-    <div class="result-modal" id="result-modal">
-      <div class="result-modal-content">
-        <div class="result-modal-status" id="result-modal-status"></div>
-        <div class="result-modal-detail" id="result-modal-detail"></div>
-        <div class="result-modal-media" id="result-modal-media">
+  <div id="stage-answer-grid"></div>
+  <div id="question-feedback-area">
+    <div id="result-modal">
+      <div id="result-modal-content">
+        <div id="result-modal-status"></div>
+        <div id="result-modal-detail"></div>
+        <div id="result-modal-media">
           <img class="reveal-image" id="reveal-image" style="display:none;" alt="Imagen revelada tras responder">
-          <div class="result-modal-audio-row" id="result-modal-audio-row" style="display:none;">
+          <div id="result-modal-audio-row" style="display:none;">
             <button class="play-btn" id="reveal-play-btn" onclick="toggleAudio()" aria-label="Reproducir o pausar audio revelado">
               <svg class="icon-play" width="28" height="28" viewBox="0 0 24 24"><polygon points="6,3 20,12 6,21"/></svg>
               <svg class="icon-pause" width="28" height="28" viewBox="0 0 24 24"><rect x="5" y="3" width="5" height="18" rx="1"/><rect x="14" y="3" width="5" height="18" rx="1"/></svg>
@@ -72,7 +72,7 @@
             <div class="reveal-label" id="reveal-label"></div>
           </div>
         </div>
-        <button class="btn" id="btn-next" onclick="nextQuestion()">Siguiente</button>
+        <button class="btn" id="solo-next-button" onclick="nextQuestion()">Siguiente</button>
       </div>
     </div>
   </div>
@@ -80,43 +80,43 @@
 
 <!-- REVEAL (multiplayer only) -->
 <div id="reveal-screen" class="screen">
-  <div class="q-card" style="margin-bottom:16px;">
-    <div class="q-badge" id="r-badge"></div>
-    <div class="q-text" id="r-text"></div>
+  <div class="question-card" style="margin-bottom:16px;">
+    <div class="question-badge" id="reveal-badge"></div>
+    <div class="question-text" id="reveal-text"></div>
   </div>
-  <div class="bar-chart" id="r-bar-chart"></div>
-  <div class="reveal-info" id="r-reveal-info">
-    <img class="reveal-image" id="r-reveal-image" style="display:none;" alt="Imagen revelada de la pregunta">
-    <button class="play-btn" id="r-reveal-play-btn" onclick="toggleAudio()" aria-label="Reproducir o pausar audio revelado">
+  <div id="reveal-chart"></div>
+  <div id="reveal-media">
+    <img class="reveal-image" id="reveal-media-image" style="display:none;" alt="Imagen revelada de la pregunta">
+    <button class="play-btn" id="reveal-media-play-button" onclick="toggleAudio()" aria-label="Reproducir o pausar audio revelado">
       <svg class="icon-play" width="28" height="28" viewBox="0 0 24 24"><polygon points="6,3 20,12 6,21"/></svg>
       <svg class="icon-pause" width="28" height="28" viewBox="0 0 24 24"><rect x="5" y="3" width="5" height="18" rx="1"/><rect x="14" y="3" width="5" height="18" rx="1"/></svg>
     </button>
-    <div class="reveal-label" id="r-reveal-label"></div>
+    <div class="reveal-label" id="reveal-media-label"></div>
   </div>
-  <div class="leaderboard" id="r-leaderboard"></div>
-  <button class="btn" id="btn-mp-next" onclick="mpNext()">Siguiente</button>
+  <div class="leaderboard" id="reveal-leaderboard"></div>
+  <button class="btn" id="reveal-next-button" onclick="nextMultiplayerQuestion()">Siguiente</button>
 </div>
 
 <!-- END (solo) -->
-<div id="end-solo" class="screen">
+<div id="solo-end-screen" class="screen">
   <div class="brand">Recuerdoot</div>
   <h1 style="font-size:2.2rem;font-weight:800;margin-bottom:12px;">Fin del juego</h1>
-  <div class="final-score" id="final-score"></div>
-  <div class="end-msg" id="end-message"></div>
+  <div id="final-score"></div>
+  <div id="end-message"></div>
   <button class="btn" onclick="initSolo()">Jugar otra vez</button>
-  <button class="btn btn-secondary" style="margin-top:12px;" onclick="backToStart()">Volver</button>
+  <button class="btn button-secondary" style="margin-top:12px;" onclick="backToStart()">Volver</button>
 </div>
 
 <!-- END (multiplayer) -->
-<div id="end-mp" class="screen">
+<div id="multiplayer-end-screen" class="screen">
   <div class="brand">Recuerdoot</div>
-  <div class="trophy" aria-hidden="true">
+  <div id="trophy" aria-hidden="true">
     <svg viewBox="0 0 64 64" width="64" height="64" role="img" focusable="false">
       <path fill="currentColor" d="M20 8h24v8h8c0 8.8-5.2 16.1-12 18.7V42h6a4 4 0 0 1 4 4v2H14v-2a4 4 0 0 1 4-4h6v-7.3C17.2 32.1 12 24.8 12 16h8V8Zm-2 12c0 4.9 2.6 9.1 6.5 11.4A19.8 19.8 0 0 1 20 20h-2Zm28 0c0 4.1-1.6 8-4.5 11.4C45.4 29.1 48 24.9 48 20h-2Z"/>
     </svg>
   </div>
-  <div class="winner-name" id="winner-name"></div>
-  <div class="winner-score" id="winner-score"></div>
+  <div id="winner-name"></div>
+  <div id="winner-score"></div>
   <div class="leaderboard" id="end-leaderboard"></div>
   <button class="btn" style="margin-top:24px;" onclick="backToStart()">Nueva partida</button>
 </div>

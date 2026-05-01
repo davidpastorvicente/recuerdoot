@@ -25,7 +25,7 @@ function joinGame() {
     return;
   }
 
-  document.getElementById("btn-join").disabled = true;
+  document.getElementById("join-button").disabled = true;
   socket.emit("player:join", { pin, name });
 }
 
@@ -38,7 +38,7 @@ function setResultState({ icon, text, textClass, pointsText }) {
 
 socket.on("player:error", (msg) => {
   document.getElementById("error-msg").textContent = msg;
-  document.getElementById("btn-join").disabled = false;
+  document.getElementById("join-button").disabled = false;
 });
 
 socket.on("player:joined", ({ name }) => {
@@ -49,16 +49,16 @@ socket.on("player:joined", ({ name }) => {
 
 socket.on("player:wait", (data) => {
   showScreen("listen-screen");
-  document.getElementById("listen-q-info").textContent = `Pregunta ${data.index + 1} / ${data.total}`;
+  document.getElementById("listen-question-meta").textContent = `Pregunta ${data.index + 1} / ${data.total}`;
 });
 
 socket.on("player:question", (data) => {
   answered = false;
   showScreen("answer-screen");
-  document.getElementById("p-q-info").textContent = `Pregunta ${data.index + 1} / ${data.total}`;
-  const grid = document.getElementById("answer-grid");
+  document.getElementById("player-question-meta").textContent = `Pregunta ${data.index + 1} / ${data.total}`;
+  const grid = document.getElementById("player-answer-grid");
   grid.innerHTML = data.options.map((opt, i) =>
-    `<button class="answer-btn" data-answer="${esc(opt)}" onclick="sendAnswer(this)">${shapes[i]} ${esc(opt)}</button>`
+    `<button class="answer-choice player-answer" data-answer="${escapeHtml(opt)}" onclick="sendAnswer(this)"><span class="shape">${shapes[i]}</span>${escapeHtml(opt)}</button>`
   ).join("");
 });
 
@@ -69,7 +69,7 @@ function sendAnswer(btn) {
   socket.emit("player:answer", { answer });
 
   // Visual feedback
-  document.querySelectorAll(".answer-btn").forEach(b => {
+  document.querySelectorAll(".player-answer").forEach(b => {
     b.disabled = true;
     if (b !== btn) b.classList.add("dim");
     else b.classList.add("selected");
@@ -135,10 +135,10 @@ function showScreen(id) {
   document.getElementById(id).classList.add("active");
 }
 
-function esc(s) {
-  const d = document.createElement("div");
-  d.textContent = s;
-  return d.innerHTML;
+function escapeHtml(value) {
+  const div = document.createElement("div");
+  div.textContent = value;
+  return div.innerHTML;
 }
 
 // Auto-fill PIN from URL query param

@@ -11,7 +11,7 @@
 <!-- JOIN -->
 <div id="join-screen" class="screen active">
   <div class="brand">Recuerdoot</div>
-  <div class="join-form">
+  <div id="join-form">
     <div class="input-group">
       <label for="pin-input">PIN de la partida</label>
       <input type="tel" id="pin-input" placeholder="000000" maxlength="6" inputmode="numeric">
@@ -20,28 +20,28 @@
       <label for="name-input">Tu nombre</label>
       <input type="text" id="name-input" placeholder="Nombre" maxlength="15">
     </div>
-    <button class="btn" id="btn-join" onclick="joinGame()">Unirse</button>
-    <div class="error-msg" id="error-msg" role="alert" aria-live="polite"></div>
+    <button class="btn" id="join-button" onclick="joinGame()">Unirse</button>
+    <div id="error-msg" role="alert" aria-live="polite"></div>
   </div>
 </div>
 
 <!-- WAITING IN LOBBY -->
 <div id="waiting-screen" class="screen">
   <div class="brand">Recuerdoot</div>
-  <div class="player-name-display" id="my-name"></div>
+  <div id="my-name"></div>
   <div class="waiting-text pulse">Esperando a que el host empiece...</div>
 </div>
 
 <!-- ANSWERING -->
 <div id="answer-screen" class="screen">
-  <div class="q-info" id="p-q-info">Pregunta 1 / 22</div>
-  <div class="answer-grid" id="answer-grid"></div>
+  <div class="question-info" id="player-question-meta">Pregunta 1 / 22</div>
+  <div id="player-answer-grid"></div>
 </div>
 
 <!-- LISTENING (pre-phase for audio questions) -->
 <div id="listen-screen" class="screen">
-  <div class="q-info" id="listen-q-info">Pregunta 1 / 22</div>
-  <div class="listen-icon" aria-hidden="true">
+  <div class="question-info" id="listen-question-meta">Pregunta 1 / 22</div>
+  <div id="listen-icon" aria-hidden="true">
     <svg viewBox="0 0 64 64" width="64" height="64" role="img" focusable="false">
       <path fill="currentColor" d="M22 18a10 10 0 0 1 20 0v4h2a8 8 0 0 1 8 8v10a8 8 0 0 1-8 8h-2v2a10 10 0 0 1-20 0v-2h-2a8 8 0 0 1-8-8V30a8 8 0 0 1 8-8h2v-4Zm6 0v30a4 4 0 0 0 8 0V18a4 4 0 0 0-8 0Z"/>
     </svg>
@@ -51,20 +51,20 @@
 
 <!-- RESULT -->
 <div id="result-screen" class="screen">
-  <div class="result-icon" id="result-icon" aria-hidden="true"></div>
+  <div id="result-icon" aria-hidden="true"></div>
   <div class="result-text" id="result-text"></div>
-  <div class="result-points" id="result-points"></div>
-  <div class="result-score" id="result-score"></div>
-  <div class="result-streak" id="result-streak"></div>
+  <div id="result-points"></div>
+  <div id="result-score"></div>
+  <div id="result-streak"></div>
   <div class="waiting-text pulse" style="margin-top:24px;">Esperando siguiente pregunta...</div>
 </div>
 
 <!-- GAME OVER -->
 <div id="end-screen" class="screen">
   <div class="brand">Recuerdoot</div>
-  <div class="end-rank" id="end-rank"></div>
+  <div id="end-rank"></div>
   <div class="result-text" id="end-position"></div>
-  <div class="end-score" id="end-score"></div>
+  <div id="end-score"></div>
   <button class="btn" style="margin-top:32px;" onclick="location.reload()">Volver</button>
 </div>
 
