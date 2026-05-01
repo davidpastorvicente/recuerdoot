@@ -27,6 +27,12 @@ const MIN_POINTS = 100;
 
 let game = null; // { pin, host, players, questions, currentQ, phase, timer, answers }
 
+function emitPlayerList() {
+  if (game?.host) {
+    io.to(game.host).emit("host:playerList", getPlayerList());
+  }
+}
+
 function generatePin() {
   return String(Math.floor(100000 + Math.random() * 900000));
 }
@@ -117,7 +123,7 @@ io.on("connection", (socket) => {
     socket.emit("player:joined", { name });
 
     // Notify host
-    io.to(game.host).emit("host:playerList", getPlayerList());
+    emitPlayerList();
   });
 
   // Host starts
@@ -197,9 +203,7 @@ io.on("connection", (socket) => {
       game = null;
     } else if (game.players[socket.id]) {
       delete game.players[socket.id];
-      if (game.host) {
-        io.to(game.host).emit("host:playerList", getPlayerList());
-      }
+      emitPlayerList();
     }
   });
 });

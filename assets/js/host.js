@@ -12,6 +12,12 @@ let isPlaying = false;
 let countdownInterval = null;
 let mode = null; // "solo" or "multi"
 
+function setPlayButtonsPlaying(playing) {
+  document.querySelectorAll(".play-btn").forEach((button) => {
+    button.classList.toggle("playing", playing);
+  });
+}
+
 function showScreen(id) {
   document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
   document.getElementById(id).classList.add("active");
@@ -23,7 +29,7 @@ function setQuestionScreenMode(isSolo) {
 }
 
 function backToStart() {
-  audio.pause(); isPlaying = false;
+  stopAudioPlayback();
   clearInterval(countdownInterval);
   showScreen("start-screen");
 }
@@ -45,16 +51,35 @@ function shuffle(arr) {
 
 function toggleAudio() {
   if (isPlaying) {
-    audio.pause(); isPlaying = false;
-    document.querySelectorAll(".play-btn").forEach(b => b.classList.remove("playing"));
+    stopAudioPlayback();
   } else {
-    audio.play(); isPlaying = true;
-    document.querySelectorAll(".play-btn").forEach(b => b.classList.add("playing"));
+    audio.play();
+    isPlaying = true;
+    setPlayButtonsPlaying(true);
   }
 }
-audio.addEventListener("ended", () => {
+
+function stopAudioPlayback() {
+  audio.pause();
   isPlaying = false;
-  document.querySelectorAll(".play-btn").forEach(b => b.classList.remove("playing"));
+  setPlayButtonsPlaying(false);
+}
+
+function setHighlightedQuestionText(element, question) {
+  const quoteMatch = question.match(/"([^"]+)"/);
+  if (!quoteMatch) {
+    element.textContent = question;
+    return;
+  }
+
+  element.innerHTML = question.replace(
+    `"${quoteMatch[1]}"`,
+    `<span class="quote text-highlight-success">${quoteMatch[1]}</span>`
+  );
+}
+
+audio.addEventListener("ended", () => {
+  stopAudioPlayback();
 });
 
 function startCountdown(seconds, onEnd) {
@@ -103,13 +128,7 @@ function renderQuestion(data) {
     qImage.src = "";
   }
 
-  const qText = document.getElementById("q-text");
-  const quoteMatch = data.question.match(/"([^"]+)"/);
-  if (quoteMatch) {
-    qText.innerHTML = data.question.replace(`"${quoteMatch[1]}"`, `<span class="quote text-highlight-success">${quoteMatch[1]}</span>`);
-  } else {
-    qText.textContent = data.question;
-  }
+  setHighlightedQuestionText(document.getElementById("q-text"), data.question);
 
   // Audio area
   const audioArea = document.getElementById("host-audio-area");
@@ -216,7 +235,7 @@ function soloLoadRound() {
       audio.onended = () => {
         isPlaying = false;
         document.getElementById("host-play-btn").classList.remove("playing");
-        audio.onended = () => { isPlaying = false; document.querySelectorAll(".play-btn").forEach(b => b.classList.remove("playing")); };
+        audio.onended = stopAudioPlayback;
       };
     }, 3000);
   }
@@ -269,8 +288,7 @@ function soloAnswer(btn, selected) {
     revealImg.style.display = "none";
   }
   if (hasAfterAudio) {
-    audio.pause(); isPlaying = false;
-    document.querySelectorAll(".play-btn").forEach(b => b.classList.remove("playing"));
+    stopAudioPlayback();
     audio.src = soloCurrentQ.afterAudio;
     audio.load();
     document.getElementById("reveal-play-btn").style.display = "";
@@ -291,8 +309,7 @@ function soloAnswer(btn, selected) {
 
 function nextQuestion() {
   if (mode === "solo") {
-    audio.pause(); isPlaying = false;
-    document.querySelectorAll(".play-btn").forEach(b => b.classList.remove("playing"));
+    stopAudioPlayback();
     soloCurrent++;
     if (soloCurrent >= soloQuestions.length) soloEnd();
     else soloLoadRound();
@@ -377,18 +394,12 @@ function initMultiplayer() {
 
   socket.on("host:reveal", (data) => {
     clearInterval(countdownInterval);
-    audio.pause(); isPlaying = false;
+    stopAudioPlayback();
 
     showScreen("reveal-screen");
     document.getElementById("r-badge").style.display = "none";
 
-    const rText = document.getElementById("r-text");
-    const quoteMatch = mpCurrentQ.question.match(/"([^"]+)"/);
-    if (quoteMatch) {
-      rText.innerHTML = mpCurrentQ.question.replace(`"${quoteMatch[1]}"`, `<span class="quote text-highlight-success">${quoteMatch[1]}</span>`);
-    } else {
-      rText.textContent = mpCurrentQ.question;
-    }
+    setHighlightedQuestionText(document.getElementById("r-text"), mpCurrentQ.question);
 
     // Bar chart
     const maxCount = Math.max(1, ...mpCurrentQ.options.map(o => data.optionCounts[o] || 0));
@@ -419,7 +430,8 @@ function initMultiplayer() {
     if (data.afterAudio) {
       revealInfo.classList.add("show");
       audio.src = data.afterAudio;
-      audio.load(); isPlaying = false;
+      audio.load();
+      isPlaying = false;
       document.getElementById("r-reveal-play-btn").classList.remove("playing");
       document.getElementById("r-reveal-label").innerHTML = data.date || "";
     } else {
@@ -433,7 +445,7 @@ function initMultiplayer() {
 
   socket.on("game:end", ({ leaderboard }) => {
     clearInterval(countdownInterval);
-    audio.pause();
+    stopAudioPlayback();
     showScreen("end-mp");
     if (leaderboard.length > 0) {
       document.getElementById("winner-name").textContent = leaderboard[0].name;
@@ -448,6 +460,6 @@ function lobbyStart() {
 }
 
 function mpNext() {
-  audio.pause(); isPlaying = false;
+  stopAudioPlayback();
   if (socket) socket.emit("host:next");
 }

@@ -12,11 +12,28 @@ const shapes = [
 function joinGame() {
   const pin = document.getElementById("pin-input").value.trim();
   const name = document.getElementById("name-input").value.trim();
-  document.getElementById("error-msg").textContent = "";
-  if (!pin || pin.length < 4) { document.getElementById("error-msg").textContent = "Introduce un PIN"; return; }
-  if (!name) { document.getElementById("error-msg").textContent = "Introduce tu nombre"; return; }
+  const errorEl = document.getElementById("error-msg");
+  errorEl.textContent = "";
+
+  if (!pin || pin.length < 4) {
+    errorEl.textContent = "Introduce un PIN";
+    return;
+  }
+
+  if (!name) {
+    errorEl.textContent = "Introduce tu nombre";
+    return;
+  }
+
   document.getElementById("btn-join").disabled = true;
   socket.emit("player:join", { pin, name });
+}
+
+function setResultState({ icon, text, textClass, pointsText }) {
+  document.getElementById("result-icon").innerHTML = icon;
+  document.getElementById("result-text").textContent = text;
+  document.getElementById("result-text").className = `result-text ${textClass}`;
+  document.getElementById("result-points").textContent = pointsText;
 }
 
 socket.on("player:error", (msg) => {
@@ -62,20 +79,26 @@ function sendAnswer(btn) {
 socket.on("player:result", ({ isCorrect, points, score, streak, timeout }) => {
   showScreen("result-screen");
   if (timeout) {
-    document.getElementById("result-icon").innerHTML = `<svg viewBox="0 0 64 64" width="64" height="64" role="img" focusable="false"><path fill="currentColor" d="M32 10a22 22 0 1 1 0 44 22 22 0 0 1 0-44Zm0 6a2 2 0 0 0-2 2v14.8l8.4 5.6a2 2 0 1 0 2.2-3.3L34 30.8V18a2 2 0 0 0-2-2Zm-12.6-5.8a2 2 0 0 0 0 2.8l1.4 1.4a2 2 0 1 0 2.8-2.8l-1.4-1.4a2 2 0 0 0-2.8 0Zm24.8 0-1.4 1.4a2 2 0 1 0 2.8 2.8l1.4-1.4a2 2 0 0 0-2.8-2.8Z"/></svg>`;
-    document.getElementById("result-text").textContent = "Se acabo el tiempo";
-    document.getElementById("result-text").className = "result-text result-wrong";
-    document.getElementById("result-points").textContent = "";
+    setResultState({
+      icon: `<svg viewBox="0 0 64 64" width="64" height="64" role="img" focusable="false"><path fill="currentColor" d="M32 10a22 22 0 1 1 0 44 22 22 0 0 1 0-44Zm0 6a2 2 0 0 0-2 2v14.8l8.4 5.6a2 2 0 1 0 2.2-3.3L34 30.8V18a2 2 0 0 0-2-2Zm-12.6-5.8a2 2 0 0 0 0 2.8l1.4 1.4a2 2 0 1 0 2.8-2.8l-1.4-1.4a2 2 0 0 0-2.8 0Zm24.8 0-1.4 1.4a2 2 0 1 0 2.8 2.8l1.4-1.4a2 2 0 0 0-2.8-2.8Z"/></svg>`,
+      text: "Se acabo el tiempo",
+      textClass: "result-wrong",
+      pointsText: "",
+    });
   } else if (isCorrect) {
-    document.getElementById("result-icon").innerHTML = `<svg viewBox="0 0 64 64" width="64" height="64" role="img" focusable="false"><path fill="currentColor" d="M32 10a22 22 0 1 1 0 44 22 22 0 0 1 0-44Zm10.4 14.6a2 2 0 0 0-2.8 0L28 36.2l-3.6-3.6a2 2 0 1 0-2.8 2.8l5 5a2 2 0 0 0 2.8 0l13-13a2 2 0 0 0 0-2.8Z"/></svg>`;
-    document.getElementById("result-text").textContent = "\u00A1Correcto!";
-    document.getElementById("result-text").className = "result-text result-correct";
-    document.getElementById("result-points").textContent = `+${points} puntos`;
+    setResultState({
+      icon: `<svg viewBox="0 0 64 64" width="64" height="64" role="img" focusable="false"><path fill="currentColor" d="M32 10a22 22 0 1 1 0 44 22 22 0 0 1 0-44Zm10.4 14.6a2 2 0 0 0-2.8 0L28 36.2l-3.6-3.6a2 2 0 1 0-2.8 2.8l5 5a2 2 0 0 0 2.8 0l13-13a2 2 0 0 0 0-2.8Z"/></svg>`,
+      text: "\u00A1Correcto!",
+      textClass: "result-correct",
+      pointsText: `+${points} puntos`,
+    });
   } else {
-    document.getElementById("result-icon").innerHTML = `<svg viewBox="0 0 64 64" width="64" height="64" role="img" focusable="false"><path fill="currentColor" d="M32 10a22 22 0 1 1 0 44 22 22 0 0 1 0-44Zm-7.4 14.6a2 2 0 0 0 0 2.8l4.6 4.6-4.6 4.6a2 2 0 1 0 2.8 2.8l4.6-4.6 4.6 4.6a2 2 0 1 0 2.8-2.8L34.8 32l4.6-4.6a2 2 0 0 0-2.8-2.8L32 29.2l-4.6-4.6a2 2 0 0 0-2.8 0Z"/></svg>`;
-    document.getElementById("result-text").textContent = "Incorrecto";
-    document.getElementById("result-text").className = "result-text result-wrong";
-    document.getElementById("result-points").textContent = "";
+    setResultState({
+      icon: `<svg viewBox="0 0 64 64" width="64" height="64" role="img" focusable="false"><path fill="currentColor" d="M32 10a22 22 0 1 1 0 44 22 22 0 0 1 0-44Zm-7.4 14.6a2 2 0 0 0 0 2.8l4.6 4.6-4.6 4.6a2 2 0 1 0 2.8 2.8l4.6-4.6 4.6 4.6a2 2 0 1 0 2.8-2.8L34.8 32l4.6-4.6a2 2 0 0 0-2.8-2.8L32 29.2l-4.6-4.6a2 2 0 0 0-2.8 0Z"/></svg>`,
+      text: "Incorrecto",
+      textClass: "result-wrong",
+      pointsText: "",
+    });
   }
   document.getElementById("result-score").textContent = `${score} pts`;
   if (streak > 1) {

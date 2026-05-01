@@ -207,10 +207,6 @@ body::after {
   gap: 16px;
 }
 
-#btn-next {
-  margin-top: 8px;
-}
-
 @keyframes screenIn {
   from {
     opacity: 0;
@@ -669,7 +665,8 @@ body::after {
   overflow: hidden;
 }
 
-.option-tile::before {
+.option-tile::before,
+.answer-btn::before {
   content: '';
   position: absolute;
   inset: 0;
@@ -683,10 +680,20 @@ body::after {
   flex-shrink: 0;
 }
 
-.option-tile:nth-child(1) { background: var(--opt0); }
-.option-tile:nth-child(2) { background: var(--opt1); }
-.option-tile:nth-child(3) { background: var(--opt2); color: #1a1a24; }
-.option-tile:nth-child(4) { background: var(--opt3); }
+.option-tile:nth-child(1),
+.answer-btn:nth-child(1) { background: var(--opt0); }
+
+.option-tile:nth-child(2),
+.answer-btn:nth-child(2) { background: var(--opt1); }
+
+.option-tile:nth-child(3),
+.answer-btn:nth-child(3) {
+  background: var(--opt2);
+  color: #1a1a24;
+}
+
+.option-tile:nth-child(4),
+.answer-btn:nth-child(4) { background: var(--opt3); }
 
 .option-tile:not(:disabled):hover {
   transform: scale(1.03);
@@ -738,20 +745,6 @@ body::after {
   display: none;
   align-items: center;
   gap: 20px;
-}
-
-.result-banner {
-  text-align: center;
-  padding: 16px 24px;
-  border-radius: 12px;
-  font-weight: 600;
-  font-size: 1rem;
-  display: none;
-}
-
-.result-banner.show {
-  display: block;
-  animation: fadeUp 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .reveal-info.show {
@@ -1145,14 +1138,6 @@ body.player .btn:hover {
   overflow: hidden;
 }
 
-.answer-btn::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(180deg, rgba(255,255,255,0.1) 0%, transparent 40%);
-  pointer-events: none;
-}
-
 .answer-btn:active {
   transform: scale(0.93);
 }
@@ -1160,11 +1145,6 @@ body.player .btn:hover {
 .answer-btn:disabled {
   cursor: default;
 }
-
-.answer-btn:nth-child(1) { background: var(--opt0); }
-.answer-btn:nth-child(2) { background: var(--opt1); }
-.answer-btn:nth-child(3) { background: var(--opt2); color: #1a1a24; }
-.answer-btn:nth-child(4) { background: var(--opt3); }
 
 .answer-btn.dim {
   opacity: 0.2;
