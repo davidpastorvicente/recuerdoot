@@ -284,11 +284,11 @@ body::after {
    Buttons
    ─────────────────────────────────────────────── */
 
-.btn {
+.button {
   background: var(--accent);
   color: #0a0e1a;
   border: none;
-  padding: 18px 56px;
+  padding: 18px 30px;
   border-radius: 14px;
   font-size: 1.15rem;
   font-weight: 700;
@@ -299,7 +299,7 @@ body::after {
   overflow: hidden;
 }
 
-.btn::after {
+.button::after {
   content: '';
   position: absolute;
   inset: 0;
@@ -307,17 +307,17 @@ body::after {
   pointer-events: none;
 }
 
-.btn:hover {
+.button:hover {
   transform: scale(1.04) translateY(-1px);
   box-shadow: 0 8px 32px var(--accent-glow-strong), 0 0 0 1px var(--accent-soft);
 }
 
-.btn:active {
+.button:active {
   transform: scale(0.97);
   box-shadow: none;
 }
 
-.btn:disabled {
+.button:disabled {
   opacity: 0.4;
   cursor: default;
   transform: none;
@@ -575,7 +575,7 @@ body::after {
   margin: 16px 0;
 }
 
-.play-btn {
+.play-button {
   width: 60px;
   height: 60px;
   border-radius: 50%;
@@ -589,7 +589,7 @@ body::after {
   position: relative;
 }
 
-.play-btn::after {
+.play-button::after {
   content: '';
   position: absolute;
   inset: -4px;
@@ -599,16 +599,16 @@ body::after {
   transition: opacity 0.2s;
 }
 
-.play-btn:hover {
+.play-button:hover {
   transform: scale(1.1);
   box-shadow: 0 4px 24px var(--accent-glow-strong);
 }
 
-.play-btn:hover::after {
+.play-button:hover::after {
   opacity: 1;
 }
 
-.play-btn.playing {
+.play-button.playing {
   animation: audioWave 1.5s ease-in-out infinite;
 }
 
@@ -617,20 +617,20 @@ body::after {
   50% { box-shadow: 0 0 0 12px transparent; }
 }
 
-.play-btn .icon-play,
-.play-btn .icon-pause {
+.play-button .icon-play,
+.play-button .icon-pause {
   fill: #0a0e1a;
 }
 
-.play-btn .icon-pause {
+.play-button .icon-pause {
   display: none;
 }
 
-.play-btn.playing .icon-play {
+.play-button.playing .icon-play {
   display: none;
 }
 
-.play-btn.playing .icon-pause {
+.play-button.playing .icon-pause {
   display: block;
 }
 
@@ -1009,13 +1009,13 @@ body.player .brand {
   margin-bottom: 24px;
 }
 
-body.player .btn {
+body.player .button {
   width: 100%;
   padding: 18px;
   transition: transform 0.15s;
 }
 
-body.player .btn:hover {
+body.player .button:hover {
   transform: none;
   box-shadow: none;
 }

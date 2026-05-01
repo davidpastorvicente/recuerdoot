@@ -13,7 +13,7 @@ let countdownInterval = null;
 let mode = null; // "solo" or "multi"
 
 function setPlayButtonsPlaying(playing) {
-  document.querySelectorAll(".play-btn").forEach((button) => {
+  document.querySelectorAll(".play-button").forEach((button) => {
     button.classList.toggle("playing", playing);
   });
 }
