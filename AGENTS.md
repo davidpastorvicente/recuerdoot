@@ -30,7 +30,7 @@ Every question has the same structure:
 - `question` — Always present. The full question text as shown to users.
 - `answers` — Always present. `right` is the correct answer string, `wrong` is an array of 3 wrong answers.
 - `before` (optional) — Media shown/played with the question before answering. Can contain `audio` (filename string in `media/audios/`) and/or `image` (filename string in `media/images/`).
-- `after` (optional) — Media revealed after answering. Can contain `audio` (filename string in `media/audios/`).
+- `after` (optional) — Media revealed after answering. Can contain `audio` (filename string in `media/audios/`) and/or `image` (filename string in `media/images/`).
 - For filtered audio questions: the `_filtered` version plays before answering, the original is revealed after.
 - A question can have both audio and image in `before`.
 - Options are shuffled at runtime by the code; questions.json stores them in a fixed structure.

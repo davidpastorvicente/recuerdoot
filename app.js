@@ -87,13 +87,13 @@ function renderQuestion(data) {
   document.getElementById("q-badge").style.display = "none";
 
   // Photo
-  const qPhoto = document.getElementById("q-photo");
-  if (data.photo) {
-    qPhoto.src = data.photo;
-    qPhoto.style.display = "";
+  const qImage = document.getElementById("q-image");
+  if (data.image) {
+    qImage.src = data.image;
+    qImage.style.display = "";
   } else {
-    qPhoto.style.display = "none";
-    qPhoto.src = "";
+    qImage.style.display = "none";
+    qImage.src = "";
   }
 
   const qText = document.getElementById("q-text");
@@ -159,7 +159,8 @@ function buildSoloQuestion(entry) {
     audioBefore,
     audioFile: audioFile ? `media/audios/${audioFile}` : null,
     afterAudioFile: after.audio ? `media/audios/${after.audio}` : null,
-    photo: before.image ? `media/images/${before.image}` : null,
+    afterImage: after.image ? `media/images/${after.image}` : null,
+    image: before.image ? `media/images/${before.image}` : null,
   };
 }
 
@@ -184,7 +185,7 @@ function soloLoadRound() {
     index: soloCurrent, total: soloQuestions.length,
     question: soloCurrentQ.question,
     options: soloCurrentQ.options, audioBefore: soloCurrentQ.audioBefore,
-    audioSrc, photo: soloCurrentQ.photo,
+    audioSrc, image: soloCurrentQ.image,
   };
 
   document.getElementById("q-info-right").textContent = `${soloScore} acierto${soloScore !== 1 ? 's' : ''}`;
@@ -240,16 +241,29 @@ function soloAnswer(btn, selected) {
   }
   document.getElementById("q-info-right").textContent = `${soloScore} acierto${soloScore !== 1 ? 's' : ''}`;
 
-  // Show after audio on reveal
-  if (soloCurrentQ.afterAudioFile) {
+  // Show after media on reveal
+  if (soloCurrentQ.afterAudioFile || soloCurrentQ.afterImage) {
     document.getElementById("reveal-info").classList.add("show");
-    audio.pause(); isPlaying = false;
-    document.querySelectorAll(".play-btn").forEach(b => b.classList.remove("playing"));
-    audio.src = soloCurrentQ.afterAudioFile;
-    audio.load();
-    const entry = soloQuestions[soloCurrent];
-    const { date } = parseDate(entry.after.audio);
-    document.getElementById("reveal-label").innerHTML = `${date}`;
+    const revealImg = document.getElementById("reveal-image");
+    if (soloCurrentQ.afterImage) {
+      revealImg.src = soloCurrentQ.afterImage;
+      revealImg.style.display = "";
+    } else {
+      revealImg.style.display = "none";
+    }
+    if (soloCurrentQ.afterAudioFile) {
+      audio.pause(); isPlaying = false;
+      document.querySelectorAll(".play-btn").forEach(b => b.classList.remove("playing"));
+      audio.src = soloCurrentQ.afterAudioFile;
+      audio.load();
+      document.getElementById("reveal-play-btn").style.display = "";
+      const entry = soloQuestions[soloCurrent];
+      const { date } = parseDate(entry.after.audio);
+      document.getElementById("reveal-label").innerHTML = `${date}`;
+    } else {
+      document.getElementById("reveal-play-btn").style.display = "none";
+      document.getElementById("reveal-label").innerHTML = "";
+    }
   }
 
   document.getElementById("btn-next").style.display = "";

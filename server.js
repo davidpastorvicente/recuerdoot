@@ -63,7 +63,8 @@ function loadQuestions() {
       audioBefore,
       audioFile: audioFile ? `media/audios/${audioFile}` : null,
       afterAudioFile: after.audio ? `media/audios/${after.audio}` : null,
-      photo: before.image ? `media/images/${before.image}` : null,
+      afterImage: after.image ? `media/images/${after.image}` : null,
+      image: before.image ? `media/images/${before.image}` : null,
       date: audioFile ? parseDate(audioFile) : "",
     };
   });
@@ -231,7 +232,7 @@ function nextQuestion() {
     options: q.options,
     audioBefore: q.audioBefore,
     audioSrc: q.audioFile || null,
-    photo: q.photo || null,
+    image: q.image || null,
     countdown: COUNTDOWN_SECONDS,
   });
 
@@ -268,6 +269,7 @@ function endQuestion() {
     leaderboard,
     date: q.date || null,
     afterAudio: q.afterAudioFile || null,
+    afterImage: q.afterImage || null,
   });
 
   // Tell players who didn't answer yet

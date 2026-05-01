@@ -45,7 +45,7 @@ An ordered JSON array. Questions play in the order defined. Every question uses 
 | `question` | Yes | The question text shown to users |
 | `answers` | Yes | Object with `right` (string) and `wrong` (array of 3 strings) |
 | `before` | No | Media shown/played before answering. Can contain `audio` and/or `image` (filename strings) |
-| `after` | No | Media revealed after answering. Can contain `audio` (filename string) |
+| `after` | No | Media revealed after answering. Can contain `audio` and/or `image` (filename strings) |
 
 ### Audio behavior
 
