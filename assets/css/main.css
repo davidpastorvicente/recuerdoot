@@ -117,7 +117,7 @@ body::after {
 }
 
 /* Feedback area: container for the result modal */
-.question-feedback-area {
+#question-feedback-area {
   display: contents;
 }
 
@@ -182,7 +182,7 @@ body::after {
 
 #result-modal-detail {
   display: none;
-  font-size: 1rem;
+  font-size: 1.25rem;
   line-height: 1.5;
   color: var(--text-secondary);
   text-align: center;

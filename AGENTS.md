@@ -46,6 +46,7 @@ Every question has the same structure:
 - No inline JavaScript in HTML files — all JS lives in separate `.js` files
 - Multiplayer lobby shows a QR code for easy player joining
 - The full visual system and UI behavior guidance live in `DESIGN.md`
+- Naming convention: use ids for singleton UI hooks and classes for shared/repeated styling patterns
 
 ## Running
 

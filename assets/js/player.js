@@ -29,6 +29,11 @@ function joinGame() {
   socket.emit("player:join", { pin, name });
 }
 
+function bindPlayerUi() {
+  document.getElementById("join-button").addEventListener("click", joinGame);
+  document.getElementById("player-reload-button").addEventListener("click", () => location.reload());
+}
+
 function setResultState({ icon, text, textClass, pointsText }) {
   document.getElementById("result-icon").innerHTML = icon;
   document.getElementById("result-text").textContent = text;
@@ -58,8 +63,11 @@ socket.on("player:question", (data) => {
   document.getElementById("player-question-meta").textContent = `Pregunta ${data.index + 1} / ${data.total}`;
   const grid = document.getElementById("player-answer-grid");
   grid.innerHTML = data.options.map((opt, i) =>
-    `<button class="answer-choice player-answer" data-answer="${escapeHtml(opt)}" onclick="sendAnswer(this)"><span class="shape">${shapes[i]}</span>${escapeHtml(opt)}</button>`
+    `<button class="answer-choice player-answer" data-answer="${escapeHtml(opt)}"><span class="shape">${shapes[i]}</span>${escapeHtml(opt)}</button>`
   ).join("");
+  grid.querySelectorAll(".player-answer").forEach((button) => {
+    button.addEventListener("click", () => sendAnswer(button));
+  });
 });
 
 function sendAnswer(btn) {
@@ -157,3 +165,5 @@ if (urlPin) {
 document.querySelectorAll("#join-screen input").forEach(inp => {
   inp.addEventListener("keydown", (e) => { if (e.key === "Enter") joinGame(); });
 });
+
+bindPlayerUi();

@@ -125,6 +125,11 @@ The visual identity balances three ideas:
 
 All visible product copy is in Spanish. The UI should stay confident and concise rather than verbose.
 
+Implementation note:
+
+- Prefer ids for singleton UI hooks that exist once per screen.
+- Prefer classes for shared or repeated styling patterns.
+
 ## Colors
 
 The palette is built around a dark foundation with a single blue accent system for primary actions and progress states.
@@ -221,6 +226,7 @@ The `Recuerdoot` wordmark is a display treatment, not ordinary heading text. It 
 - Secondary buttons sit on the surface color with an accent border and accent text.
 - Hover and press states should scale subtly from the center.
 - Disabled buttons reduce emphasis without looking broken.
+- Shared button styling belongs on classes; one-off button hooks can use ids.
 
 ### Question Card
 

@@ -14,8 +14,8 @@
   <div id="start-subtitle">Juego de recuerdos</div>
   <div id="start-description">Preguntas sobre vuestros recuerdos con audios e imágenes. Adivina la respuesta correcta y descubre después el momento completo.</div>
   <div class="button-row">
-    <button class="btn" onclick="initSolo()">Jugar solo</button>
-    <button class="btn button-secondary" onclick="initMultiplayer()">Multijugador</button>
+    <button class="btn" id="start-solo-button">Jugar solo</button>
+    <button class="btn button-secondary" id="start-multiplayer-button">Multijugador</button>
   </div>
 </div>
 
@@ -27,7 +27,7 @@
   <div id="join-url-container">Unirse en: <a id="join-url" target="_blank" rel="noopener"></a></div>
   <canvas id="qr-canvas" style="margin:1rem auto;display:block;"></canvas>
   <div id="player-grid"></div>
-  <button class="btn" id="lobby-start-button" disabled onclick="lobbyStart()">Esperando jugadores...</button>
+  <button class="btn" id="lobby-start-button" disabled>Esperando jugadores...</button>
 </div>
 
 <!-- QUESTION -->
@@ -42,7 +42,7 @@
     <img id="question-image" style="display:none;" alt="Imagen de la pregunta">
     <div class="question-text" id="question-text"></div>
     <div id="host-audio-area" style="display:none;">
-      <button class="play-btn" id="host-play-btn" onclick="toggleAudio()" aria-label="Reproducir o pausar audio de la pregunta">
+      <button class="play-btn" id="host-play-btn" aria-label="Reproducir o pausar audio de la pregunta">
         <svg class="icon-play" width="28" height="28" viewBox="0 0 24 24"><polygon points="6,3 20,12 6,21"/></svg>
         <svg class="icon-pause" width="28" height="28" viewBox="0 0 24 24"><rect x="5" y="3" width="5" height="18" rx="1"/><rect x="14" y="3" width="5" height="18" rx="1"/></svg>
       </button>
@@ -65,14 +65,14 @@
         <div id="result-modal-media">
           <img class="reveal-image" id="reveal-image" style="display:none;" alt="Imagen revelada tras responder">
           <div id="result-modal-audio-row" style="display:none;">
-            <button class="play-btn" id="reveal-play-btn" onclick="toggleAudio()" aria-label="Reproducir o pausar audio revelado">
+            <button class="play-btn" id="reveal-play-btn" aria-label="Reproducir o pausar audio revelado">
               <svg class="icon-play" width="28" height="28" viewBox="0 0 24 24"><polygon points="6,3 20,12 6,21"/></svg>
               <svg class="icon-pause" width="28" height="28" viewBox="0 0 24 24"><rect x="5" y="3" width="5" height="18" rx="1"/><rect x="14" y="3" width="5" height="18" rx="1"/></svg>
             </button>
             <div class="reveal-label" id="reveal-label"></div>
           </div>
         </div>
-        <button class="btn" id="solo-next-button" onclick="nextQuestion()">Siguiente</button>
+        <button class="btn" id="solo-next-button">Siguiente</button>
       </div>
     </div>
   </div>
@@ -87,14 +87,14 @@
   <div id="reveal-chart"></div>
   <div id="reveal-media">
     <img class="reveal-image" id="reveal-media-image" style="display:none;" alt="Imagen revelada de la pregunta">
-    <button class="play-btn" id="reveal-media-play-button" onclick="toggleAudio()" aria-label="Reproducir o pausar audio revelado">
+    <button class="play-btn" id="reveal-media-play-button" aria-label="Reproducir o pausar audio revelado">
       <svg class="icon-play" width="28" height="28" viewBox="0 0 24 24"><polygon points="6,3 20,12 6,21"/></svg>
       <svg class="icon-pause" width="28" height="28" viewBox="0 0 24 24"><rect x="5" y="3" width="5" height="18" rx="1"/><rect x="14" y="3" width="5" height="18" rx="1"/></svg>
     </button>
     <div class="reveal-label" id="reveal-media-label"></div>
   </div>
   <div class="leaderboard" id="reveal-leaderboard"></div>
-  <button class="btn" id="reveal-next-button" onclick="nextMultiplayerQuestion()">Siguiente</button>
+  <button class="btn" id="reveal-next-button">Siguiente</button>
 </div>
 
 <!-- END (solo) -->
@@ -103,8 +103,8 @@
   <h1 style="font-size:2.2rem;font-weight:800;margin-bottom:12px;">Fin del juego</h1>
   <div id="final-score"></div>
   <div id="end-message"></div>
-  <button class="btn" onclick="initSolo()">Jugar otra vez</button>
-  <button class="btn button-secondary" style="margin-top:12px;" onclick="backToStart()">Volver</button>
+  <button class="btn" id="solo-restart-button">Jugar otra vez</button>
+  <button class="btn button-secondary" id="solo-back-button" style="margin-top:12px;">Volver</button>
 </div>
 
 <!-- END (multiplayer) -->
@@ -118,7 +118,7 @@
   <div id="winner-name"></div>
   <div id="winner-score"></div>
   <div class="leaderboard" id="end-leaderboard"></div>
-  <button class="btn" style="margin-top:24px;" onclick="backToStart()">Nueva partida</button>
+  <button class="btn" id="multiplayer-back-button" style="margin-top:24px;">Nueva partida</button>
 </div>
 
 <audio id="game-audio"></audio>

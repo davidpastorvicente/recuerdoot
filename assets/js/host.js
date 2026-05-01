@@ -18,6 +18,20 @@ function setPlayButtonsPlaying(playing) {
   });
 }
 
+function bindHostUi() {
+  document.getElementById("start-solo-button").addEventListener("click", initSolo);
+  document.getElementById("start-multiplayer-button").addEventListener("click", initMultiplayer);
+  document.getElementById("lobby-start-button").addEventListener("click", lobbyStart);
+  document.getElementById("host-play-btn").addEventListener("click", toggleAudio);
+  document.getElementById("reveal-play-btn").addEventListener("click", toggleAudio);
+  document.getElementById("solo-next-button").addEventListener("click", nextQuestion);
+  document.getElementById("reveal-media-play-button").addEventListener("click", toggleAudio);
+  document.getElementById("reveal-next-button").addEventListener("click", nextMultiplayerQuestion);
+  document.getElementById("solo-restart-button").addEventListener("click", initSolo);
+  document.getElementById("solo-back-button").addEventListener("click", backToStart);
+  document.getElementById("multiplayer-back-button").addEventListener("click", backToStart);
+}
+
 function showScreen(id) {
   document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
   document.getElementById(id).classList.add("active");
@@ -463,3 +477,5 @@ function nextMultiplayerQuestion() {
   stopAudioPlayback();
   if (socket) socket.emit("host:next");
 }
+
+bindHostUi();

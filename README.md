@@ -1,6 +1,6 @@
 # Recuerdoot
 
-A Kahoot-style multiplayer quiz game. A host shows questions on a big screen while players answer from their phones. Supports audio, photo, and plain text questions.
+A Kahoot-style multiplayer quiz game. A host shows questions on a big screen while players answer from their phones. Supports audio, image, and plain text questions.
 
 ## Design system
 
@@ -12,6 +12,11 @@ The UI uses a dark nostalgic quiz-night theme with:
 - Fixed multicolor answer tiles: red, blue, yellow, green
 
 The canonical visual system, component rules, and design tokens live in `DESIGN.md`.
+
+UI naming convention:
+
+- Use ids for singleton UI hooks that appear once per screen.
+- Use classes for shared and repeated styling patterns.
 
 ## Setup
 
