@@ -1,5 +1,7 @@
-.idea/
 node_modules/
+media/
+.agents/
+.idea/
 .DS_Store
 *.log
-media/
+skills-lock.json
