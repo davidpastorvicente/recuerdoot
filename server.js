@@ -62,7 +62,7 @@ function loadQuestions() {
       correct: entry.answers.right,
       audioBefore,
       audioFile: audioFile ? `media/audios/${audioFile}` : null,
-      afterAudioFile: after.audio ? `media/audios/${after.audio}` : null,
+      afterAudio: after.audio ? `media/audios/${after.audio}` : null,
       afterImage: after.image ? `media/images/${after.image}` : null,
       image: before.image ? `media/images/${before.image}` : null,
       date: audioFile ? parseDate(audioFile) : "",
@@ -268,7 +268,7 @@ function endQuestion() {
     optionCounts,
     leaderboard,
     date: q.date || null,
-    afterAudio: q.afterAudioFile || null,
+    afterAudio: q.afterAudio || null,
     afterImage: q.afterImage || null,
   });
 

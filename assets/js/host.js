@@ -106,7 +106,7 @@ function renderQuestion(data) {
   const qText = document.getElementById("q-text");
   const quoteMatch = data.question.match(/"([^"]+)"/);
   if (quoteMatch) {
-    qText.innerHTML = data.question.replace(`"${quoteMatch[1]}"`, `<span class="quote">"${quoteMatch[1]}"</span>`);
+    qText.innerHTML = data.question.replace(`"${quoteMatch[1]}"`, `<span class="quote text-highlight-success">${quoteMatch[1]}</span>`);
   } else {
     qText.textContent = data.question;
   }
@@ -163,7 +163,7 @@ function buildSoloQuestion(entry) {
     correct: entry.answers.right,
     audioBefore,
     audioFile: audioFile ? `media/audios/${audioFile}` : null,
-    afterAudioFile: after.audio ? `media/audios/${after.audio}` : null,
+    afterAudio: after.audio ? `media/audios/${after.audio}` : null,
     afterImage: after.image ? `media/images/${after.image}` : null,
     image: before.image ? `media/images/${before.image}` : null,
   };
@@ -237,30 +237,41 @@ function soloAnswer(btn, selected) {
   });
 
   const statusEl = document.getElementById("result-modal-status");
+  const detailEl = document.getElementById("result-modal-detail");
   if (selected === correct) {
     soloScore++;
     statusEl.className = "result-modal-status correct";
     statusEl.textContent = "¡Correcto!";
+    detailEl.style.display = "none";
+    detailEl.textContent = "";
+    detailEl.innerHTML = "";
   } else {
     statusEl.className = "result-modal-status wrong";
-    statusEl.textContent = `Nope! Era: ${correct}`;
+    statusEl.textContent = "¡Incorrecto!";
+    detailEl.style.display = "block";
+    detailEl.innerHTML = `La respuesta correcta era <span class="text-highlight-success">${esc(correct)}</span>.`;
   }
   document.getElementById("q-info-right").textContent = `${soloScore} acierto${soloScore !== 1 ? 's' : ''}`;
 
   // Show after media in modal
   const revealImg = document.getElementById("reveal-image");
+  const mediaEl = document.getElementById("result-modal-media");
   const audioRow = document.getElementById("result-modal-audio-row");
-  if (soloCurrentQ.afterImage) {
+  const hasAfterImage = !!soloCurrentQ.afterImage;
+  const hasAfterAudio = !!soloCurrentQ.afterAudio;
+
+  mediaEl.style.display = hasAfterImage || hasAfterAudio ? "flex" : "none";
+  if (hasAfterImage) {
     revealImg.src = soloCurrentQ.afterImage;
     revealImg.alt = "Imagen revelada tras responder";
     revealImg.style.display = "";
   } else {
     revealImg.style.display = "none";
   }
-  if (soloCurrentQ.afterAudioFile) {
+  if (hasAfterAudio) {
     audio.pause(); isPlaying = false;
     document.querySelectorAll(".play-btn").forEach(b => b.classList.remove("playing"));
-    audio.src = soloCurrentQ.afterAudioFile;
+    audio.src = soloCurrentQ.afterAudio;
     audio.load();
     document.getElementById("reveal-play-btn").style.display = "";
     const entry = soloQuestions[soloCurrent];
@@ -374,7 +385,7 @@ function initMultiplayer() {
     const rText = document.getElementById("r-text");
     const quoteMatch = mpCurrentQ.question.match(/"([^"]+)"/);
     if (quoteMatch) {
-      rText.innerHTML = mpCurrentQ.question.replace(`"${quoteMatch[1]}"`, `<span class="quote">"${quoteMatch[1]}"</span>`);
+      rText.innerHTML = mpCurrentQ.question.replace(`"${quoteMatch[1]}"`, `<span class="quote text-highlight-success">${quoteMatch[1]}</span>`);
     } else {
       rText.textContent = mpCurrentQ.question;
     }
