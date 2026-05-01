@@ -38,10 +38,6 @@ function showScreen(id) {
   document.getElementById(id).scrollTop = 0;
 }
 
-function setQuestionScreenMode(isSolo) {
-  document.getElementById("question-screen").classList.toggle("solo-mode", isSolo);
-}
-
 function backToStart() {
   stopAudioPlayback();
   clearInterval(countdownInterval);
@@ -204,7 +200,6 @@ function buildSoloQuestion(entry) {
 
 async function initSolo() {
   mode = "solo";
-  setQuestionScreenMode(true);
   if (!soloQuestions.length) {
     const resp = await fetch("questions.json");
     soloQuestions = await resp.json();
@@ -349,7 +344,6 @@ let multiplayerCurrentQuestion = null;
 
 function initMultiplayer() {
   mode = "multi";
-  setQuestionScreenMode(false);
   if (!socket) socket = io();
   socket.emit("host:create");
 
