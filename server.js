@@ -44,97 +44,28 @@ function loadQuestions() {
   const raw = JSON.parse(fs.readFileSync(path.join(__dirname, "questions.json"), "utf-8"));
   const months = ["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
 
-  // Collect people and years from audio entries for generating wrong answers
-  const audioEntries = raw.filter(e => e.type === "audio");
-  const people = [...new Set(audioEntries.map(e => e.person))].sort();
-  const years = [...new Set(audioEntries.map(e => String(e.year)))].sort();
-
-  function parseDate(key) {
-    const m = key.match(/(\d{4})(\d{2})(\d{2})/);
-    if (!m) return { date: "", year: "" };
-    return { date: `${parseInt(m[3])} ${months[parseInt(m[2]) - 1]} ${m[1]}`, year: m[1] };
+  function parseDate(filename) {
+    const m = filename.match(/(\d{4})(\d{2})(\d{2})/);
+    if (!m) return "";
+    return `${parseInt(m[3])} ${months[parseInt(m[2]) - 1]} ${m[1]}`;
   }
 
-  // Questions are in order from the JSON array (no shuffle)
   return raw.map(entry => {
-    if (entry.type === "audio") {
-      const subtype = entry.subtype || "person";
-      const { date } = parseDate(entry.audio);
-      const yearStr = String(entry.year);
-      let question, options, correct, badge, audioBefore, useFiltered;
+    const before = entry.before || {};
+    const after = entry.after || {};
+    const audioBefore = !!before.audio;
+    const audioFile = before.audio || after.audio;
 
-      if (subtype === "custom" && entry.question && entry.correctAnswer && Array.isArray(entry.wrongAnswers)) {
-        badge = "Pregunta especial";
-        question = entry.question;
-        options = shuffle([entry.correctAnswer, ...entry.wrongAnswers]);
-        correct = entry.correctAnswer;
-        audioBefore = entry.audioBefore === true;
-        useFiltered = false;
-      } else if (subtype === "text" && entry.text) {
-        badge = "¿Quién dijo esto?";
-        question = `¿Quién dijo "${entry.text}"?`;
-        const wrong = shuffle(people.filter(p => p !== entry.person)).slice(0, 3);
-        options = shuffle([entry.person, ...wrong]);
-        correct = entry.person;
-        audioBefore = false;
-        useFiltered = false;
-      } else if (subtype === "year") {
-        badge = "¿De qué año es?";
-        question = `Este audio es de ${entry.person}. ¿De qué año es?`;
-        const wrongYears = shuffle(years.filter(y => y !== yearStr)).slice(0, 3);
-        options = shuffle([yearStr, ...wrongYears]);
-        correct = yearStr;
-        audioBefore = true;
-        useFiltered = false;
-      } else {
-        // person
-        badge = "¿Quién es?";
-        question = "Escucha el audio y adivina quién es";
-        const wrong = shuffle(people.filter(p => p !== entry.person && (entry.person === "Laura" || p !== "Laura"))).slice(0, 3);
-        options = shuffle([entry.person, ...wrong]);
-        correct = entry.person;
-        audioBefore = true;
-        useFiltered = true;
-      }
-
-      return {
-        type: "audio",
-        key: entry.audio,
-        person: entry.person,
-        date,
-        year: yearStr,
-        badge,
-        question,
-        options,
-        correct,
-        audioBefore,
-        useFiltered,
-        audioFile: `media/audios/${entry.audio}`,
-        filteredFile: `media/audios-filtered/${entry.audio}`,
-      };
-    } else if (entry.type === "photo") {
-      return {
-        type: "photo",
-        badge: "Pregunta con foto",
-        question: entry.question,
-        options: shuffle([entry.correctAnswer, ...entry.wrongAnswers]),
-        correct: entry.correctAnswer,
-        photo: `media/images/${entry.photo}`,
-        audioBefore: false,
-        useFiltered: false,
-      };
-    } else {
-      // plain
-      return {
-        type: "plain",
-        badge: "Pregunta",
-        question: entry.question,
-        options: shuffle([entry.correctAnswer, ...entry.wrongAnswers]),
-        correct: entry.correctAnswer,
-        audioBefore: false,
-        useFiltered: false,
-      };
-    }
+    return {
+      question: entry.question,
+      options: shuffle([entry.answers.right, ...entry.answers.wrong]),
+      correct: entry.answers.right,
+      audioBefore,
+      audioFile: audioFile ? `media/audios/${audioFile}` : null,
+      afterAudioFile: after.audio ? `media/audios/${after.audio}` : null,
+      photo: before.image ? `media/images/${before.image}` : null,
+      date: audioFile ? parseDate(audioFile) : "",
+    };
   });
 }
 
@@ -195,19 +126,10 @@ io.on("connection", (socket) => {
     nextQuestion();
   });
 
-  // Host signals pre-phase is done, open answers
+  // Host signals audio is done, start countdown timer
   socket.on("host:answersOpen", () => {
     if (!game || socket.id !== game.host) return;
-    if (game.phase !== "pre-question") return;
-    game.phase = "question";
-    game.questionStartTime = Date.now();
-    const q = game.questions[game.currentQ];
-    io.to(`game-${game.pin}`).emit("player:question", {
-      index: game.currentQ,
-      total: game.questions.length,
-      options: q.options,
-      countdown: COUNTDOWN_AUDIO,
-    });
+    if (game.phase !== "question") return;
     game.timer = setTimeout(() => { endQuestion(); }, COUNTDOWN_AUDIO * 1000);
   });
 
@@ -297,38 +219,31 @@ function nextQuestion() {
   }
 
   const q = game.questions[game.currentQ];
-  game.phase = q.audioBefore ? "pre-question" : "question";
+  game.phase = "question";
   game.answers = {};
+  game.questionStartTime = Date.now();
 
   // Send question to host (full info)
   io.to(game.host).emit("host:question", {
-    type: q.type,
     index: game.currentQ,
     total: game.questions.length,
-    badge: q.badge,
     question: q.question,
     options: q.options,
     audioBefore: q.audioBefore,
-    audioSrc: q.useFiltered ? q.filteredFile : (q.audioFile || null),
+    audioSrc: q.audioFile || null,
     photo: q.photo || null,
     countdown: COUNTDOWN_SECONDS,
   });
 
-  if (q.audioBefore) {
-    // Players wait during pre-phase; host will emit host:answersOpen when ready
-    io.to(`game-${game.pin}`).emit("player:wait", {
-      index: game.currentQ,
-      total: game.questions.length,
-    });
-  } else {
-    // No audio before: open answers immediately
-    game.questionStartTime = Date.now();
-    io.to(`game-${game.pin}`).emit("player:question", {
-      index: game.currentQ,
-      total: game.questions.length,
-      options: q.options,
-      countdown: COUNTDOWN_SECONDS,
-    });
+  // Players always get options immediately
+  io.to(`game-${game.pin}`).emit("player:question", {
+    index: game.currentQ,
+    total: game.questions.length,
+    options: q.options,
+    countdown: q.audioBefore ? null : COUNTDOWN_SECONDS,
+  });
+
+  if (!q.audioBefore) {
     game.timer = setTimeout(() => { endQuestion(); }, COUNTDOWN_SECONDS * 1000);
   }
 }
@@ -348,14 +263,11 @@ function endQuestion() {
   });
 
   io.to(game.host).emit("host:reveal", {
-    type: q.type,
     correct: q.correct,
     optionCounts,
     leaderboard,
-    person: q.person || null,
     date: q.date || null,
-    originalAudio: q.audioFile || null,
-    showOriginal: q.useFiltered || false,
+    afterAudio: q.afterAudioFile || null,
   });
 
   // Tell players who didn't answer yet

@@ -60,16 +60,21 @@ function startCountdown(seconds, onEnd) {
   fg.style.transition = "none";
   fg.style.strokeDashoffset = "0";
   num.textContent = remaining;
-  num.style.color = "var(--accent)";
+  num.style.color = remaining <= 5 ? "var(--wrong)" : "var(--accent)";
   fg.getBoundingClientRect();
-  fg.style.transition = "stroke-dashoffset 1s linear";
+  fg.style.transition = `stroke-dashoffset ${seconds}s linear`;
+  fg.style.strokeDashoffset = circumference;
 
   clearInterval(countdownInterval);
   countdownInterval = setInterval(() => {
     remaining--;
-    if (remaining < 0) { clearInterval(countdownInterval); if (onEnd) onEnd(); return; }
+    if (remaining <= 0) {
+      clearInterval(countdownInterval);
+      num.textContent = "0";
+      if (onEnd) onEnd();
+      return;
+    }
     num.textContent = remaining;
-    fg.style.strokeDashoffset = circumference * (1 - remaining / seconds);
     if (remaining <= 5) num.style.color = "var(--wrong)";
     else num.style.color = "var(--accent)";
   }, 1000);
@@ -79,7 +84,7 @@ function renderQuestion(data) {
   showScreen("question-screen");
   document.getElementById("q-counter").textContent = `${data.index + 1} / ${data.total}`;
   document.getElementById("q-progress-fill").style.width = `${((data.index + 1) / data.total) * 100}%`;
-  document.getElementById("q-badge").textContent = data.badge;
+  document.getElementById("q-badge").style.display = "none";
 
   // Photo
   const qPhoto = document.getElementById("q-photo");
@@ -114,7 +119,7 @@ function renderQuestion(data) {
   // Options
   const tiles = document.getElementById("option-tiles");
   tiles.innerHTML = data.options.map((opt, i) =>
-    `<button class="option-tile" data-value="${esc(opt)}" style="${data.audioBefore ? 'opacity:0.15' : ''}"><span class="shape">${shapes[i]}</span>${esc(opt)}</button>`
+    `<button class="option-tile" data-value="${esc(opt)}"><span class="shape">${shapes[i]}</span>${esc(opt)}</button>`
   ).join("");
 
   // Hide post-answer stuff
@@ -139,43 +144,23 @@ function renderLeaderboard(containerId, list) {
 }
 
 // ========== SOLO MODE ==========
-let soloQuestions = [], soloPeople = [], soloYears = [];
+let soloQuestions = [];
 let soloCurrent = 0, soloScore = 0, soloCurrentQ = null, soloAnswered = false;
 
 function buildSoloQuestion(entry) {
-  if (entry.type === "audio") {
-    const subtype = entry.subtype || "person";
-    const yearStr = String(entry.year);
-    if (subtype === "custom" && entry.question && entry.correctAnswer) {
-      return { badge: "Pregunta especial", question: entry.question,
-        options: shuffle([entry.correctAnswer, ...entry.wrongAnswers]), correct: entry.correctAnswer,
-        audioBefore: entry.audioBefore === true, useFiltered: false, isPersonType: false };
-    }
-    if (subtype === "text" && entry.text) {
-      const wrong = shuffle(soloPeople.filter(p => p !== entry.person)).slice(0, 3);
-      return { badge: "¿Quién dijo esto?", question: `¿Quién dijo "${entry.text}"?`,
-        options: shuffle([entry.person, ...wrong]), correct: entry.person,
-        audioBefore: false, useFiltered: false, isPersonType: false };
-    }
-    if (subtype === "year") {
-      const wrongYears = shuffle(soloYears.filter(y => y !== yearStr)).slice(0, 3);
-      return { badge: "¿De qué año es?", question: `Este audio es de ${entry.person}. ¿De qué año es?`,
-        options: shuffle([yearStr, ...wrongYears]), correct: yearStr,
-        audioBefore: true, useFiltered: false, isPersonType: false };
-    }
-    const wrong = shuffle(soloPeople.filter(p => p !== entry.person && (entry.person === "Laura" || p !== "Laura"))).slice(0, 3);
-    return { badge: "¿Quién es?", question: "Escucha el audio y adivina quién es",
-      options: shuffle([entry.person, ...wrong]), correct: entry.person,
-      audioBefore: true, useFiltered: true, isPersonType: true };
-  }
-  if (entry.type === "photo") {
-    return { badge: "Pregunta con foto", question: entry.question,
-      options: shuffle([entry.correctAnswer, ...entry.wrongAnswers]), correct: entry.correctAnswer,
-      audioBefore: false, useFiltered: false, isPersonType: false, photo: `media/images/${entry.photo}` };
-  }
-  return { badge: "Pregunta", question: entry.question,
-    options: shuffle([entry.correctAnswer, ...entry.wrongAnswers]), correct: entry.correctAnswer,
-    audioBefore: false, useFiltered: false, isPersonType: false };
+  const before = entry.before || {};
+  const after = entry.after || {};
+  const audioBefore = !!before.audio;
+  const audioFile = before.audio || after.audio;
+  return {
+    question: entry.question,
+    options: shuffle([entry.answers.right, ...entry.answers.wrong]),
+    correct: entry.answers.right,
+    audioBefore,
+    audioFile: audioFile ? `media/audios/${audioFile}` : null,
+    afterAudioFile: after.audio ? `media/audios/${after.audio}` : null,
+    photo: before.image ? `media/images/${before.image}` : null,
+  };
 }
 
 async function initSolo() {
@@ -183,9 +168,6 @@ async function initSolo() {
   if (!soloQuestions.length) {
     const resp = await fetch("questions.json");
     soloQuestions = await resp.json();
-    const audioEntries = soloQuestions.filter(q => q.type === "audio");
-    soloPeople = [...new Set(audioEntries.map(a => a.person))].sort();
-    soloYears = [...new Set(audioEntries.map(a => String(a.year)))].sort();
   }
   soloCurrent = 0; soloScore = 0;
   soloLoadRound();
@@ -196,36 +178,37 @@ function soloLoadRound() {
   const entry = soloQuestions[soloCurrent];
   soloCurrentQ = buildSoloQuestion(entry);
 
-  const audioSrc = entry.type === "audio"
-    ? (soloCurrentQ.useFiltered ? `media/audios-filtered/${entry.audio}` : `media/audios/${entry.audio}`)
-    : null;
+  const audioSrc = soloCurrentQ.audioFile;
 
   const data = {
     index: soloCurrent, total: soloQuestions.length,
-    badge: soloCurrentQ.badge, question: soloCurrentQ.question,
+    question: soloCurrentQ.question,
     options: soloCurrentQ.options, audioBefore: soloCurrentQ.audioBefore,
-    audioSrc,
+    audioSrc, photo: soloCurrentQ.photo,
   };
 
   document.getElementById("q-info-right").textContent = `${soloScore} acierto${soloScore !== 1 ? 's' : ''}`;
   const tiles = renderQuestion(data);
+
+  // No countdown in solo mode
+  document.getElementById("countdown-container").style.display = "none";
 
   // Bind click handlers for solo
   tiles.querySelectorAll(".option-tile").forEach(btn => {
     btn.onclick = () => soloAnswer(btn, btn.dataset.value);
   });
 
-  // Solo mode: never show countdown
-  document.getElementById("countdown-container").style.display = "none";
-
   if (data.audioBefore) {
+    document.getElementById("countdown-number").textContent = "\u00B7\u00B7\u00B7";
+    const fg = document.getElementById("countdown-fg");
+    fg.style.transition = "none"; fg.style.strokeDashoffset = "0";
+
     setTimeout(() => {
       audio.play(); isPlaying = true;
       document.getElementById("host-play-btn").classList.add("playing");
       audio.onended = () => {
         isPlaying = false;
         document.getElementById("host-play-btn").classList.remove("playing");
-        tiles.querySelectorAll(".option-tile").forEach(t => t.style.opacity = "");
         audio.onended = () => { isPlaying = false; document.querySelectorAll(".play-btn").forEach(b => b.classList.remove("playing")); };
       };
     }, 3000);
@@ -236,7 +219,6 @@ function soloAnswer(btn, selected) {
   if (soloAnswered) return;
   soloAnswered = true;
   const correct = soloCurrentQ.correct;
-  const entry = soloQuestions[soloCurrent];
 
   document.querySelectorAll(".option-tile").forEach(b => {
     b.disabled = true;
@@ -258,15 +240,16 @@ function soloAnswer(btn, selected) {
   }
   document.getElementById("q-info-right").textContent = `${soloScore} acierto${soloScore !== 1 ? 's' : ''}`;
 
-  // Show original audio for audio questions
-  if (entry.type === "audio" && (!soloCurrentQ.audioBefore || soloCurrentQ.isPersonType)) {
+  // Show after audio on reveal
+  if (soloCurrentQ.afterAudioFile) {
     document.getElementById("reveal-info").classList.add("show");
     audio.pause(); isPlaying = false;
     document.querySelectorAll(".play-btn").forEach(b => b.classList.remove("playing"));
-    audio.src = `media/audios/${entry.audio}`;
+    audio.src = soloCurrentQ.afterAudioFile;
     audio.load();
-    const { date } = parseDate(entry.audio);
-    document.getElementById("reveal-label").innerHTML = `<strong>${entry.person}</strong><br>${date}`;
+    const entry = soloQuestions[soloCurrent];
+    const { date } = parseDate(entry.after.audio);
+    document.getElementById("reveal-label").innerHTML = `${date}`;
   }
 
   document.getElementById("btn-next").style.display = "";
@@ -309,7 +292,9 @@ function initMultiplayer() {
   socket.on("host:created", ({ pin }) => {
     showScreen("lobby");
     document.getElementById("pin-display").textContent = pin;
+    const joinUrl = `${location.protocol}//${location.host}/player.html?pin=${pin}`;
     document.getElementById("join-url").textContent = `${location.host}/player.html`;
+    new QRious({ element: document.getElementById("qr-canvas"), value: joinUrl, size: 200, backgroundAlpha: 0, foreground: "#ffffff" });
   });
 
   socket.on("host:playerList", (players) => {
@@ -342,7 +327,6 @@ function initMultiplayer() {
           isPlaying = false;
           document.getElementById("host-play-btn").classList.remove("playing");
           document.getElementById("q-info-right").textContent = "0 respuestas";
-          document.querySelectorAll(".option-tile").forEach(t => t.style.opacity = "");
           startCountdown(5, () => socket.emit("host:timeUp"));
           socket.emit("host:answersOpen");
         };
@@ -361,7 +345,7 @@ function initMultiplayer() {
     audio.pause(); isPlaying = false;
 
     showScreen("reveal-screen");
-    document.getElementById("r-badge").textContent = mpCurrentQ.badge;
+    document.getElementById("r-badge").style.display = "none";
 
     const rText = document.getElementById("r-text");
     const quoteMatch = mpCurrentQ.question.match(/"([^"]+)"/);
@@ -387,12 +371,12 @@ function initMultiplayer() {
 
     // Reveal audio
     const revealInfo = document.getElementById("r-reveal-info");
-    if (data.type === "audio" && (data.showOriginal || !mpCurrentQ.audioBefore)) {
+    if (data.afterAudio) {
       revealInfo.classList.add("show");
-      audio.src = data.originalAudio;
+      audio.src = data.afterAudio;
       audio.load(); isPlaying = false;
       document.getElementById("r-reveal-play-btn").classList.remove("playing");
-      document.getElementById("r-reveal-label").innerHTML = `<strong>${data.person}</strong><br>${data.date}`;
+      document.getElementById("r-reveal-label").innerHTML = data.date || "";
     } else {
       revealInfo.classList.remove("show");
     }
