@@ -29,8 +29,8 @@ Every question has the same structure:
 
 - `question` — Always present. The full question text as shown to users.
 - `answers` — Always present. `right` is the correct answer string, `wrong` is an array of 3 wrong answers.
-- `before` (optional) — Media shown/played with the question before answering. Can contain `audio` (filename string in `media/audios/`) and/or `image` (filename string in `media/images/`).
-- `after` (optional) — Media revealed after answering. Can contain `audio` (filename string in `media/audios/`) and/or `image` (filename string in `media/images/`).
+- `before` (optional) — Media shown/played with the question before answering. Can contain `audio` (filename string in `assets/audios/`) and/or `image` (filename string in `assets/images/`).
+- `after` (optional) — Media revealed after answering. Can contain `audio` (filename string in `assets/audios/`) and/or `image` (filename string in `assets/images/`).
 - For filtered audio questions: the `_filtered` version plays before answering, the original is revealed after.
 - A question can have both audio and image in `before`.
 - Options are shuffled at runtime by the code; questions.json stores them in a fixed structure.
@@ -39,7 +39,7 @@ Every question has the same structure:
 
 - All UI text is in Spanish
 - Dark theme with Archivo Black display typography, Outfit body typography, and a blue accent (`#4f8cff`)
-- Audio files live in `media/audios/` (originals and filtered versions with `_filtered` suffix). The `media/` folder is gitignored.
+- Audio files live in `assets/audios/` (originals and filtered versions with `_filtered` suffix). Images live in `assets/images/`.
 - Questions play in the order defined in questions.json (no shuffle)
 - For filtered audio questions: filtered audio plays before answering, original revealed after
 - Multiplayer scoring: faster correct answers = more points (1000 max, 100 min, linear)

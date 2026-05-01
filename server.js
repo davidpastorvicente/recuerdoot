@@ -67,10 +67,10 @@ function loadQuestions() {
       options: shuffle([entry.answers.right, ...entry.answers.wrong]),
       correct: entry.answers.right,
       audioBefore,
-      audioFile: audioFile ? `media/audios/${audioFile}` : null,
-      afterAudio: after.audio ? `media/audios/${after.audio}` : null,
-      afterImage: after.image ? `media/images/${after.image}` : null,
-      image: before.image ? `media/images/${before.image}` : null,
+      audioFile: audioFile ? `assets/audios/${audioFile}` : null,
+      afterAudio: after.audio ? `assets/audios/${after.audio}` : null,
+      afterImage: after.image ? `assets/images/${after.image}` : null,
+      image: before.image ? `assets/images/${before.image}` : null,
       date: audioFile ? parseDate(audioFile) : "",
     };
   });

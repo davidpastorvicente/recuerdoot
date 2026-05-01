@@ -39,8 +39,8 @@ For multiplayer, players join from their phones at `http://<your-ip>:8000/player
 - `assets/css/main.css` — Shared application styles
 - `questions.json` — Ordered list of questions
 - `DESIGN.md` — Design tokens and UI design guidance
-- `media/audios/` — Original and filtered audio files (not in repo, add locally)
-- `media/images/` — Photo files (not in repo)
+- `assets/audios/` — Original and filtered audio files
+- `assets/images/` — Image files
 
 ## `questions.json` format
 
@@ -92,16 +92,16 @@ An ordered JSON array. Questions play in the order defined. Every question uses 
 
 ## Audio files
 
-Audio files are personal and excluded from the repo via `.gitignore`. Place them in `media/audios/`.
+Place audio files in `assets/audios/` and images in `assets/images/`.
 
 Filtered versions use the same filename with a `_filtered` suffix (e.g., `PTT-20140627-WA0012_filtered.mp3`).
 
 To generate filtered audios from originals:
 
 ```bash
-for f in media/audios/*.mp3; do
+for f in assets/audios/*.mp3; do
   [[ "$f" == *_filtered.mp3 ]] && continue
   base=$(basename "$f" .mp3)
-  sox -v 0.5 "$f" "media/audios/${base}_filtered.mp3" pitch -320 highpass 120 lowpass 3200 bass 3 equalizer 500 1.0q 4 overdrive 8 compand 0.005,0.08 -24,-24,-12,-10,-6,-5 0 -24
+  sox -v 0.5 "$f" "assets/audios/${base}_filtered.mp3" pitch -320 highpass 120 lowpass 3200 bass 3 equalizer 500 1.0q 4 overdrive 8 compand 0.005,0.08 -24,-24,-12,-10,-6,-5 0 -24
 done
 ```
