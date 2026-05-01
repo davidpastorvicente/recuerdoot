@@ -431,7 +431,9 @@ function initMultiplayer() {
 
     // Reveal image
     const revealImage = document.getElementById("reveal-media-image");
-    if (data.afterImage) {
+    const hasRevealImage = !!data.afterImage;
+    const hasRevealAudio = !!data.afterAudio;
+    if (hasRevealImage) {
       revealImage.src = data.afterImage;
       revealImage.alt = "Imagen revelada de la pregunta";
       revealImage.style.display = "";
@@ -441,15 +443,19 @@ function initMultiplayer() {
 
     // Reveal audio
     const revealInfo = document.getElementById("reveal-media");
-    if (data.afterAudio) {
-      revealInfo.classList.add("show");
+    const revealPlayButton = document.getElementById("reveal-media-play-button");
+    revealInfo.classList.toggle("show", hasRevealImage || hasRevealAudio);
+    revealInfo.classList.toggle("image-only", hasRevealImage && !hasRevealAudio);
+    if (hasRevealAudio) {
+      revealPlayButton.style.display = "";
       audio.src = data.afterAudio;
       audio.load();
       isPlaying = false;
-      document.getElementById("reveal-media-play-button").classList.remove("playing");
+      revealPlayButton.classList.remove("playing");
       document.getElementById("reveal-media-label").innerHTML = data.date || "";
     } else {
-      revealInfo.classList.remove("show");
+      revealPlayButton.style.display = "none";
+      document.getElementById("reveal-media-label").innerHTML = "";
     }
 
     renderLeaderboard("reveal-leaderboard", data.leaderboard);
