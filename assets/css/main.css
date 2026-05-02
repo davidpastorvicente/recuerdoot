@@ -634,17 +634,19 @@ body::after {
 }
 
 #answer-count-number {
-  width: 56px;
+  min-width: 76px;
   height: 56px;
-  border-radius: 50%;
+  padding: 0 16px;
+  border-radius: 999px;
   background: var(--accent);
   color: #fff;
   font-family: var(--font-display);
-  font-size: 1.6rem;
+  font-size: 1.5rem;
   font-weight: 800;
   display: flex;
   align-items: center;
   justify-content: center;
+  white-space: nowrap;
 }
 
 #answer-count-label {

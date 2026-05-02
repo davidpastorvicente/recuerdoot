@@ -301,7 +301,7 @@ function renderQuestion(data) {
   const answerCountEl = document.getElementById("answer-count");
   if (mode === "multi") {
     answerCountEl.classList.add("show");
-    document.getElementById("answer-count-number").textContent = "0";
+    document.getElementById("answer-count-number").textContent = `0/${data.totalPlayers}`;
   } else {
     answerCountEl.classList.remove("show");
   }
@@ -769,7 +769,7 @@ function initMultiplayer() {
     });
 
     socket.on("host:answerCount", ({ answered, total }) => {
-      document.getElementById("answer-count-number").textContent = answered;
+      document.getElementById("answer-count-number").textContent = `${answered}/${total}`;
     });
 
     socket.on("game:startCountdown", ({ seconds, startsAt }) => {

@@ -265,6 +265,7 @@ function nextQuestion() {
     image: question.image || null,
     music: question.music || null,
     video: question.video || null,
+    totalPlayers: Object.keys(game.players).length,
     countdownBefore: question.audioBefore ? COUNTDOWN_AUDIO_BEFORE_SECONDS : null,
     countdownAfter: question.audioBefore ? COUNTDOWN_AUDIO_AFTER_SECONDS : COUNTDOWN_QUESTION_SECONDS,
   });
