@@ -283,7 +283,9 @@ Reveal moments are performance screens.
 - If reveal media contains an image, use a larger framed treatment sized with viewport-relative limits.
 - The bar chart should feel simple and bold, not analytical.
 - Correct answers should be reinforced with both text/icon treatment and color.
-- Leaderboard rows should animate in with light ceremony.
+- The multiplayer scoreboard should briefly show the previous standings before transitioning to the updated order.
+- When ranks change, leaderboard rows should visibly travel to their new positions instead of only fading between states.
+- Rank changes can be reinforced with compact up/down indicators and the score should count up from the previous total to the new one.
 
 ### Player Join Form
 

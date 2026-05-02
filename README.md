@@ -105,6 +105,8 @@ An ordered JSON array. Questions play in the order defined. Every question uses 
 - Reveal screen order is: question, revealed media, answer distribution chart, next action
 - Kahoot-style bar chart shows answer distribution on the reveal screen after each question
 - Leaderboard is shown on its own scoreboard screen after each round and at the end
+- The host scoreboard first shows the previous standings, then animates rows into the new order with up/down movement badges
+- Score totals on the host scoreboard count up from the previous score to the new score during the rank transition
 
 ## Viewport behavior
 

@@ -15,12 +15,18 @@ let isPlaying = false;
 let countdownInterval = null;
 let mode = null; // "solo" or "multi"
 let startCountdownInterval = null;
+let scoreboardTransitionTimer = null;
 
 backgroundMusic.volume = 0.22;
 
 function clearStartCountdownTimer() {
   clearTimeout(startCountdownInterval);
   startCountdownInterval = null;
+}
+
+function clearScoreboardTransitionTimer() {
+  clearTimeout(scoreboardTransitionTimer);
+  scoreboardTransitionTimer = null;
 }
 
 function setPlayButtonsPlaying(playing) {
@@ -58,6 +64,7 @@ function backToStart() {
   stopAudioPlayback();
   clearInterval(countdownInterval);
   clearStartCountdownTimer();
+  clearScoreboardTransitionTimer();
   hideStartCountdown();
   showScreen("start-screen");
 }
@@ -304,14 +311,178 @@ function renderQuestion(data) {
 
 function escapeHtml(value) { const div = document.createElement("div"); div.textContent = value; return div.innerHTML; }
 
-function renderLeaderboard(containerId, list) {
-  document.getElementById(containerId).innerHTML = list.map((player, i) =>
-    `<div class="leaderboard-row" style="animation-delay:${i * 0.08}s">
-      <span class="leaderboard-rank">${i + 1}</span>
-      <span class="leaderboard-name">${player.name}</span>
-      <span class="leaderboard-score">${player.score}</span>
-    </div>`
-  ).join("");
+function cloneLeaderboard(list) {
+  return list.map((player) => ({ ...player }));
+}
+
+function getLeaderboardMovement(previousList, nextList) {
+  const previousRanks = new Map(previousList.map((player, index) => [player.name, index]));
+
+  return new Map(nextList.map((player, index) => {
+    const previousRank = previousRanks.get(player.name);
+    if (previousRank === undefined) return [player.name, { direction: "new", places: 0 }];
+    if (previousRank > index) return [player.name, { direction: "up", places: previousRank - index }];
+    if (previousRank < index) return [player.name, { direction: "down", places: index - previousRank }];
+    return [player.name, { direction: "same", places: 0 }];
+  }));
+}
+
+function buildLeaderboardMovementBadge(movement) {
+  if (!movement || movement.direction === "same") {
+    return '<span class="leaderboard-movement leaderboard-movement-idle"></span>';
+  }
+
+  if (movement.direction === "new") {
+    return '<span class="leaderboard-movement leaderboard-movement-new">NUEVO</span>';
+  }
+
+  const label = movement.direction === "up" ? "▲" : "▼";
+  const movementClass = movement.direction === "up" ? "leaderboard-movement-up" : "leaderboard-movement-down";
+  return `<span class="leaderboard-movement ${movementClass}">${label} ${movement.places}</span>`;
+}
+
+function buildLeaderboardRow(player, rank, movement = null) {
+  return `<span class="leaderboard-rank">${rank}</span>
+    <span class="leaderboard-name">${escapeHtml(player.name)}</span>
+    ${buildLeaderboardMovementBadge(movement)}
+    <span class="leaderboard-score" data-score="${player.score}">${player.score}</span>`;
+}
+
+function animateLeaderboardScores(container, previousList, nextList) {
+  const previousScores = new Map(previousList.map((player) => [player.name, player.score]));
+
+  nextList.forEach((player) => {
+    const row = container.querySelector(`.leaderboard-row[data-player-name="${CSS.escape(player.name)}"]`);
+    const scoreEl = row?.querySelector(".leaderboard-score");
+    if (!scoreEl) return;
+
+    const startScore = previousScores.get(player.name) ?? 0;
+    const endScore = player.score;
+
+    scoreEl.textContent = String(startScore);
+    if (startScore === endScore) {
+      scoreEl.dataset.score = String(endScore);
+      return;
+    }
+
+    const scoreAnimation = scoreEl.animate(
+      [
+        { opacity: 0.85, transform: "scale(0.98)" },
+        { opacity: 1, transform: "scale(1)" },
+      ],
+      {
+        duration: 2000,
+        easing: "linear",
+        fill: "both",
+      }
+    );
+
+    const startedAt = performance.now();
+    const step = (now) => {
+      const progress = Math.min((now - startedAt) / 2000, 1);
+      const currentScore = Math.round(startScore + ((endScore - startScore) * progress));
+      scoreEl.textContent = String(currentScore);
+
+      if (progress < 1) {
+        requestAnimationFrame(step);
+        return;
+      }
+
+      scoreEl.textContent = String(endScore);
+      scoreEl.dataset.score = String(endScore);
+      scoreAnimation.cancel();
+    };
+
+    requestAnimationFrame(step);
+  });
+}
+
+function renderLeaderboard(containerId, list, options = {}) {
+  const { movementMap = new Map() } = options;
+  const container = document.getElementById(containerId);
+
+  if (containerId !== "scoreboard-leaderboard") {
+    container.innerHTML = list.map((player, i) =>
+      `<div class="leaderboard-row leaderboard-row-appear" style="animation-delay:${i * 0.08}s">${buildLeaderboardRow(player, i + 1, movementMap.get(player.name))}</div>`
+    ).join("");
+    return;
+  }
+
+  const existingRows = new Map(
+    Array.from(container.querySelectorAll(".leaderboard-row")).map((row) => [row.dataset.playerName, row])
+  );
+  const previousTop = new Map(
+    Array.from(existingRows.values()).map((row) => [row.dataset.playerName, row.getBoundingClientRect().top])
+  );
+  const orderedRows = [];
+
+  list.forEach((player, i) => {
+    let row = existingRows.get(player.name);
+
+    if (!row) {
+      row = document.createElement("div");
+      row.className = "leaderboard-row leaderboard-row-enter";
+      row.dataset.playerName = player.name;
+    }
+
+    row.innerHTML = buildLeaderboardRow(player, i + 1, movementMap.get(player.name));
+    row.classList.toggle("leaderboard-row-moved", previousTop.has(player.name) && list.length > 1);
+    row.classList.toggle("leaderboard-row-up", movementMap.get(player.name)?.direction === "up");
+    row.classList.toggle("leaderboard-row-down", movementMap.get(player.name)?.direction === "down");
+    orderedRows.push(row);
+  });
+
+  container.replaceChildren(...orderedRows);
+
+  requestAnimationFrame(() => {
+    orderedRows.forEach((row) => {
+      const previousRowTop = previousTop.get(row.dataset.playerName);
+      if (previousRowTop === undefined) {
+        row.classList.add("leaderboard-row-enter-active");
+        return;
+      }
+
+      const currentTop = row.getBoundingClientRect().top;
+      const deltaY = previousRowTop - currentTop;
+
+      if (Math.abs(deltaY) < 1) {
+        row.classList.remove("leaderboard-row-moved");
+        return;
+      }
+
+      row.getAnimations().forEach((animation) => animation.cancel());
+      row.animate(
+        [
+          { transform: `translateY(${deltaY}px)` },
+          { transform: "translateY(0)" },
+        ],
+        {
+          duration: 2000,
+          easing: "cubic-bezier(0.22, 1, 0.36, 1)",
+          fill: "both",
+        }
+      );
+    });
+  });
+}
+
+function showScoreboardTransition(previousList, nextList) {
+  const scoreboardButton = document.getElementById("scoreboard-next-button");
+  const scoreboardLeaderboard = document.getElementById("scoreboard-leaderboard");
+  const previousLeaderboard = previousList.length ? cloneLeaderboard(previousList) : cloneLeaderboard(nextList);
+  const nextLeaderboard = cloneLeaderboard(nextList);
+  const movementMap = getLeaderboardMovement(previousLeaderboard, nextLeaderboard);
+
+  clearScoreboardTransitionTimer();
+  showScreen("scoreboard-screen");
+  scoreboardButton.disabled = true;
+  renderLeaderboard("scoreboard-leaderboard", previousLeaderboard);
+
+  scoreboardTransitionTimer = setTimeout(() => {
+    renderLeaderboard("scoreboard-leaderboard", nextLeaderboard, { movementMap });
+    animateLeaderboardScores(scoreboardLeaderboard, previousLeaderboard, nextLeaderboard);
+    scoreboardButton.disabled = false;
+  }, 850);
 }
 
 function renderRevealChart(revealData) {
@@ -544,12 +715,17 @@ function soloEnd() {
 let socket = null;
 let multiplayerCurrentQuestion = null;
 let multiplayerRevealLeaderboard = [];
+let multiplayerPreviousLeaderboard = [];
+let multiplayerCurrentLeaderboard = [];
 let multiplayerHandlersBound = false;
 
 function initMultiplayer() {
   mode = "multi";
   hideStartCountdown();
+  clearScoreboardTransitionTimer();
   multiplayerRevealLeaderboard = [];
+  multiplayerPreviousLeaderboard = [];
+  multiplayerCurrentLeaderboard = [];
   if (!socket) socket = io();
   if (!multiplayerHandlersBound) {
     multiplayerHandlersBound = true;
@@ -567,6 +743,10 @@ function initMultiplayer() {
     socket.on("host:playerList", (players) => {
       const grid = document.getElementById("player-grid");
       grid.innerHTML = players.map((player) => `<div class="player-chip">${player.name}</div>`).join("");
+      multiplayerCurrentLeaderboard = cloneLeaderboard(players);
+      if (multiplayerPreviousLeaderboard.length === 0) {
+        multiplayerPreviousLeaderboard = cloneLeaderboard(players);
+      }
       const startButton = document.getElementById("lobby-start-button");
       startButton.disabled = players.length === 0;
       startButton.textContent = players.length > 0 ? `Empezar (${players.length} jugador${players.length > 1 ? 'es' : ''})` : "Esperando jugadores...";
@@ -615,7 +795,9 @@ function initMultiplayer() {
       clearInterval(countdownInterval);
       hideStartCountdown();
       stopAudioPlayback();
-      multiplayerRevealLeaderboard = data.leaderboard;
+      multiplayerPreviousLeaderboard = cloneLeaderboard(multiplayerCurrentLeaderboard.length ? multiplayerCurrentLeaderboard : data.leaderboard);
+      multiplayerRevealLeaderboard = cloneLeaderboard(data.leaderboard);
+      multiplayerCurrentLeaderboard = cloneLeaderboard(data.leaderboard);
 
       showScreen("reveal-screen");
 
@@ -656,11 +838,11 @@ function lobbyStart() {
 
 function nextMultiplayerQuestion() {
   if (document.getElementById("reveal-screen").classList.contains("active")) {
-    showScreen("scoreboard-screen");
-    renderLeaderboard("scoreboard-leaderboard", multiplayerRevealLeaderboard);
+    showScoreboardTransition(multiplayerPreviousLeaderboard, multiplayerRevealLeaderboard);
     return;
   }
 
+  clearScoreboardTransitionTimer();
   stopAudioPlayback();
   if (socket) socket.emit("host:next");
 }

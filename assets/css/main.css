@@ -1285,13 +1285,40 @@ body::after {
 .leaderboard-row {
   display: flex;
   align-items: center;
+  gap: 14px;
   padding: 16px 24px;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 12px;
   margin-bottom: 8px;
+  transition: transform 2s cubic-bezier(0.22, 1, 0.36, 1), border-color 0.3s;
+  will-change: transform;
+}
+
+.leaderboard-row-appear {
   animation: slideIn 0.4s ease both;
-  transition: border-color 0.3s;
+}
+
+.leaderboard-row-moved {
+  z-index: 1;
+}
+
+.leaderboard-row-up {
+  border-color: rgba(94, 214, 150, 0.75);
+}
+
+.leaderboard-row-down {
+  border-color: rgba(255, 129, 129, 0.75);
+}
+
+.leaderboard-row-enter {
+  opacity: 0;
+  transform: translateX(-30px);
+}
+
+.leaderboard-row-enter-active {
+  opacity: 1;
+  transform: translateX(0);
 }
 
 .leaderboard-row:nth-child(1) { border-color: #6aa6ff; box-shadow: inset 0 0 20px rgba(79, 140, 255, 0.1); }
@@ -1307,7 +1334,7 @@ body::after {
   font-family: var(--font-display);
   font-size: 1.5rem;
   font-weight: 800;
-  width: 48px;
+  margin-right: 1rem;
   color: var(--accent);
 }
 
@@ -1316,6 +1343,52 @@ body::after {
   font-weight: 700;
   font-size: 1.15rem;
   text-align: left;
+}
+
+.leaderboard-movement {
+  min-width: 72px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  border: 1px solid transparent;
+  opacity: 0;
+  transform: scale(0.9);
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+
+.leaderboard-row-up .leaderboard-movement,
+.leaderboard-row-down .leaderboard-movement,
+.leaderboard-movement-new {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.leaderboard-movement-up {
+  color: #92f3b7;
+  background: rgba(40, 110, 74, 0.24);
+  border-color: rgba(94, 214, 150, 0.35);
+}
+
+.leaderboard-movement-down {
+  color: #ffb2b2;
+  background: rgba(122, 48, 48, 0.24);
+  border-color: rgba(255, 129, 129, 0.35);
+}
+
+.leaderboard-movement-new {
+  opacity: 1;
+  transform: scale(1);
+  color: #d7e7ff;
+  background: rgba(79, 140, 255, 0.18);
+  border-color: rgba(79, 140, 255, 0.35);
+}
+
+.leaderboard-movement-idle {
+  visibility: hidden;
 }
 
 .leaderboard-score {
