@@ -213,7 +213,7 @@ Rounded corners are soft but not bubbly.
 - Result modal: extra-large radius.
 - Circular audio controls: full pill / circle.
 
-Quiz answer shapes inside the tiles are structural identity elements. Preserve the triangle, square, circle, and diamond language across host and player UIs.
+Quiz answer shapes inside the tiles are structural identity elements. Preserve the triangle, square, circle, diamond, pentagon, and inverted triangle language across host and player UIs. For five-option layouts, keep the last answer centered on its own row with the same width as the other answers; for six-option layouts, use three rows of two.
 
 ## Components
 

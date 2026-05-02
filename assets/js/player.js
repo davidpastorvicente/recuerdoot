@@ -7,6 +7,8 @@ const shapes = [
   `<svg viewBox="0 0 24 24" width="24" height="24"><rect x="2" y="2" width="20" height="20" rx="3" fill="currentColor"/></svg>`,
   `<svg viewBox="0 0 24 24" width="24" height="24"><circle cx="12" cy="12" r="10" fill="currentColor"/></svg>`,
   `<svg viewBox="0 0 24 24" width="24" height="24"><polygon points="12,2 22,12 12,22 2,12" fill="currentColor"/></svg>`,
+  `<svg viewBox="0 0 24 24" width="24" height="24"><polygon points="12,2 22,9 18,22 6,22 2,9" fill="currentColor"/></svg>`,
+  `<svg viewBox="0 0 24 24" width="24" height="24"><polygon points="2,3 22,3 12,22" fill="currentColor"/></svg>`,
 ];
 
 function joinGame() {
@@ -89,6 +91,7 @@ socket.on("player:question", (data) => {
   showScreen("answer-screen");
   document.getElementById("player-question-meta").textContent = `Pregunta ${data.index + 1} de ${data.total}`;
   const grid = document.getElementById("player-answer-grid");
+  grid.dataset.optionCount = String(data.options.length);
   grid.innerHTML = data.options.map((opt, i) =>
     `<button class="answer-choice player-answer" data-answer="${escapeHtml(opt)}"><span class="shape">${shapes[i]}</span>${escapeHtml(opt)}</button>`
   ).join("");

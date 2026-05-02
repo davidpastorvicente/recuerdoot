@@ -50,7 +50,7 @@ An ordered JSON array. Questions play in the order defined. Every question uses 
 ```json
 {
   "question": "¿Quién dijo \"Iván no me hace gracia\"?",
-  "answers": { "right": "Esther", "wrong": ["Belén", "Raquel", "Paula"] },
+  "answers": { "right": "Esther", "wrong": ["Belén", "Raquel", "Paula", "Mery", "Lucía"] },
   "before": { "audio": "PTT-20140613-WA0010.mp3", "image": "image.jpg", "video": "clip.mp4" },
   "after": { "audio": "PTT-20140613-WA0010.mp3", "video": "clip.mp4" }
 }
@@ -61,7 +61,7 @@ An ordered JSON array. Questions play in the order defined. Every question uses 
 | Field | Required | Description |
 |-------|----------|-------------|
 | `question` | Yes | The question text shown to users |
-| `answers` | Yes | Object with `right` (string) and `wrong` (array of 3 strings) |
+| `answers` | Yes | Object with `right` (string) and `wrong` (array of 3 to 5 strings) |
 | `before` | No | Media shown/played before answering. Can contain `audio`, `image`, and/or `video` (filename strings) |
 | `after` | No | Media revealed after answering. Can contain `audio`, `image`, and/or `video` (filename strings) |
 
@@ -83,8 +83,10 @@ An ordered JSON array. Questions play in the order defined. Every question uses 
 ### Notes
 
 - A question can have any mix of `audio`, `image`, and `video` in `before`
+- Questions can have 4, 5, or 6 total answer options
 - Options are shuffled at runtime; `questions.json` stores answers in a fixed structure
 - The code does not generate questions or options — everything comes directly from `questions.json`
+- Five-option questions render as two rows plus a centered final answer with the same width as the others; six-option questions render as three rows of two
 
 ## Multiplayer
 

@@ -21,19 +21,21 @@ Every question has the same structure:
 ```json
 {
   "question": "The question text",
-  "answers": { "right": "Correct answer", "wrong": ["Wrong 1", "Wrong 2", "Wrong 3"] },
+  "answers": { "right": "Correct answer", "wrong": ["Wrong 1", "Wrong 2", "Wrong 3", "Wrong 4", "Wrong 5"] },
   "before": { "audio": "PTT-20140627-WA0012.mp3", "image": "image.jpg", "video": "clip.mp4" },
   "after": { "audio": "PTT-20140627-WA0012.mp3", "video": "clip.mp4" }
 }
 ```
 
 - `question` — Always present. The full question text as shown to users.
-- `answers` — Always present. `right` is the correct answer string, `wrong` is an array of 3 wrong answers.
+- `answers` — Always present. `right` is the correct answer string, `wrong` is an array of 3 to 5 wrong answers.
 - `before` (optional) — Media shown/played with the question before answering. Can contain `audio` (filename string in `assets/audios/`), `image` (filename string in `assets/images/`), and/or `video` (filename string in `assets/videos/`).
 - `after` (optional) — Media revealed after answering. Can contain `audio` (filename string in `assets/audios/`), `image` (filename string in `assets/images/`), and/or `video` (filename string in `assets/videos/`).
 - For filtered audio questions: the `_filtered` version plays before answering, the original is revealed after.
 - A question can have any mix of audio, image, and video in `before`.
+- Questions can have 4, 5, or 6 total answer options.
 - Options are shuffled at runtime by the code; questions.json stores them in a fixed structure.
+- Five-option questions render as two rows plus a centered final answer with the same width as the others; six-option questions render as three rows of two.
 
 ## Key conventions
 

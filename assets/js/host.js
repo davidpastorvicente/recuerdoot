@@ -5,6 +5,8 @@ const shapes = [
   `<svg viewBox="0 0 32 32" width="32" height="32"><rect x="2" y="2" width="28" height="28" rx="4" fill="white"/></svg>`,
   `<svg viewBox="0 0 32 32" width="32" height="32"><circle cx="16" cy="16" r="14" fill="white"/></svg>`,
   `<svg viewBox="0 0 32 32" width="32" height="32"><polygon points="16,2 30,16 16,30 2,16" fill="white"/></svg>`,
+  `<svg viewBox="0 0 32 32" width="32" height="32"><polygon points="16,2 29,12 24,28 8,28 3,12" fill="white"/></svg>`,
+  `<svg viewBox="0 0 32 32" width="32" height="32"><polygon points="2,4 30,4 16,30" fill="white"/></svg>`,
 ];
 
 const audio = document.getElementById("game-audio");
@@ -183,6 +185,7 @@ function renderQuestion(data) {
 
   // Options
   const tiles = document.getElementById("stage-answer-grid");
+  tiles.dataset.optionCount = String(data.options.length);
   tiles.innerHTML = data.options.map((opt, i) =>
     `<button class="answer-choice stage-answer" data-value="${escapeHtml(opt)}"><span class="shape">${shapes[i]}</span>${escapeHtml(opt)}</button>`
   ).join("");
@@ -216,8 +219,10 @@ function renderLeaderboard(containerId, list) {
 }
 
 function renderRevealChart(revealData) {
+  const revealChart = document.getElementById("reveal-chart");
+  revealChart.dataset.optionCount = String(multiplayerCurrentQuestion.options.length);
   const maxCount = Math.max(1, ...multiplayerCurrentQuestion.options.map((option) => revealData.optionCounts[option] || 0));
-  document.getElementById("reveal-chart").innerHTML = multiplayerCurrentQuestion.options.map((option, i) => {
+  revealChart.innerHTML = multiplayerCurrentQuestion.options.map((option, i) => {
     const count = revealData.optionCounts[option] || 0;
     const isCorrect = option === revealData.correct;
     const heightPercent = count > 0 ? Math.max(10, (count / maxCount) * 100) : 4;
