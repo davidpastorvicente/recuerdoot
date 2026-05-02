@@ -606,21 +606,6 @@ function soloLoadRound() {
     button.onclick = () => soloAnswer(button.dataset.value);
   });
 
-  if (data.audioBefore) {
-    document.getElementById("countdown-number").textContent = "\u00B7\u00B7\u00B7";
-    const progressRing = document.getElementById("countdown-ring-progress");
-    progressRing.style.transition = "none"; progressRing.style.strokeDashoffset = "0";
-
-    setTimeout(() => {
-      audio.play(); isPlaying = true;
-      document.getElementById("host-play-button").classList.add("playing");
-      audio.onended = () => {
-        isPlaying = false;
-        document.getElementById("host-play-button").classList.remove("playing");
-        audio.onended = stopAudioPlayback;
-      };
-    }, 3000);
-  }
 }
 
 function soloAnswer(selected) {
@@ -763,7 +748,7 @@ function initMultiplayer() {
       });
 
       if (data.audioBefore) {
-        document.getElementById("countdown-number").textContent = "5";
+        document.getElementById("countdown-number").textContent = String(data.countdownBefore);
         document.getElementById("countdown-container").classList.remove("urgent");
         const progressRing = document.getElementById("countdown-ring-progress");
         progressRing.style.transition = "none"; progressRing.style.strokeDashoffset = "0";
@@ -774,12 +759,12 @@ function initMultiplayer() {
           audio.onended = () => {
             isPlaying = false;
             document.getElementById("host-play-button").classList.remove("playing");
-            startCountdown(5, () => socket.emit("host:timeUp"));
+            startCountdown(data.countdownAfter, () => socket.emit("host:timeUp"));
             socket.emit("host:answersOpen");
           };
-        }, 3000);
+        }, data.countdownBefore * 1000);
       } else {
-        startCountdown(data.countdown, () => socket.emit("host:timeUp"));
+        startCountdown(data.countdownAfter, () => socket.emit("host:timeUp"));
       }
     });
 

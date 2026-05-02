@@ -19,9 +19,10 @@ app.use(connectLivereload());
 app.use(express.static(__dirname));
 
 // ---------- Game state ----------
-const COUNTDOWN_SECONDS = 30;
-const START_COUNTDOWN_SECONDS = 5;
-const COUNTDOWN_AUDIO = 5;
+const COUNTDOWN_QUESTION_SECONDS = 30;
+const COUNTDOWN_GAME_START_SECONDS = 5;
+const COUNTDOWN_AUDIO_BEFORE_SECONDS = 3;
+const COUNTDOWN_AUDIO_AFTER_SECONDS = 5;
 const MAX_PLAYERS = 10;
 const MAX_POINTS = 1000;
 const MIN_POINTS = 100;
@@ -154,17 +155,17 @@ io.on("connection", (socket) => {
 
     game.phase = "starting";
     const startsAt = Date.now() + 250;
-    io.to(`game-${game.pin}`).emit("game:startCountdown", { seconds: START_COUNTDOWN_SECONDS, startsAt });
+    io.to(`game-${game.pin}`).emit("game:startCountdown", { seconds: COUNTDOWN_GAME_START_SECONDS, startsAt });
     game.timer = setTimeout(() => {
       nextQuestion();
-    }, (startsAt - Date.now()) + (START_COUNTDOWN_SECONDS * 1000));
+    }, (startsAt - Date.now()) + (COUNTDOWN_GAME_START_SECONDS * 1000));
   });
 
   // Host signals audio is done, start countdown timer
   socket.on("host:answersOpen", () => {
     if (!game || socket.id !== game.host) return;
     if (game.phase !== "question") return;
-    game.timer = setTimeout(() => { endQuestion(); }, COUNTDOWN_AUDIO * 1000);
+    game.timer = setTimeout(() => { endQuestion(); }, COUNTDOWN_AUDIO_AFTER_SECONDS * 1000);
   });
 
   // Host signals countdown reached 0
@@ -196,7 +197,7 @@ io.on("connection", (socket) => {
     let points = 0;
     if (isCorrect) {
       // Linear interpolation: faster = more points
-      const timeFraction = Math.max(0, 1 - elapsed / COUNTDOWN_SECONDS);
+      const timeFraction = Math.max(0, 1 - elapsed / COUNTDOWN_QUESTION_SECONDS);
       points = Math.round(MIN_POINTS + (MAX_POINTS - MIN_POINTS) * timeFraction);
       game.players[socket.id].score += points;
       game.players[socket.id].streak++;
@@ -264,7 +265,8 @@ function nextQuestion() {
     image: question.image || null,
     music: question.music || null,
     video: question.video || null,
-    countdown: COUNTDOWN_SECONDS,
+    countdownBefore: question.audioBefore ? COUNTDOWN_AUDIO_BEFORE_SECONDS : null,
+    countdownAfter: question.audioBefore ? COUNTDOWN_AUDIO_AFTER_SECONDS : COUNTDOWN_QUESTION_SECONDS,
   });
 
   // Players always get options immediately
@@ -272,11 +274,11 @@ function nextQuestion() {
     index: game.currentQ,
     total: game.questions.length,
     options: question.options,
-    countdown: question.audioBefore ? null : COUNTDOWN_SECONDS,
+    countdown: question.audioBefore ? null : COUNTDOWN_QUESTION_SECONDS,
   });
 
   if (!question.audioBefore) {
-    game.timer = setTimeout(() => { endQuestion(); }, COUNTDOWN_SECONDS * 1000);
+    game.timer = setTimeout(() => { endQuestion(); }, COUNTDOWN_QUESTION_SECONDS * 1000);
   }
 }
 
