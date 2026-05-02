@@ -22,17 +22,17 @@ Every question has the same structure:
 {
   "question": "The question text",
   "answers": { "right": "Correct answer", "wrong": ["Wrong 1", "Wrong 2", "Wrong 3", "Wrong 4", "Wrong 5"] },
-  "before": { "audio": "PTT-20140627-WA0012.mp3", "image": "image.jpg", "video": "clip.mp4" },
-  "after": { "audio": "PTT-20140627-WA0012.mp3", "video": "clip.mp4" }
+  "before": { "audio": "PTT-20140627-WA0012.mp3", "image": "image.jpg", "video": "clip.mp4", "music": "intro.mp3" },
+  "after": { "audio": "PTT-20140627-WA0012.mp3", "video": "clip.mp4", "music": "reveal.mp3" }
 }
 ```
 
 - `question` — Always present. The full question text as shown to users.
 - `answers` — Always present. `right` is the correct answer string, `wrong` is an array of 3 to 5 wrong answers.
-- `before` (optional) — Media shown/played with the question before answering. Can contain `audio` (filename string in `assets/audios/`), `image` (filename string in `assets/images/`), and/or `video` (filename string in `assets/videos/`).
-- `after` (optional) — Media revealed after answering. Can contain `audio` (filename string in `assets/audios/`), `image` (filename string in `assets/images/`), and/or `video` (filename string in `assets/videos/`).
+- `before` (optional) — Media shown/played with the question before answering. Can contain `audio` (filename string in `assets/audios/`), `image` (filename string in `assets/images/`), `video` (filename string in `assets/videos/`), and/or `music` (filename string in `assets/music/`).
+- `after` (optional) — Media revealed after answering. Can contain `audio` (filename string in `assets/audios/`), `image` (filename string in `assets/images/`), `video` (filename string in `assets/videos/`), and/or `music` (filename string in `assets/music/`).
 - For filtered audio questions: the `_filtered` version plays before answering, the original is revealed after.
-- A question can have any mix of audio, image, and video in `before`.
+- A question can have any mix of audio, image, video, and music in `before`.
 - Questions can have 4, 5, or 6 total answer options.
 - Options are shuffled at runtime by the code; questions.json stores them in a fixed structure.
 - Five-option questions render as two rows plus a centered final answer with the same width as the others; six-option questions render as three rows of two.
@@ -41,7 +41,7 @@ Every question has the same structure:
 
 - All UI text is in Spanish
 - Dark theme with Archivo Black display typography, Outfit body typography, and a blue accent (`#4f8cff`)
-- Audio files live in `assets/audios/` (originals and filtered versions with `_filtered` suffix). Images live in `assets/images/`. Videos live in `assets/videos/`.
+- Audio files live in `assets/audios/` (originals and filtered versions with `_filtered` suffix). Music lives in `assets/music/`. Images live in `assets/images/`. Videos live in `assets/videos/`.
 - Questions play in the order defined in questions.json (no shuffle)
 - For filtered audio questions: filtered audio plays before answering, original revealed after
 - Multiplayer scoring: faster correct answers = more points (1000 max, 100 min, linear)

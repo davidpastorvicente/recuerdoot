@@ -51,8 +51,8 @@ An ordered JSON array. Questions play in the order defined. Every question uses 
 {
   "question": "¿Quién dijo \"Iván no me hace gracia\"?",
   "answers": { "right": "Esther", "wrong": ["Belén", "Raquel", "Paula", "Mery", "Lucía"] },
-  "before": { "audio": "PTT-20140613-WA0010.mp3", "image": "image.jpg", "video": "clip.mp4" },
-  "after": { "audio": "PTT-20140613-WA0010.mp3", "video": "clip.mp4" }
+  "before": { "audio": "PTT-20140613-WA0010.mp3", "image": "image.jpg", "video": "clip.mp4", "music": "intro.mp3" },
+  "after": { "audio": "PTT-20140613-WA0010.mp3", "video": "clip.mp4", "music": "reveal.mp3" }
 }
 ```
 
@@ -62,8 +62,8 @@ An ordered JSON array. Questions play in the order defined. Every question uses 
 |-------|----------|-------------|
 | `question` | Yes | The question text shown to users |
 | `answers` | Yes | Object with `right` (string) and `wrong` (array of 3 to 5 strings) |
-| `before` | No | Media shown/played before answering. Can contain `audio`, `image`, and/or `video` (filename strings) |
-| `after` | No | Media revealed after answering. Can contain `audio`, `image`, and/or `video` (filename strings) |
+| `before` | No | Media shown/played before answering. Can contain `audio`, `image`, `video`, and/or `music` (filename strings) |
+| `after` | No | Media revealed after answering. Can contain `audio`, `image`, `video`, and/or `music` (filename strings) |
 
 ### Audio behavior
 
@@ -80,9 +80,15 @@ An ordered JSON array. Questions play in the order defined. Every question uses 
 - `before.video` — Video is shown alongside the question
 - `after.video` — Video is shown on the reveal screen or solo result modal after answering
 
+### Music behavior
+
+- `before.music` — Background music plays quietly in a loop while the question is on screen
+- `after.music` — Background music plays quietly in a loop on the reveal screen or solo result modal after answering
+- Music files are loaded from `assets/music/`
+
 ### Notes
 
-- A question can have any mix of `audio`, `image`, and `video` in `before`
+- A question can have any mix of `audio`, `image`, `video`, and `music` in `before`
 - Questions can have 4, 5, or 6 total answer options
 - Options are shuffled at runtime; `questions.json` stores answers in a fixed structure
 - The code does not generate questions or options — everything comes directly from `questions.json`
@@ -109,7 +115,7 @@ An ordered JSON array. Questions play in the order defined. Every question uses 
 
 ## Audio files
 
-Place audio files in `assets/audios/`, images in `assets/images/`, and videos in `assets/videos/`.
+Place audio files in `assets/audios/`, music in `assets/music/`, images in `assets/images/`, and videos in `assets/videos/`.
 
 Filtered versions use the same filename with a `_filtered` suffix (e.g., `PTT-20140627-WA0012_filtered.mp3`).
 

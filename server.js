@@ -86,8 +86,10 @@ function loadQuestions() {
       audioFile: audioFile ? `assets/audios/${audioFile}` : null,
       afterAudio: after.audio ? `assets/audios/${after.audio}` : null,
       afterImage: after.image ? `assets/images/${after.image}` : null,
+      afterMusic: after.music ? `assets/music/${after.music}` : null,
       afterVideo: after.video ? `assets/videos/${after.video}` : null,
       image: before.image ? `assets/images/${before.image}` : null,
+      music: before.music ? `assets/music/${before.music}` : null,
       video: before.video ? `assets/videos/${before.video}` : null,
       date: audioFile ? parseDate(audioFile) : "",
     };
@@ -260,6 +262,7 @@ function nextQuestion() {
     audioBefore: question.audioBefore,
     audioSrc: question.audioFile || null,
     image: question.image || null,
+    music: question.music || null,
     video: question.video || null,
     countdown: COUNTDOWN_SECONDS,
   });
@@ -292,6 +295,7 @@ function endQuestion() {
     date: question.date || null,
     afterAudio: question.afterAudio || null,
     afterImage: question.afterImage || null,
+    afterMusic: question.afterMusic || null,
     afterVideo: question.afterVideo || null,
   });
 
