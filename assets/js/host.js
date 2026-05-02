@@ -10,10 +10,13 @@ const shapes = [
 ];
 
 const audio = document.getElementById("game-audio");
+const backgroundMusic = document.getElementById("background-music");
 let isPlaying = false;
 let countdownInterval = null;
 let mode = null; // "solo" or "multi"
 let startCountdownInterval = null;
+
+backgroundMusic.volume = 0.22;
 
 function clearStartCountdownTimer() {
   clearTimeout(startCountdownInterval);
@@ -46,6 +49,7 @@ function showScreen(id) {
   document.querySelectorAll("video").forEach((video) => {
     stopVideoPlayback(video);
   });
+  stopBackgroundMusic();
   document.getElementById(id).classList.add("active");
   document.getElementById(id).scrollTop = 0;
 }
@@ -72,9 +76,15 @@ function swapStartCountdownDigit(value) {
   activeDigit.classList.add("exit");
 }
 
+function getStartCountdownLabel(seconds, remaining) {
+  if (remaining <= 1) return "\u00A1YA!";
+  return remaining > Math.ceil(seconds / 2) ? "Preparados" : "Listos";
+}
+
 function showStartCountdown(seconds, options = {}) {
   const { startsAt = Date.now(), onEnd = null } = options;
   const overlay = document.getElementById("start-countdown-overlay");
+  const label = document.getElementById("start-countdown-label");
   const digits = Array.from(document.querySelectorAll("#start-countdown-number .start-countdown-digit"));
 
   clearStartCountdownTimer();
@@ -91,8 +101,10 @@ function showStartCountdown(seconds, options = {}) {
       return;
     }
 
+    const remaining = seconds - elapsedSteps;
     overlay.classList.add("show");
-    swapStartCountdownDigit(seconds - elapsedSteps);
+    label.textContent = getStartCountdownLabel(seconds, remaining);
+    swapStartCountdownDigit(remaining);
 
     const nextTickAt = startsAt + ((elapsedSteps + 1) * 1000);
     startCountdownInterval = setTimeout(renderTick, Math.max(0, nextTickAt - Date.now()));
@@ -104,6 +116,7 @@ function showStartCountdown(seconds, options = {}) {
 function hideStartCountdown() {
   clearStartCountdownTimer();
   document.getElementById("start-countdown-overlay").classList.remove("show");
+  document.getElementById("start-countdown-label").textContent = "";
   document.querySelectorAll("#start-countdown-number .start-countdown-digit").forEach((digit) => {
     digit.classList.remove("active", "exit");
     digit.textContent = "";
@@ -139,6 +152,28 @@ function stopAudioPlayback() {
   audio.pause();
   isPlaying = false;
   setPlayButtonsPlaying(false);
+}
+
+function playBackgroundMusic(source) {
+  if (!source) {
+    stopBackgroundMusic();
+    return;
+  }
+
+  if (backgroundMusic.getAttribute("src") !== source) {
+    backgroundMusic.src = source;
+    backgroundMusic.load();
+  }
+
+  backgroundMusic.currentTime = 0;
+  backgroundMusic.play().catch(() => {});
+}
+
+function stopBackgroundMusic() {
+  backgroundMusic.pause();
+  backgroundMusic.currentTime = 0;
+  backgroundMusic.removeAttribute("src");
+  backgroundMusic.load();
 }
 
 function stopVideoPlayback(video) {
@@ -221,6 +256,7 @@ function startCountdown(seconds, onEnd) {
 function renderQuestion(data) {
   showScreen("question-screen");
   document.getElementById("question-counter").textContent = `Pregunta ${data.index + 1} de ${data.total}`;
+  playBackgroundMusic(data.music);
 
   // Visual media
   const questionImage = document.getElementById("question-image");
@@ -308,6 +344,8 @@ function updateRevealMedia(revealData) {
   const hasRevealVideo = !!revealData.afterVideo;
   const hasRevealAudio = !!revealData.afterAudio;
 
+  playBackgroundMusic(revealData.afterMusic);
+
   revealImage.alt = "Imagen revelada de la pregunta";
   setMediaElementSource(revealImage, revealData.afterImage);
   setMediaElementSource(revealVideo, revealData.afterVideo);
@@ -349,8 +387,10 @@ function buildSoloQuestion(entry) {
     audioFile: audioFile ? `assets/audios/${audioFile}` : null,
     afterAudio: after.audio ? `assets/audios/${after.audio}` : null,
     afterImage: after.image ? `assets/images/${after.image}` : null,
+    afterMusic: after.music ? `assets/music/${after.music}` : null,
     afterVideo: after.video ? `assets/videos/${after.video}` : null,
     image: before.image ? `assets/images/${before.image}` : null,
+    music: before.music ? `assets/music/${before.music}` : null,
     video: before.video ? `assets/videos/${before.video}` : null,
   };
 }
@@ -381,7 +421,7 @@ function soloLoadRound() {
     index: soloCurrent, total: soloQuestions.length,
     question: soloCurrentQuestion.question,
     options: soloCurrentQuestion.options, audioBefore: soloCurrentQuestion.audioBefore,
-    audioSrc, image: soloCurrentQuestion.image, video: soloCurrentQuestion.video,
+    audioSrc, image: soloCurrentQuestion.image, music: soloCurrentQuestion.music, video: soloCurrentQuestion.video,
   };
 
   document.getElementById("question-counter").textContent = formatSoloCounter();
@@ -453,6 +493,7 @@ function soloAnswer(selected) {
   const hasAfterVideo = !!soloCurrentQuestion.afterVideo;
   const hasAfterAudio = !!soloCurrentQuestion.afterAudio;
 
+  playBackgroundMusic(soloCurrentQuestion.afterMusic);
   mediaEl.style.display = hasAfterImage || hasAfterVideo || hasAfterAudio ? "flex" : "none";
   revealImg.alt = "Imagen revelada tras responder";
   setMediaElementSource(revealImg, soloCurrentQuestion.afterImage);

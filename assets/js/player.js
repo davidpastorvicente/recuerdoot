@@ -56,8 +56,14 @@ function swapStartCountdownDigit(value) {
   activeDigit.classList.add("exit");
 }
 
+function getStartCountdownLabel(seconds, remaining) {
+  if (remaining <= 1) return "\u00A1YA!";
+  return remaining > Math.ceil(seconds / 2) ? "Preparados" : "Listos";
+}
+
 function showStartCountdown(seconds, startsAt = Date.now()) {
   const overlay = document.getElementById("start-countdown-overlay");
+  const label = document.getElementById("start-countdown-label");
   const digits = Array.from(document.querySelectorAll("#start-countdown-number .start-countdown-digit"));
 
   clearStartCountdownTimer();
@@ -73,8 +79,10 @@ function showStartCountdown(seconds, startsAt = Date.now()) {
       return;
     }
 
+    const remaining = seconds - elapsedSteps;
     overlay.classList.add("show");
-    swapStartCountdownDigit(seconds - elapsedSteps);
+    label.textContent = getStartCountdownLabel(seconds, remaining);
+    swapStartCountdownDigit(remaining);
 
     const nextTickAt = startsAt + ((elapsedSteps + 1) * 1000);
     startCountdownInterval = setTimeout(renderTick, Math.max(0, nextTickAt - Date.now()));
@@ -86,6 +94,7 @@ function showStartCountdown(seconds, startsAt = Date.now()) {
 function hideStartCountdown() {
   clearStartCountdownTimer();
   document.getElementById("start-countdown-overlay").classList.remove("show");
+  document.getElementById("start-countdown-label").textContent = "";
   document.querySelectorAll("#start-countdown-number .start-countdown-digit").forEach((digit) => {
     digit.classList.remove("active", "exit");
     digit.textContent = "";
