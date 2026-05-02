@@ -89,11 +89,10 @@ socket.on("player:wait", (data) => {
 socket.on("player:question", (data) => {
   answered = false;
   showScreen("answer-screen");
-  document.getElementById("player-question-meta").textContent = `Pregunta ${data.index + 1} de ${data.total}`;
   const grid = document.getElementById("player-answer-grid");
   grid.dataset.optionCount = String(data.options.length);
   grid.innerHTML = data.options.map((opt, i) =>
-    `<button class="answer-choice player-answer" data-answer="${escapeHtml(opt)}"><span class="shape">${shapes[i]}</span>${escapeHtml(opt)}</button>`
+    `<button class="answer-choice player-answer" data-answer="${escapeHtml(opt)}" aria-label="${escapeHtml(opt)}"><span class="shape">${shapes[i]}</span><span class="player-answer-label">${escapeHtml(opt)}</span></button>`
   ).join("");
   grid.querySelectorAll(".player-answer").forEach((button) => {
     button.addEventListener("click", () => sendAnswer(button));
