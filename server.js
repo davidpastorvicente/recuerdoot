@@ -19,7 +19,8 @@ app.use(connectLivereload());
 app.use(express.static(__dirname));
 
 // ---------- Game state ----------
-const COUNTDOWN_SECONDS = 15;
+const COUNTDOWN_SECONDS = 30;
+const START_COUNTDOWN_SECONDS = 5;
 const COUNTDOWN_AUDIO = 5;
 const MAX_PLAYERS = 10;
 const MAX_POINTS = 1000;
@@ -109,7 +110,7 @@ io.on("connection", (socket) => {
       players: {},   // { socketId: { name, score, streak } }
       questions: loadQuestions(),
       currentQ: -1,
-      phase: "lobby", // lobby | question | reveal | end
+      phase: "lobby", // lobby | starting | question | reveal | end
       timer: null,
       answers: {},
       questionStartTime: 0,
@@ -146,8 +147,15 @@ io.on("connection", (socket) => {
   // Host starts
   socket.on("host:start", () => {
     if (!game || socket.id !== game.host) return;
+    if (game.phase !== "lobby") return;
     if (Object.keys(game.players).length === 0) return;
-    nextQuestion();
+
+    game.phase = "starting";
+    const startsAt = Date.now() + 250;
+    io.to(`game-${game.pin}`).emit("game:startCountdown", { seconds: START_COUNTDOWN_SECONDS, startsAt });
+    game.timer = setTimeout(() => {
+      nextQuestion();
+    }, (startsAt - Date.now()) + (START_COUNTDOWN_SECONDS * 1000));
   });
 
   // Host signals audio is done, start countdown timer

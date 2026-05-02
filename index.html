@@ -8,6 +8,16 @@
 </head>
 <body>
 
+<div id="start-countdown-overlay" aria-live="assertive" aria-atomic="true">
+  <div id="start-countdown-inner">
+    <div id="start-countdown-label">Preparados</div>
+    <div id="start-countdown-number" aria-hidden="true">
+      <span class="start-countdown-digit active"></span>
+      <span class="start-countdown-digit"></span>
+    </div>
+  </div>
+</div>
+
 <!-- START -->
 <div id="start-screen" class="screen active">
   <div class="brand">Recuerdoot</div>
@@ -23,7 +33,7 @@
 <div id="lobby" class="screen">
   <div class="brand">Recuerdoot</div>
   <div id="pin-label">PIN de la partida</div>
-  <div id="pin-display">------</div>
+  <div id="pin-display"></div>
   <div id="join-url-container">Unirse en: <a id="join-url" target="_blank" rel="noopener"></a></div>
   <canvas id="qr-canvas" style="margin:1rem auto;display:block;"></canvas>
   <div id="player-grid"></div>
@@ -45,7 +55,7 @@
         <circle id="countdown-ring-progress" cx="50" cy="50" r="44"
           stroke-dasharray="276.46" stroke-dashoffset="0"/>
       </svg>
-      <div id="countdown-number">15</div>
+      <div id="countdown-number"></div>
     </div>
     <div id="question-media">
       <img id="question-image" style="display:none;" alt="Imagen de la pregunta">
@@ -58,7 +68,7 @@
       </div>
     </div>
     <div id="answer-count">
-      <span id="answer-count-number">0</span>
+      <span id="answer-count-number"></span>
       <span id="answer-count-label">Respuestas</span>
     </div>
   </div>

@@ -1,6 +1,7 @@
 const socket = io();
 let myName = "";
 let answered = false;
+let startCountdownInterval = null;
 
 const shapes = [
   `<svg viewBox="0 0 24 24" width="24" height="24"><polygon points="12,2 2,22 22,22" fill="currentColor"/></svg>`,
@@ -34,6 +35,61 @@ function joinGame() {
 function bindPlayerUi() {
   document.getElementById("join-button").addEventListener("click", joinGame);
   document.getElementById("player-reload-button").addEventListener("click", () => location.reload());
+}
+
+function clearStartCountdownTimer() {
+  clearTimeout(startCountdownInterval);
+  startCountdownInterval = null;
+}
+
+function swapStartCountdownDigit(value) {
+  const digits = Array.from(document.querySelectorAll("#start-countdown-number .start-countdown-digit"));
+  const activeDigit = digits.find((digit) => digit.classList.contains("active")) || digits[0];
+  const nextDigit = digits.find((digit) => digit !== activeDigit) || digits[1];
+
+  nextDigit.textContent = String(value);
+  nextDigit.classList.remove("exit");
+  void nextDigit.offsetWidth;
+  nextDigit.classList.add("active");
+
+  activeDigit.classList.remove("active");
+  activeDigit.classList.add("exit");
+}
+
+function showStartCountdown(seconds, startsAt = Date.now()) {
+  const overlay = document.getElementById("start-countdown-overlay");
+  const digits = Array.from(document.querySelectorAll("#start-countdown-number .start-countdown-digit"));
+
+  clearStartCountdownTimer();
+  digits[0].textContent = String(seconds);
+  digits[0].classList.add("active");
+  digits[0].classList.remove("exit");
+  digits[1].classList.remove("active", "exit");
+
+  const renderTick = () => {
+    const elapsedSteps = Math.floor(Math.max(0, Date.now() - startsAt) / 1000);
+    if (elapsedSteps >= seconds) {
+      hideStartCountdown();
+      return;
+    }
+
+    overlay.classList.add("show");
+    swapStartCountdownDigit(seconds - elapsedSteps);
+
+    const nextTickAt = startsAt + ((elapsedSteps + 1) * 1000);
+    startCountdownInterval = setTimeout(renderTick, Math.max(0, nextTickAt - Date.now()));
+  };
+
+  startCountdownInterval = setTimeout(renderTick, Math.max(0, startsAt - Date.now()));
+}
+
+function hideStartCountdown() {
+  clearStartCountdownTimer();
+  document.getElementById("start-countdown-overlay").classList.remove("show");
+  document.querySelectorAll("#start-countdown-number .start-countdown-digit").forEach((digit) => {
+    digit.classList.remove("active", "exit");
+    digit.textContent = "";
+  });
 }
 
 function setResultState({ icon, text, textClass, pointsText }) {
@@ -82,12 +138,18 @@ socket.on("player:joined", ({ name }) => {
 });
 
 socket.on("player:wait", (data) => {
+  hideStartCountdown();
   showScreen("listen-screen");
   document.getElementById("listen-question-meta").textContent = `Pregunta ${data.index + 1} de ${data.total}`;
 });
 
+socket.on("game:startCountdown", ({ seconds, startsAt }) => {
+  showStartCountdown(seconds, startsAt);
+});
+
 socket.on("player:question", (data) => {
   answered = false;
+  hideStartCountdown();
   showScreen("answer-screen");
   const grid = document.getElementById("player-answer-grid");
   grid.dataset.optionCount = String(data.options.length);
@@ -114,6 +176,7 @@ function sendAnswer(button) {
 }
 
 socket.on("player:result", ({ isCorrect, points, score, streak, timeout }) => {
+  hideStartCountdown();
   showScreen("result-screen");
   setResultState(getResultState({ isCorrect, points, timeout }));
   document.getElementById("result-score").textContent = `${score} pts`;
@@ -121,6 +184,7 @@ socket.on("player:result", ({ isCorrect, points, score, streak, timeout }) => {
 });
 
 socket.on("game:end", ({ leaderboard }) => {
+  hideStartCountdown();
   showScreen("end-screen");
   const myIndex = leaderboard.findIndex((player) => player.name === myName);
   const rank = myIndex + 1;
@@ -136,6 +200,7 @@ socket.on("game:end", ({ leaderboard }) => {
 });
 
 socket.on("player:gameOver", (msg) => {
+  hideStartCountdown();
   showScreen("end-screen");
   document.getElementById("end-rank").textContent = "";
   document.getElementById("end-position").textContent = msg;

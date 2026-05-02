@@ -13,6 +13,12 @@ const audio = document.getElementById("game-audio");
 let isPlaying = false;
 let countdownInterval = null;
 let mode = null; // "solo" or "multi"
+let startCountdownInterval = null;
+
+function clearStartCountdownTimer() {
+  clearTimeout(startCountdownInterval);
+  startCountdownInterval = null;
+}
 
 function setPlayButtonsPlaying(playing) {
   document.querySelectorAll(".play-button").forEach((button) => {
@@ -47,7 +53,61 @@ function showScreen(id) {
 function backToStart() {
   stopAudioPlayback();
   clearInterval(countdownInterval);
+  clearStartCountdownTimer();
+  hideStartCountdown();
   showScreen("start-screen");
+}
+
+function swapStartCountdownDigit(value) {
+  const digits = Array.from(document.querySelectorAll("#start-countdown-number .start-countdown-digit"));
+  const activeDigit = digits.find((digit) => digit.classList.contains("active")) || digits[0];
+  const nextDigit = digits.find((digit) => digit !== activeDigit) || digits[1];
+
+  nextDigit.textContent = String(value);
+  nextDigit.classList.remove("exit");
+  void nextDigit.offsetWidth;
+  nextDigit.classList.add("active");
+
+  activeDigit.classList.remove("active");
+  activeDigit.classList.add("exit");
+}
+
+function showStartCountdown(seconds, options = {}) {
+  const { startsAt = Date.now(), onEnd = null } = options;
+  const overlay = document.getElementById("start-countdown-overlay");
+  const digits = Array.from(document.querySelectorAll("#start-countdown-number .start-countdown-digit"));
+
+  clearStartCountdownTimer();
+  digits[0].textContent = String(seconds);
+  digits[0].classList.add("active");
+  digits[0].classList.remove("exit");
+  digits[1].classList.remove("active", "exit");
+
+  const renderTick = () => {
+    const elapsedSteps = Math.floor(Math.max(0, Date.now() - startsAt) / 1000);
+    if (elapsedSteps >= seconds) {
+      hideStartCountdown();
+      if (onEnd) onEnd();
+      return;
+    }
+
+    overlay.classList.add("show");
+    swapStartCountdownDigit(seconds - elapsedSteps);
+
+    const nextTickAt = startsAt + ((elapsedSteps + 1) * 1000);
+    startCountdownInterval = setTimeout(renderTick, Math.max(0, nextTickAt - Date.now()));
+  };
+
+  startCountdownInterval = setTimeout(renderTick, Math.max(0, startsAt - Date.now()));
+}
+
+function hideStartCountdown() {
+  clearStartCountdownTimer();
+  document.getElementById("start-countdown-overlay").classList.remove("show");
+  document.querySelectorAll("#start-countdown-number .start-countdown-digit").forEach((digit) => {
+    digit.classList.remove("active", "exit");
+    digit.textContent = "";
+  });
 }
 
 function parseDate(key) {
@@ -297,12 +357,17 @@ function buildSoloQuestion(entry) {
 
 async function initSolo() {
   mode = "solo";
+  hideStartCountdown();
   if (!soloQuestions.length) {
     const resp = await fetch("questions.json");
     soloQuestions = await resp.json();
   }
   soloCurrent = 0; soloScore = 0;
-  soloLoadRound();
+  showStartCountdown(3, {
+    onEnd: () => {
+    soloLoadRound();
+    },
+  });
 }
 
 function soloLoadRound() {
@@ -438,99 +503,114 @@ function soloEnd() {
 let socket = null;
 let multiplayerCurrentQuestion = null;
 let multiplayerRevealLeaderboard = [];
+let multiplayerHandlersBound = false;
 
 function initMultiplayer() {
   mode = "multi";
+  hideStartCountdown();
   multiplayerRevealLeaderboard = [];
   if (!socket) socket = io();
-  socket.emit("host:create");
+  if (!multiplayerHandlersBound) {
+    multiplayerHandlersBound = true;
 
-  socket.on("host:created", ({ pin }) => {
-    showScreen("lobby");
-    document.getElementById("pin-display").textContent = pin;
-    const joinUrl = `${location.origin}/player.html?pin=${pin}`;
-    const joinEl = document.getElementById("join-url");
-    joinEl.textContent = `${location.host}/player.html`;
-    joinEl.href = joinUrl;
-    new QRious({ element: document.getElementById("qr-canvas"), value: joinUrl, size: 200, backgroundAlpha: 0, foreground: "#ffffff" });
-  });
-
-  socket.on("host:playerList", (players) => {
-    const grid = document.getElementById("player-grid");
-    grid.innerHTML = players.map((player) => `<div class="player-chip">${player.name}</div>`).join("");
-    const startButton = document.getElementById("lobby-start-button");
-    startButton.disabled = players.length === 0;
-    startButton.textContent = players.length > 0 ? `Empezar (${players.length} jugador${players.length > 1 ? 'es' : ''})` : "Esperando jugadores...";
-  });
-
-  socket.on("host:question", (data) => {
-    multiplayerCurrentQuestion = data;
-    renderQuestion(data);
-
-    // In multiplayer, tiles are NOT clickable
-    document.querySelectorAll(".stage-answer").forEach((button) => {
-      button.onclick = null;
+    socket.on("host:created", ({ pin }) => {
+      showScreen("lobby");
+      document.getElementById("pin-display").textContent = pin;
+      const joinUrl = `${location.origin}/player.html?pin=${pin}`;
+      const joinEl = document.getElementById("join-url");
+      joinEl.textContent = `${location.host}/player.html`;
+      joinEl.href = joinUrl;
+      new QRious({ element: document.getElementById("qr-canvas"), value: joinUrl, size: 200, backgroundAlpha: 0, foreground: "#ffffff" });
     });
 
-    if (data.audioBefore) {
-      document.getElementById("countdown-number").textContent = "5";
-      document.getElementById("countdown-container").classList.remove("urgent");
-      const progressRing = document.getElementById("countdown-ring-progress");
-      progressRing.style.transition = "none"; progressRing.style.strokeDashoffset = "0";
+    socket.on("host:playerList", (players) => {
+      const grid = document.getElementById("player-grid");
+      grid.innerHTML = players.map((player) => `<div class="player-chip">${player.name}</div>`).join("");
+      const startButton = document.getElementById("lobby-start-button");
+      startButton.disabled = players.length === 0;
+      startButton.textContent = players.length > 0 ? `Empezar (${players.length} jugador${players.length > 1 ? 'es' : ''})` : "Esperando jugadores...";
+    });
 
-      setTimeout(() => {
-        audio.play(); isPlaying = true;
-        document.getElementById("host-play-button").classList.add("playing");
-        audio.onended = () => {
-          isPlaying = false;
-          document.getElementById("host-play-button").classList.remove("playing");
-          startCountdown(5, () => socket.emit("host:timeUp"));
-          socket.emit("host:answersOpen");
-        };
-      }, 3000);
-    } else {
-      startCountdown(data.countdown, () => socket.emit("host:timeUp"));
-    }
-  });
+    socket.on("host:question", (data) => {
+      multiplayerCurrentQuestion = data;
+      hideStartCountdown();
+      renderQuestion(data);
 
-  socket.on("host:answerCount", ({ answered, total }) => {
-    document.getElementById("answer-count-number").textContent = answered;
-  });
+      // In multiplayer, tiles are NOT clickable
+      document.querySelectorAll(".stage-answer").forEach((button) => {
+        button.onclick = null;
+      });
 
-  socket.on("host:reveal", (data) => {
-    clearInterval(countdownInterval);
-    stopAudioPlayback();
-    multiplayerRevealLeaderboard = data.leaderboard;
+      if (data.audioBefore) {
+        document.getElementById("countdown-number").textContent = "5";
+        document.getElementById("countdown-container").classList.remove("urgent");
+        const progressRing = document.getElementById("countdown-ring-progress");
+        progressRing.style.transition = "none"; progressRing.style.strokeDashoffset = "0";
 
-    showScreen("reveal-screen");
+        setTimeout(() => {
+          audio.play(); isPlaying = true;
+          document.getElementById("host-play-button").classList.add("playing");
+          audio.onended = () => {
+            isPlaying = false;
+            document.getElementById("host-play-button").classList.remove("playing");
+            startCountdown(5, () => socket.emit("host:timeUp"));
+            socket.emit("host:answersOpen");
+          };
+        }, 3000);
+      } else {
+        startCountdown(data.countdown, () => socket.emit("host:timeUp"));
+      }
+    });
 
-    document.getElementById("reveal-question-meta").textContent =
-      `Pregunta ${multiplayerCurrentQuestion.index + 1} de ${multiplayerCurrentQuestion.total}`;
-    setHighlightedQuestionText(document.getElementById("reveal-text"), multiplayerCurrentQuestion.question);
+    socket.on("host:answerCount", ({ answered, total }) => {
+      document.getElementById("answer-count-number").textContent = answered;
+    });
 
-    // Bar chart
-    renderRevealChart(data);
-    updateRevealMedia(data);
+    socket.on("game:startCountdown", ({ seconds, startsAt }) => {
+      showStartCountdown(seconds, { startsAt });
+    });
 
-    document.getElementById("reveal-next-button").textContent = "Ver marcador";
-    document.getElementById("scoreboard-next-button").textContent =
-      multiplayerCurrentQuestion.index < multiplayerCurrentQuestion.total - 1 ? "Siguiente" : "Ver resultados";
-  });
+    socket.on("host:reveal", (data) => {
+      clearInterval(countdownInterval);
+      hideStartCountdown();
+      stopAudioPlayback();
+      multiplayerRevealLeaderboard = data.leaderboard;
 
-  socket.on("game:end", ({ leaderboard }) => {
-    clearInterval(countdownInterval);
-    stopAudioPlayback();
-    showScreen("multiplayer-end-screen");
-    if (leaderboard.length > 0) {
-      document.getElementById("winner-name").textContent = leaderboard[0].name;
-      document.getElementById("winner-score").textContent = `${leaderboard[0].score} puntos`;
-    }
-    renderLeaderboard("end-leaderboard", leaderboard);
-  });
+      showScreen("reveal-screen");
+
+      document.getElementById("reveal-question-meta").textContent =
+        `Pregunta ${multiplayerCurrentQuestion.index + 1} de ${multiplayerCurrentQuestion.total}`;
+      setHighlightedQuestionText(document.getElementById("reveal-text"), multiplayerCurrentQuestion.question);
+
+      // Bar chart
+      renderRevealChart(data);
+      updateRevealMedia(data);
+
+      document.getElementById("reveal-next-button").textContent = "Ver marcador";
+      document.getElementById("scoreboard-next-button").textContent =
+        multiplayerCurrentQuestion.index < multiplayerCurrentQuestion.total - 1 ? "Siguiente" : "Ver resultados";
+    });
+
+    socket.on("game:end", ({ leaderboard }) => {
+      clearInterval(countdownInterval);
+      hideStartCountdown();
+      stopAudioPlayback();
+      showScreen("multiplayer-end-screen");
+      if (leaderboard.length > 0) {
+        document.getElementById("winner-name").textContent = leaderboard[0].name;
+        document.getElementById("winner-score").textContent = `${leaderboard[0].score} puntos`;
+      }
+      renderLeaderboard("end-leaderboard", leaderboard);
+    });
+  }
+
+  socket.emit("host:create");
 }
 
 function lobbyStart() {
-  if (socket) socket.emit("host:start");
+  if (!socket) return;
+  document.getElementById("lobby-start-button").disabled = true;
+  socket.emit("host:start");
 }
 
 function nextMultiplayerQuestion() {
