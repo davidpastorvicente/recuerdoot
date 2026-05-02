@@ -77,7 +77,7 @@ function stopAudioPlayback() {
 }
 
 function formatSoloCounter() {
-  return `${soloCurrent + 1} de ${soloQuestions.length} · ${soloScore} acierto${soloScore !== 1 ? "s" : ""}`;
+  return `Pregunta ${soloCurrent + 1} de ${soloQuestions.length}`;
 }
 
 function setHighlightedQuestionText(element, question) {
@@ -128,7 +128,7 @@ function startCountdown(seconds, onEnd) {
 
 function renderQuestion(data) {
   showScreen("question-screen");
-  document.getElementById("question-counter").textContent = `${data.index + 1} de ${data.total}`;
+  document.getElementById("question-counter").textContent = `Pregunta ${data.index + 1} de ${data.total}`;
 
   // Image
   const questionImage = document.getElementById("question-image");
@@ -475,6 +475,8 @@ function initMultiplayer() {
 
     showScreen("reveal-screen");
 
+    document.getElementById("reveal-question-meta").textContent =
+      `Pregunta ${multiplayerCurrentQuestion.index + 1} de ${multiplayerCurrentQuestion.total}`;
     setHighlightedQuestionText(document.getElementById("reveal-text"), multiplayerCurrentQuestion.question);
 
     // Bar chart

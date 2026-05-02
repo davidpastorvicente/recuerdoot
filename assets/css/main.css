@@ -454,15 +454,15 @@ body::after {
    Question Screen
    ─────────────────────────────────────────────── */
 
-#question-top {
+.question-top {
   width: 100%;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
 }
 
-#question-counter {
+.question-info {
   font-size: 0.9rem;
   font-weight: 600;
   color: var(--text-secondary);
@@ -557,34 +557,33 @@ body::after {
   letter-spacing: 0.06em;
 }
 
-/* Reveal screen question card: dark variant */
+.question-top .question-card,
+.scoreboard-card {
+  flex-shrink: 0;
+}
+
 #reveal-screen .question-card {
   background: var(--surface);
   border: 1px solid var(--border);
   box-shadow: none;
 }
 
-#scoreboard-screen .question-card {
+#reveal-screen .question-text {
+  color: var(--text);
+}
+
+.scoreboard-card {
   background: rgba(255, 255, 255, 0.95);
   border: none;
   box-shadow: 0 18px 40px rgba(0, 0, 0, 0.25);
 }
 
-#reveal-screen .question-text {
-  color: var(--text);
-}
-
-#scoreboard-screen .question-text {
+.scoreboard-card .question-text {
   color: #22252d;
 }
 
 .scoreboard-card {
   margin-bottom: 16px;
-}
-
-#reveal-screen .question-card,
-#scoreboard-screen .question-card {
-  flex-shrink: 0;
 }
 
 #multiplayer-end-screen.active {
@@ -1358,12 +1357,13 @@ body.player .button:hover {
 }
 
 .question-info {
-  font-size: 0.85rem;
-  color: var(--text-secondary);
   margin-bottom: 12px;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  font-weight: 600;
+}
+
+.question-top .question-info {
+  margin-bottom: 0;
 }
 
 /* ───────────────────────────────────────────────

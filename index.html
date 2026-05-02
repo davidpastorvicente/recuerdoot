@@ -32,8 +32,8 @@
 
 <!-- QUESTION -->
 <div id="question-screen" class="screen">
-  <div id="question-top">
-    <span id="question-counter">1 de 22</span>
+  <div class="question-top">
+    <span class="question-info" id="question-counter"></span>
     <div class="question-card">
       <div class="question-text" id="question-text"></div>
     </div>
@@ -85,8 +85,11 @@
 
 <!-- REVEAL (multiplayer only) -->
 <div id="reveal-screen" class="screen">
-  <div class="question-card" style="margin-bottom:16px;">
-    <div class="question-text" id="reveal-text"></div>
+  <div class="question-top">
+    <div class="question-info" id="reveal-question-meta"></div>
+    <div class="question-card">
+      <div class="question-text" id="reveal-text"></div>
+    </div>
   </div>
   <div id="reveal-body">
     <div id="reveal-media">
