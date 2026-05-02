@@ -34,7 +34,10 @@ function bindHostUi() {
 }
 
 function showScreen(id) {
-  document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
+  document.querySelectorAll(".screen").forEach((screen) => screen.classList.remove("active"));
+  document.querySelectorAll("video").forEach((video) => {
+    stopVideoPlayback(video);
+  });
   document.getElementById(id).classList.add("active");
   document.getElementById(id).scrollTop = 0;
 }
@@ -74,6 +77,33 @@ function stopAudioPlayback() {
   audio.pause();
   isPlaying = false;
   setPlayButtonsPlaying(false);
+}
+
+function stopVideoPlayback(video) {
+  video.pause();
+  video.currentTime = 0;
+}
+
+function setMediaElementSource(element, source) {
+  const isVideo = element.tagName === "VIDEO";
+
+  if (source) {
+    element.src = source;
+    element.style.display = "";
+    if (isVideo) {
+      element.load();
+    }
+    return;
+  }
+
+  if (isVideo) {
+    element.pause();
+  }
+  element.removeAttribute("src");
+  if (isVideo) {
+    element.load();
+  }
+  element.style.display = "none";
 }
 
 function formatSoloCounter() {
@@ -130,16 +160,12 @@ function renderQuestion(data) {
   showScreen("question-screen");
   document.getElementById("question-counter").textContent = `Pregunta ${data.index + 1} de ${data.total}`;
 
-  // Image
+  // Visual media
   const questionImage = document.getElementById("question-image");
-  if (data.image) {
-    questionImage.src = data.image;
-    questionImage.alt = "Imagen de la pregunta";
-    questionImage.style.display = "";
-  } else {
-    questionImage.style.display = "none";
-    questionImage.src = "";
-  }
+  const questionVideo = document.getElementById("question-video");
+  questionImage.alt = "Imagen de la pregunta";
+  setMediaElementSource(questionImage, data.image);
+  setMediaElementSource(questionVideo, data.video);
 
   setHighlightedQuestionText(document.getElementById("question-text"), data.question);
 
@@ -210,21 +236,19 @@ function renderRevealChart(revealData) {
 function updateRevealMedia(revealData) {
   const revealMedia = document.getElementById("reveal-media");
   const revealImage = document.getElementById("reveal-media-image");
+  const revealVideo = document.getElementById("reveal-media-video");
   const revealPlayButton = document.getElementById("reveal-media-play-button");
   const revealMediaLabel = document.getElementById("reveal-media-label");
   const hasRevealImage = !!revealData.afterImage;
+  const hasRevealVideo = !!revealData.afterVideo;
   const hasRevealAudio = !!revealData.afterAudio;
 
-  if (hasRevealImage) {
-    revealImage.src = revealData.afterImage;
-    revealImage.alt = "Imagen revelada de la pregunta";
-    revealImage.style.display = "";
-  } else {
-    revealImage.style.display = "none";
-  }
+  revealImage.alt = "Imagen revelada de la pregunta";
+  setMediaElementSource(revealImage, revealData.afterImage);
+  setMediaElementSource(revealVideo, revealData.afterVideo);
 
-  revealMedia.classList.toggle("show", hasRevealImage || hasRevealAudio);
-  revealMedia.classList.toggle("has-image", hasRevealImage);
+  revealMedia.classList.toggle("show", hasRevealImage || hasRevealVideo || hasRevealAudio);
+  revealMedia.classList.toggle("has-image", hasRevealImage || hasRevealVideo);
   revealMedia.classList.toggle("has-audio", hasRevealAudio);
 
   if (hasRevealAudio) {
@@ -260,7 +284,9 @@ function buildSoloQuestion(entry) {
     audioFile: audioFile ? `assets/audios/${audioFile}` : null,
     afterAudio: after.audio ? `assets/audios/${after.audio}` : null,
     afterImage: after.image ? `assets/images/${after.image}` : null,
+    afterVideo: after.video ? `assets/videos/${after.video}` : null,
     image: before.image ? `assets/images/${before.image}` : null,
+    video: before.video ? `assets/videos/${before.video}` : null,
   };
 }
 
@@ -285,7 +311,7 @@ function soloLoadRound() {
     index: soloCurrent, total: soloQuestions.length,
     question: soloCurrentQuestion.question,
     options: soloCurrentQuestion.options, audioBefore: soloCurrentQuestion.audioBefore,
-    audioSrc, image: soloCurrentQuestion.image,
+    audioSrc, image: soloCurrentQuestion.image, video: soloCurrentQuestion.video,
   };
 
   document.getElementById("question-counter").textContent = formatSoloCounter();
@@ -350,19 +376,17 @@ function soloAnswer(selected) {
 
   // Show after media in modal
   const revealImg = document.getElementById("reveal-image");
+  const revealVideo = document.getElementById("reveal-video");
   const mediaEl = document.getElementById("result-modal-media");
   const audioRow = document.getElementById("result-modal-audio-row");
   const hasAfterImage = !!soloCurrentQuestion.afterImage;
+  const hasAfterVideo = !!soloCurrentQuestion.afterVideo;
   const hasAfterAudio = !!soloCurrentQuestion.afterAudio;
 
-  mediaEl.style.display = hasAfterImage || hasAfterAudio ? "flex" : "none";
-  if (hasAfterImage) {
-    revealImg.src = soloCurrentQuestion.afterImage;
-    revealImg.alt = "Imagen revelada tras responder";
-    revealImg.style.display = "";
-  } else {
-    revealImg.style.display = "none";
-  }
+  mediaEl.style.display = hasAfterImage || hasAfterVideo || hasAfterAudio ? "flex" : "none";
+  revealImg.alt = "Imagen revelada tras responder";
+  setMediaElementSource(revealImg, soloCurrentQuestion.afterImage);
+  setMediaElementSource(revealVideo, soloCurrentQuestion.afterVideo);
   if (hasAfterAudio) {
     stopAudioPlayback();
     audio.src = soloCurrentQuestion.afterAudio;

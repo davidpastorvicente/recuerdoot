@@ -1,6 +1,7 @@
 node_modules/
 assets/audios/
 assets/images/
+assets/videos/
 .agents/
 .idea/
 .DS_Store

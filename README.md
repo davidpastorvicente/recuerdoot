@@ -1,6 +1,6 @@
 # Recuerdoot
 
-A Kahoot-style multiplayer quiz game. A host shows questions on a big screen while players answer from their phones. Supports audio, image, and plain text questions.
+A Kahoot-style multiplayer quiz game. A host shows questions on a big screen while players answer from their phones. Supports audio, image, video, and plain text questions.
 
 ## Design system
 
@@ -41,6 +41,7 @@ For multiplayer, players join from their phones at `http://<your-ip>:8000/player
 - `DESIGN.md` — Design tokens and UI design guidance
 - `assets/audios/` — Original and filtered audio files
 - `assets/images/` — Image files
+- `assets/videos/` — Video files
 
 ## `questions.json` format
 
@@ -50,8 +51,8 @@ An ordered JSON array. Questions play in the order defined. Every question uses 
 {
   "question": "¿Quién dijo \"Iván no me hace gracia\"?",
   "answers": { "right": "Esther", "wrong": ["Belén", "Raquel", "Paula"] },
-  "before": { "audio": "PTT-20140613-WA0010.mp3", "image": "image.jpg" },
-  "after": { "audio": "PTT-20140613-WA0010.mp3" }
+  "before": { "audio": "PTT-20140613-WA0010.mp3", "image": "image.jpg", "video": "clip.mp4" },
+  "after": { "audio": "PTT-20140613-WA0010.mp3", "video": "clip.mp4" }
 }
 ```
 
@@ -61,8 +62,8 @@ An ordered JSON array. Questions play in the order defined. Every question uses 
 |-------|----------|-------------|
 | `question` | Yes | The question text shown to users |
 | `answers` | Yes | Object with `right` (string) and `wrong` (array of 3 strings) |
-| `before` | No | Media shown/played before answering. Can contain `audio` and/or `image` (filename strings) |
-| `after` | No | Media revealed after answering. Can contain `audio` and/or `image` (filename strings) |
+| `before` | No | Media shown/played before answering. Can contain `audio`, `image`, and/or `video` (filename strings) |
+| `after` | No | Media revealed after answering. Can contain `audio`, `image`, and/or `video` (filename strings) |
 
 ### Audio behavior
 
@@ -74,9 +75,14 @@ An ordered JSON array. Questions play in the order defined. Every question uses 
 
 - `before.image` — Image is shown alongside the question
 
+### Video behavior
+
+- `before.video` — Video is shown alongside the question
+- `after.video` — Video is shown on the reveal screen or solo result modal after answering
+
 ### Notes
 
-- A question can have both `audio` and `image` in `before`
+- A question can have any mix of `audio`, `image`, and `video` in `before`
 - Options are shuffled at runtime; `questions.json` stores answers in a fixed structure
 - The code does not generate questions or options — everything comes directly from `questions.json`
 
@@ -96,12 +102,12 @@ An ordered JSON array. Questions play in the order defined. Every question uses 
 
 - Host gameplay screens are designed to stay within the viewport without page scrolling
 - `#question-screen`, `#reveal-screen`, `#scoreboard-screen`, and `#multiplayer-end-screen` use `100dvh`-aware sizing and `overflow: hidden`
-- Reveal media shrinks to fit its content for audio-only reveals, while image reveals keep a larger framed presentation
+- Reveal media shrinks to fit its content for audio-only reveals, while image and video reveals keep a larger framed presentation
 - Layout sizing should prefer viewport-relative constraints over scroll-based fallback on the host screen
 
 ## Audio files
 
-Place audio files in `assets/audios/` and images in `assets/images/`.
+Place audio files in `assets/audios/`, images in `assets/images/`, and videos in `assets/videos/`.
 
 Filtered versions use the same filename with a `_filtered` suffix (e.g., `PTT-20140627-WA0012_filtered.mp3`).
 

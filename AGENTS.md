@@ -22,24 +22,24 @@ Every question has the same structure:
 {
   "question": "The question text",
   "answers": { "right": "Correct answer", "wrong": ["Wrong 1", "Wrong 2", "Wrong 3"] },
-  "before": { "audio": "PTT-20140627-WA0012.mp3", "image": "image.jpg" },
-  "after": { "audio": "PTT-20140627-WA0012.mp3" }
+  "before": { "audio": "PTT-20140627-WA0012.mp3", "image": "image.jpg", "video": "clip.mp4" },
+  "after": { "audio": "PTT-20140627-WA0012.mp3", "video": "clip.mp4" }
 }
 ```
 
 - `question` — Always present. The full question text as shown to users.
 - `answers` — Always present. `right` is the correct answer string, `wrong` is an array of 3 wrong answers.
-- `before` (optional) — Media shown/played with the question before answering. Can contain `audio` (filename string in `assets/audios/`) and/or `image` (filename string in `assets/images/`).
-- `after` (optional) — Media revealed after answering. Can contain `audio` (filename string in `assets/audios/`) and/or `image` (filename string in `assets/images/`).
+- `before` (optional) — Media shown/played with the question before answering. Can contain `audio` (filename string in `assets/audios/`), `image` (filename string in `assets/images/`), and/or `video` (filename string in `assets/videos/`).
+- `after` (optional) — Media revealed after answering. Can contain `audio` (filename string in `assets/audios/`), `image` (filename string in `assets/images/`), and/or `video` (filename string in `assets/videos/`).
 - For filtered audio questions: the `_filtered` version plays before answering, the original is revealed after.
-- A question can have both audio and image in `before`.
+- A question can have any mix of audio, image, and video in `before`.
 - Options are shuffled at runtime by the code; questions.json stores them in a fixed structure.
 
 ## Key conventions
 
 - All UI text is in Spanish
 - Dark theme with Archivo Black display typography, Outfit body typography, and a blue accent (`#4f8cff`)
-- Audio files live in `assets/audios/` (originals and filtered versions with `_filtered` suffix). Images live in `assets/images/`.
+- Audio files live in `assets/audios/` (originals and filtered versions with `_filtered` suffix). Images live in `assets/images/`. Videos live in `assets/videos/`.
 - Questions play in the order defined in questions.json (no shuffle)
 - For filtered audio questions: filtered audio plays before answering, original revealed after
 - Multiplayer scoring: faster correct answers = more points (1000 max, 100 min, linear)
@@ -49,7 +49,7 @@ Every question has the same structure:
 - Naming convention: use ids for singleton UI hooks and classes for shared/repeated styling patterns
 - Host gameplay screens should be viewport-constrained with no page scrolling
 - Reveal flow order is question -> revealed media -> chart -> scoreboard
-- Audio-only reveal media should shrink to fit content; image reveals can use a larger framed box
+- Audio-only reveal media should shrink to fit content; image and video reveals can use a larger framed box
 
 ## Running
 
