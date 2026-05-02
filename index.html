@@ -88,15 +88,17 @@
   <div class="question-card" style="margin-bottom:16px;">
     <div class="question-text" id="reveal-text"></div>
   </div>
-  <div id="reveal-media">
-    <img class="reveal-image" id="reveal-media-image" style="display:none;" alt="Imagen revelada de la pregunta">
-    <button class="play-button" id="reveal-media-play-button" aria-label="Reproducir o pausar audio revelado">
-      <svg class="icon-play" width="28" height="28" viewBox="0 0 24 24"><polygon points="6,3 20,12 6,21"/></svg>
-      <svg class="icon-pause" width="28" height="28" viewBox="0 0 24 24"><rect x="5" y="3" width="5" height="18" rx="1"/><rect x="14" y="3" width="5" height="18" rx="1"/></svg>
-    </button>
-    <div class="reveal-label" id="reveal-media-label"></div>
+  <div id="reveal-body">
+    <div id="reveal-media">
+      <img class="reveal-image" id="reveal-media-image" style="display:none;" alt="Imagen revelada de la pregunta">
+      <button class="play-button" id="reveal-media-play-button" aria-label="Reproducir o pausar audio revelado">
+        <svg class="icon-play" width="28" height="28" viewBox="0 0 24 24"><polygon points="6,3 20,12 6,21"/></svg>
+        <svg class="icon-pause" width="28" height="28" viewBox="0 0 24 24"><rect x="5" y="3" width="5" height="18" rx="1"/><rect x="14" y="3" width="5" height="18" rx="1"/></svg>
+      </button>
+      <div class="reveal-label" id="reveal-media-label"></div>
+    </div>
+    <div id="reveal-chart"></div>
   </div>
-  <div id="reveal-chart"></div>
   <button class="button" id="reveal-next-button">Siguiente</button>
 </div>
 
