@@ -179,8 +179,6 @@ io.on("connection", (socket) => {
 
     game.answers[socket.id] = { answer, isCorrect, points, elapsed };
 
-    socket.emit("player:result", { isCorrect, points, score: game.players[socket.id].score, streak: game.players[socket.id].streak });
-
     // Notify host of answer count
     const totalPlayers = Object.keys(game.players).length;
     const answeredCount = Object.keys(game.answers).length;
@@ -278,10 +276,26 @@ function endQuestion() {
 
   // Tell players who didn't answer yet
   Object.keys(game.players).forEach(sid => {
-    if (!game.answers[sid]) {
-      io.to(sid).emit("player:result", { isCorrect: false, points: 0, score: game.players[sid].score, streak: 0, timeout: true });
+    const answer = game.answers[sid];
+    if (!answer) {
       game.players[sid].streak = 0;
+      io.to(sid).emit("player:result", {
+        isCorrect: false,
+        points: 0,
+        score: game.players[sid].score,
+        streak: 0,
+        timeout: true,
+      });
+      return;
     }
+
+    io.to(sid).emit("player:result", {
+      isCorrect: answer.isCorrect,
+      points: answer.points,
+      score: game.players[sid].score,
+      streak: game.players[sid].streak,
+      timeout: false,
+    });
   });
 }
 

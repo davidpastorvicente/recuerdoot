@@ -188,9 +188,10 @@ Player layout:
 Shared layout rules:
 
 - Use `dvh`-aware sizing where full-screen sections are needed.
-- Allow vertical scrolling as a fallback on smaller screens or larger text settings.
+- Host gameplay screens should fit inside the viewport without page scrolling.
 - Maintain an 8px-based spacing rhythm.
 - Keep primary controls comfortably separated.
+- When vertical space is tight, shrink internal components before allowing the host layout to overflow.
 
 ## Elevation & Depth
 
@@ -277,6 +278,9 @@ Solo feedback appears in a bottom-anchored modal rather than shifting the questi
 
 Reveal moments are performance screens.
 
+- Keep the reveal sequence ordered as: question card, reveal media, chart, then next action.
+- If reveal media contains only audio controls and metadata, the container should shrink to content instead of occupying the full media frame.
+- If reveal media contains an image, use a larger framed treatment sized with viewport-relative limits.
 - The bar chart should feel simple and bold, not analytical.
 - Correct answers should be reinforced with both text/icon treatment and color.
 - Leaderboard rows should animate in with light ceremony.

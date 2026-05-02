@@ -87,8 +87,17 @@ An ordered JSON array. Questions play in the order defined. Every question uses 
 - Players join at `http://<host-ip>:8000/player.html` with the PIN and a name (or scan QR to auto-fill PIN)
 - Max 10 players
 - Faster correct answers score more points (1000 max, 100 min)
-- Kahoot-style bar chart shows answer distribution after each question
-- Leaderboard shown after each round and at the end
+- Reveal flow is split into two host views: reveal screen first, then scoreboard
+- Reveal screen order is: question, revealed media, answer distribution chart, next action
+- Kahoot-style bar chart shows answer distribution on the reveal screen after each question
+- Leaderboard is shown on its own scoreboard screen after each round and at the end
+
+## Viewport behavior
+
+- Host gameplay screens are designed to stay within the viewport without page scrolling
+- `#question-screen`, `#reveal-screen`, `#scoreboard-screen`, and `#multiplayer-end-screen` use `100dvh`-aware sizing and `overflow: hidden`
+- Reveal media shrinks to fit its content for audio-only reveals, while image reveals keep a larger framed presentation
+- Layout sizing should prefer viewport-relative constraints over scroll-based fallback on the host screen
 
 ## Audio files
 

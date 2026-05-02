@@ -7,7 +7,7 @@ A Kahoot-style multiplayer quiz game built with Node.js (Express + Socket.IO). A
 ## Architecture
 
 - **server.js** — Single Node.js server handling both static file serving and WebSocket game logic. Express serves files, Socket.IO manages real-time multiplayer communication.
-- **index.html** — HTML structure only: start screen, solo mode, and multiplayer host screen (lobby, questions, countdown, bar chart, leaderboard)
+- **index.html** — HTML structure only: start screen, solo mode, and multiplayer host screens (lobby, question, reveal, scoreboard, end)
 - **player.html** — HTML structure for multiplayer player screen (phone-optimized, join via PIN or QR)
 - **assets/js/host.js** — All client-side JavaScript for index.html (shared utilities, solo mode, multiplayer host logic)
 - **assets/js/player.js** — All client-side JavaScript for player.html
@@ -47,6 +47,9 @@ Every question has the same structure:
 - Multiplayer lobby shows a QR code for easy player joining
 - The full visual system and UI behavior guidance live in `DESIGN.md`
 - Naming convention: use ids for singleton UI hooks and classes for shared/repeated styling patterns
+- Host gameplay screens should be viewport-constrained with no page scrolling
+- Reveal flow order is question -> revealed media -> chart -> scoreboard
+- Audio-only reveal media should shrink to fit content; image reveals can use a larger framed box
 
 ## Running
 
@@ -69,5 +72,5 @@ sox -v 0.5 input.mp3 input_filtered.mp3 pitch -320 highpass 120 lowpass 3200 bas
 3. Host starts game → questions cycle through:
    - Audio-before questions: 3s read → auto-play audio → 5s countdown to answer
    - Other questions: 15s countdown immediately
-4. After each question: bar chart with answer distribution + leaderboard
+4. After each question: reveal screen with media/chart, then a separate scoreboard screen
 5. End: winner crowned with full leaderboard

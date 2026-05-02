@@ -54,13 +54,13 @@ socket.on("player:joined", ({ name }) => {
 
 socket.on("player:wait", (data) => {
   showScreen("listen-screen");
-  document.getElementById("listen-question-meta").textContent = `Pregunta ${data.index + 1} / ${data.total}`;
+  document.getElementById("listen-question-meta").textContent = `Pregunta ${data.index + 1} de ${data.total}`;
 });
 
 socket.on("player:question", (data) => {
   answered = false;
   showScreen("answer-screen");
-  document.getElementById("player-question-meta").textContent = `Pregunta ${data.index + 1} / ${data.total}`;
+  document.getElementById("player-question-meta").textContent = `Pregunta ${data.index + 1} de ${data.total}`;
   const grid = document.getElementById("player-answer-grid");
   grid.innerHTML = data.options.map((opt, i) =>
     `<button class="answer-choice player-answer" data-answer="${escapeHtml(opt)}"><span class="shape">${shapes[i]}</span>${escapeHtml(opt)}</button>`
