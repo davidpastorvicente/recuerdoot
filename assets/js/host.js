@@ -76,6 +76,10 @@ function stopAudioPlayback() {
   setPlayButtonsPlaying(false);
 }
 
+function formatSoloCounter() {
+  return `${soloCurrent + 1} de ${soloQuestions.length} · ${soloScore} acierto${soloScore !== 1 ? "s" : ""}`;
+}
+
 function setHighlightedQuestionText(element, question) {
   const quoteMatch = question.match(/"([^"]+)"/);
   if (!quoteMatch) {
@@ -176,13 +180,67 @@ function renderQuestion(data) {
 function escapeHtml(value) { const div = document.createElement("div"); div.textContent = value; return div.innerHTML; }
 
 function renderLeaderboard(containerId, list) {
-  document.getElementById(containerId).innerHTML = list.map((p, i) =>
+  document.getElementById(containerId).innerHTML = list.map((player, i) =>
     `<div class="leaderboard-row" style="animation-delay:${i * 0.08}s">
       <span class="leaderboard-rank">${i + 1}</span>
-      <span class="leaderboard-name">${p.name}</span>
-      <span class="leaderboard-score">${p.score}</span>
+      <span class="leaderboard-name">${player.name}</span>
+      <span class="leaderboard-score">${player.score}</span>
     </div>`
   ).join("");
+}
+
+function renderRevealChart(revealData) {
+  const maxCount = Math.max(1, ...multiplayerCurrentQuestion.options.map((option) => revealData.optionCounts[option] || 0));
+  document.getElementById("reveal-chart").innerHTML = multiplayerCurrentQuestion.options.map((option, i) => {
+    const count = revealData.optionCounts[option] || 0;
+    const isCorrect = option === revealData.correct;
+    const heightPercent = count > 0 ? Math.max(10, (count / maxCount) * 100) : 4;
+
+    return `<div class="bar-col">
+      <div class="bar-check ${isCorrect ? "" : "hidden"}">${isCorrect ? "\u2714" : ""}</div>
+      <div class="bar-count">${count}</div>
+      <div class="bar-track">
+        <div class="bar-fill c${i} ${isCorrect ? "" : "dim-bar"}" style="height:${heightPercent}%"></div>
+      </div>
+      <div class="bar-base c${i}">${shapes[i]} ${escapeHtml(option)}</div>
+    </div>`;
+  }).join("");
+}
+
+function updateRevealMedia(revealData) {
+  const revealMedia = document.getElementById("reveal-media");
+  const revealImage = document.getElementById("reveal-media-image");
+  const revealPlayButton = document.getElementById("reveal-media-play-button");
+  const revealMediaLabel = document.getElementById("reveal-media-label");
+  const hasRevealImage = !!revealData.afterImage;
+  const hasRevealAudio = !!revealData.afterAudio;
+
+  if (hasRevealImage) {
+    revealImage.src = revealData.afterImage;
+    revealImage.alt = "Imagen revelada de la pregunta";
+    revealImage.style.display = "";
+  } else {
+    revealImage.style.display = "none";
+  }
+
+  revealMedia.classList.toggle("show", hasRevealImage || hasRevealAudio);
+  revealMedia.classList.toggle("has-image", hasRevealImage);
+  revealMedia.classList.toggle("has-audio", hasRevealAudio);
+
+  if (hasRevealAudio) {
+    revealPlayButton.style.display = "";
+    audio.src = revealData.afterAudio;
+    audio.load();
+    isPlaying = false;
+    revealPlayButton.classList.remove("playing");
+    revealMediaLabel.innerHTML = revealData.date || "";
+    revealMediaLabel.style.display = revealData.date ? "block" : "none";
+    return;
+  }
+
+  revealPlayButton.style.display = "none";
+  revealMediaLabel.innerHTML = "";
+  revealMediaLabel.style.display = "none";
 }
 
 // ========== SOLO MODE ==========
@@ -230,15 +288,15 @@ function soloLoadRound() {
     audioSrc, image: soloCurrentQuestion.image,
   };
 
-  document.getElementById("question-counter").textContent = `${soloCurrent + 1} de ${soloQuestions.length} · ${soloScore} acierto${soloScore !== 1 ? 's' : ''}`;
+  document.getElementById("question-counter").textContent = formatSoloCounter();
   const tiles = renderQuestion(data);
 
   // No countdown in solo mode
   document.getElementById("countdown-container").style.display = "none";
 
   // Bind click handlers for solo
-  tiles.querySelectorAll(".stage-answer").forEach(btn => {
-    btn.onclick = () => soloAnswer(btn, btn.dataset.value);
+  tiles.querySelectorAll(".stage-answer").forEach((button) => {
+    button.onclick = () => soloAnswer(button.dataset.value);
   });
 
   if (data.audioBefore) {
@@ -258,17 +316,18 @@ function soloLoadRound() {
   }
 }
 
-function soloAnswer(btn, selected) {
+function soloAnswer(selected) {
   if (soloAnswered) return;
   soloAnswered = true;
   const correct = soloCurrentQuestion.correct;
 
-  document.querySelectorAll(".stage-answer").forEach(b => {
-    b.disabled = true;
-    if (b.dataset.value === correct) b.classList.add("answer-correct");
-    else b.classList.add("dim");
-    if (b.dataset.value === selected && selected !== correct) {
-      b.classList.remove("dim"); b.classList.add("answer-wrong");
+  document.querySelectorAll(".stage-answer").forEach((answerButton) => {
+    answerButton.disabled = true;
+    if (answerButton.dataset.value === correct) answerButton.classList.add("answer-correct");
+    else answerButton.classList.add("dim");
+    if (answerButton.dataset.value === selected && selected !== correct) {
+      answerButton.classList.remove("dim");
+      answerButton.classList.add("answer-wrong");
     }
   });
 
@@ -287,7 +346,7 @@ function soloAnswer(btn, selected) {
     detailEl.style.display = "block";
     detailEl.innerHTML = `La respuesta correcta era <span class="text-highlight-success">${escapeHtml(correct)}</span>`;
   }
-  document.getElementById("question-counter").textContent = `${soloCurrent + 1} de ${soloQuestions.length} · ${soloScore} acierto${soloScore !== 1 ? 's' : ''}`;
+  document.getElementById("question-counter").textContent = formatSoloCounter();
 
   // Show after media in modal
   const revealImg = document.getElementById("reveal-image");
@@ -369,7 +428,7 @@ function initMultiplayer() {
 
   socket.on("host:playerList", (players) => {
     const grid = document.getElementById("player-grid");
-    grid.innerHTML = players.map(p => `<div class="player-chip">${p.name}</div>`).join("");
+    grid.innerHTML = players.map((player) => `<div class="player-chip">${player.name}</div>`).join("");
     const startButton = document.getElementById("lobby-start-button");
     startButton.disabled = players.length === 0;
     startButton.textContent = players.length > 0 ? `Empezar (${players.length} jugador${players.length > 1 ? 'es' : ''})` : "Esperando jugadores...";
@@ -380,7 +439,9 @@ function initMultiplayer() {
     renderQuestion(data);
 
     // In multiplayer, tiles are NOT clickable
-    document.querySelectorAll(".stage-answer").forEach(b => b.onclick = null);
+    document.querySelectorAll(".stage-answer").forEach((button) => {
+      button.onclick = null;
+    });
 
     if (data.audioBefore) {
       document.getElementById("countdown-number").textContent = "5";
@@ -417,53 +478,8 @@ function initMultiplayer() {
     setHighlightedQuestionText(document.getElementById("reveal-text"), multiplayerCurrentQuestion.question);
 
     // Bar chart
-    const maxCount = Math.max(1, ...multiplayerCurrentQuestion.options.map(option => data.optionCounts[option] || 0));
-    document.getElementById("reveal-chart").innerHTML = multiplayerCurrentQuestion.options.map((opt, i) => {
-      const count = data.optionCounts[opt] || 0;
-      const isCorrect = opt === data.correct;
-      const heightPct = count > 0 ? Math.max(10, (count / maxCount) * 100) : 4;
-      return `<div class="bar-col">
-        <div class="bar-check ${isCorrect ? "" : "hidden"}">${isCorrect ? "\u2714" : ""}</div>
-        <div class="bar-count">${count}</div>
-        <div class="bar-track">
-          <div class="bar-fill c${i} ${isCorrect ? "" : "dim-bar"}" style="height:${heightPct}%"></div>
-        </div>
-        <div class="bar-base c${i}">${shapes[i]} ${escapeHtml(opt)}</div>
-      </div>`;
-    }).join("");
-
-    // Reveal image
-    const revealImage = document.getElementById("reveal-media-image");
-    const hasRevealImage = !!data.afterImage;
-    const hasRevealAudio = !!data.afterAudio;
-    if (hasRevealImage) {
-      revealImage.src = data.afterImage;
-      revealImage.alt = "Imagen revelada de la pregunta";
-      revealImage.style.display = "";
-    } else {
-      revealImage.style.display = "none";
-    }
-
-    // Reveal audio
-    const revealInfo = document.getElementById("reveal-media");
-    const revealPlayButton = document.getElementById("reveal-media-play-button");
-    const revealMediaLabel = document.getElementById("reveal-media-label");
-    revealInfo.classList.toggle("show", hasRevealImage || hasRevealAudio);
-    revealInfo.classList.toggle("has-image", hasRevealImage);
-    revealInfo.classList.toggle("has-audio", hasRevealAudio);
-    if (hasRevealAudio) {
-      revealPlayButton.style.display = "";
-      audio.src = data.afterAudio;
-      audio.load();
-      isPlaying = false;
-      revealPlayButton.classList.remove("playing");
-      revealMediaLabel.innerHTML = data.date || "";
-      revealMediaLabel.style.display = data.date ? "block" : "none";
-    } else {
-      revealPlayButton.style.display = "none";
-      revealMediaLabel.innerHTML = "";
-      revealMediaLabel.style.display = "none";
-    }
+    renderRevealChart(data);
+    updateRevealMedia(data);
 
     document.getElementById("reveal-next-button").textContent = "Ver marcador";
     document.getElementById("scoreboard-next-button").textContent =

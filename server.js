@@ -24,6 +24,7 @@ const COUNTDOWN_AUDIO = 5;
 const MAX_PLAYERS = 10;
 const MAX_POINTS = 1000;
 const MIN_POINTS = 100;
+const months = ["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
 
 let game = null; // { pin, host, players, questions, currentQ, phase, timer, answers }
 
@@ -46,17 +47,31 @@ function shuffle(arr) {
   return a;
 }
 
+function parseDate(filename) {
+  const match = filename.match(/(\d{4})(\d{2})(\d{2})/);
+  if (!match) return "";
+  return `${parseInt(match[3])} ${months[parseInt(match[2]) - 1]} ${match[1]}`;
+}
+
+function getOptionCounts(options, answers) {
+  const optionCounts = {};
+  options.forEach((option) => {
+    optionCounts[option] = 0;
+  });
+  Object.values(answers).forEach((answer) => {
+    if (optionCounts[answer.answer] !== undefined) optionCounts[answer.answer]++;
+  });
+  return optionCounts;
+}
+
+function emitPlayerResult(socketId, result) {
+  io.to(socketId).emit("player:result", result);
+}
+
 function loadQuestions() {
   const raw = JSON.parse(fs.readFileSync(path.join(__dirname, "questions.json"), "utf-8"));
-  const months = ["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
 
-  function parseDate(filename) {
-    const m = filename.match(/(\d{4})(\d{2})(\d{2})/);
-    if (!m) return "";
-    return `${parseInt(m[3])} ${months[parseInt(m[2]) - 1]} ${m[1]}`;
-  }
-
-  return raw.map(entry => {
+  return raw.map((entry) => {
     const before = entry.before || {};
     const after = entry.after || {};
     const audioBefore = !!before.audio;
@@ -113,7 +128,7 @@ io.on("connection", (socket) => {
       return socket.emit("player:error", "Sala llena (máx 10)");
     }
     // Check duplicate name
-    const names = Object.values(game.players).map(p => p.name.toLowerCase());
+    const names = Object.values(game.players).map((player) => player.name.toLowerCase());
     if (names.includes(name.toLowerCase())) {
       return socket.emit("player:error", "Ese nombre ya está en uso");
     }
@@ -162,9 +177,9 @@ io.on("connection", (socket) => {
     if (!game.players[socket.id]) return;
     if (game.answers[socket.id] !== undefined) return; // already answered
 
-    const q = game.questions[game.currentQ];
+    const question = game.questions[game.currentQ];
     const elapsed = (Date.now() - game.questionStartTime) / 1000;
-    const isCorrect = answer === q.correct;
+    const isCorrect = answer === question.correct;
 
     let points = 0;
     if (isCorrect) {
@@ -208,7 +223,7 @@ io.on("connection", (socket) => {
 
 function getPlayerList() {
   if (!game) return [];
-  return Object.values(game.players).map(p => ({ name: p.name, score: p.score }))
+  return Object.values(game.players).map((player) => ({ name: player.name, score: player.score }))
     .sort((a, b) => b.score - a.score);
 }
 
@@ -221,7 +236,7 @@ function nextQuestion() {
     return;
   }
 
-  const q = game.questions[game.currentQ];
+  const question = game.questions[game.currentQ];
   game.phase = "question";
   game.answers = {};
   game.questionStartTime = Date.now();
@@ -230,11 +245,11 @@ function nextQuestion() {
   io.to(game.host).emit("host:question", {
     index: game.currentQ,
     total: game.questions.length,
-    question: q.question,
-    options: q.options,
-    audioBefore: q.audioBefore,
-    audioSrc: q.audioFile || null,
-    image: q.image || null,
+    question: question.question,
+    options: question.options,
+    audioBefore: question.audioBefore,
+    audioSrc: question.audioFile || null,
+    image: question.image || null,
     countdown: COUNTDOWN_SECONDS,
   });
 
@@ -242,11 +257,11 @@ function nextQuestion() {
   io.to(`game-${game.pin}`).emit("player:question", {
     index: game.currentQ,
     total: game.questions.length,
-    options: q.options,
-    countdown: q.audioBefore ? null : COUNTDOWN_SECONDS,
+    options: question.options,
+    countdown: question.audioBefore ? null : COUNTDOWN_SECONDS,
   });
 
-  if (!q.audioBefore) {
+  if (!question.audioBefore) {
     game.timer = setTimeout(() => { endQuestion(); }, COUNTDOWN_SECONDS * 1000);
   }
 }
@@ -255,45 +270,40 @@ function endQuestion() {
   if (!game || game.phase !== "question") return;
   game.phase = "reveal";
 
-  const q = game.questions[game.currentQ];
+  const question = game.questions[game.currentQ];
   const leaderboard = getPlayerList();
-
-  // Compute per-option answer counts
-  const optionCounts = {};
-  q.options.forEach(o => optionCounts[o] = 0);
-  Object.values(game.answers).forEach(a => {
-    if (optionCounts[a.answer] !== undefined) optionCounts[a.answer]++;
-  });
+  const optionCounts = getOptionCounts(question.options, game.answers);
 
   io.to(game.host).emit("host:reveal", {
-    correct: q.correct,
+    correct: question.correct,
     optionCounts,
     leaderboard,
-    date: q.date || null,
-    afterAudio: q.afterAudio || null,
-    afterImage: q.afterImage || null,
+    date: question.date || null,
+    afterAudio: question.afterAudio || null,
+    afterImage: question.afterImage || null,
   });
 
   // Tell players who didn't answer yet
-  Object.keys(game.players).forEach(sid => {
-    const answer = game.answers[sid];
+  Object.keys(game.players).forEach((socketId) => {
+    const answer = game.answers[socketId];
+    const player = game.players[socketId];
     if (!answer) {
-      game.players[sid].streak = 0;
-      io.to(sid).emit("player:result", {
+      player.streak = 0;
+      emitPlayerResult(socketId, {
         isCorrect: false,
         points: 0,
-        score: game.players[sid].score,
+        score: player.score,
         streak: 0,
         timeout: true,
       });
       return;
     }
 
-    io.to(sid).emit("player:result", {
+    emitPlayerResult(socketId, {
       isCorrect: answer.isCorrect,
       points: answer.points,
-      score: game.players[sid].score,
-      streak: game.players[sid].streak,
+      score: player.score,
+      streak: player.streak,
       timeout: false,
     });
   });
