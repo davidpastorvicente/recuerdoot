@@ -1,7 +1,8 @@
 const socket = io();
 let myName = "";
 let answered = false;
-let startCountdownInterval = null;
+const { createStartCountdownController, escapeHtml } = window.RECUERDOOT_SHARED;
+const { showStartCountdown, hideStartCountdown } = createStartCountdownController();
 
 const shapes = [
   `<svg viewBox="0 0 24 24" width="24" height="24"><polygon points="12,2 2,22 22,22" fill="currentColor"/></svg>`,
@@ -35,70 +36,6 @@ function joinGame() {
 function bindPlayerUi() {
   document.getElementById("join-button").addEventListener("click", joinGame);
   document.getElementById("player-reload-button").addEventListener("click", () => location.reload());
-}
-
-function clearStartCountdownTimer() {
-  clearTimeout(startCountdownInterval);
-  startCountdownInterval = null;
-}
-
-function swapStartCountdownDigit(value) {
-  const digits = Array.from(document.querySelectorAll("#start-countdown-number .start-countdown-digit"));
-  const activeDigit = digits.find((digit) => digit.classList.contains("active")) || digits[0];
-  const nextDigit = digits.find((digit) => digit !== activeDigit) || digits[1];
-
-  nextDigit.textContent = String(value);
-  nextDigit.classList.remove("exit");
-  void nextDigit.offsetWidth;
-  nextDigit.classList.add("active");
-
-  activeDigit.classList.remove("active");
-  activeDigit.classList.add("exit");
-}
-
-function getStartCountdownLabel(seconds, remaining) {
-  if (remaining <= 1) return "\u00A1YA!";
-  return remaining > Math.ceil(seconds / 2) ? "Preparados" : "Listos";
-}
-
-function showStartCountdown(seconds, startsAt = Date.now()) {
-  const overlay = document.getElementById("start-countdown-overlay");
-  const label = document.getElementById("start-countdown-label");
-  const digits = Array.from(document.querySelectorAll("#start-countdown-number .start-countdown-digit"));
-
-  clearStartCountdownTimer();
-  digits[0].textContent = String(seconds);
-  digits[0].classList.add("active");
-  digits[0].classList.remove("exit");
-  digits[1].classList.remove("active", "exit");
-
-  const renderTick = () => {
-    const elapsedSteps = Math.floor(Math.max(0, Date.now() - startsAt) / 1000);
-    if (elapsedSteps >= seconds) {
-      hideStartCountdown();
-      return;
-    }
-
-    const remaining = seconds - elapsedSteps;
-    overlay.classList.add("show");
-    label.textContent = getStartCountdownLabel(seconds, remaining);
-    swapStartCountdownDigit(remaining);
-
-    const nextTickAt = startsAt + ((elapsedSteps + 1) * 1000);
-    startCountdownInterval = setTimeout(renderTick, Math.max(0, nextTickAt - Date.now()));
-  };
-
-  startCountdownInterval = setTimeout(renderTick, Math.max(0, startsAt - Date.now()));
-}
-
-function hideStartCountdown() {
-  clearStartCountdownTimer();
-  document.getElementById("start-countdown-overlay").classList.remove("show");
-  document.getElementById("start-countdown-label").textContent = "";
-  document.querySelectorAll("#start-countdown-number .start-countdown-digit").forEach((digit) => {
-    digit.classList.remove("active", "exit");
-    digit.textContent = "";
-  });
 }
 
 function setResultState({ icon, text, textClass, pointsText }) {
@@ -153,7 +90,7 @@ socket.on("player:wait", (data) => {
 });
 
 socket.on("game:startCountdown", ({ seconds, startsAt }) => {
-  showStartCountdown(seconds, startsAt);
+  showStartCountdown(seconds, { startsAt });
 });
 
 socket.on("player:question", (data) => {
@@ -219,12 +156,6 @@ socket.on("player:gameOver", (msg) => {
 function showScreen(id) {
   document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
   document.getElementById(id).classList.add("active");
-}
-
-function escapeHtml(value) {
-  const div = document.createElement("div");
-  div.textContent = value;
-  return div.innerHTML;
 }
 
 // Auto-fill PIN from URL query param

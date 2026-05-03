@@ -5,6 +5,8 @@ const fs = require("fs");
 const path = require("path");
 const livereload = require("livereload");
 const connectLivereload = require("connect-livereload");
+const { COUNTDOWN_GAME_START_SECONDS } = require("./assets/js/game-config.js");
+const { parseDateParts, shuffle } = require("./assets/js/game-shared.js");
 
 const app = express();
 const server = http.createServer(app);
@@ -20,13 +22,12 @@ app.use(express.static(__dirname));
 
 // ---------- Game state ----------
 const COUNTDOWN_QUESTION_SECONDS = 30;
-const COUNTDOWN_GAME_START_SECONDS = 5;
 const COUNTDOWN_AUDIO_BEFORE_SECONDS = 3;
-const COUNTDOWN_AUDIO_AFTER_SECONDS = 5;
+const COUNTDOWN_AUDIO_AFTER_SECONDS = 10;
+
 const MAX_PLAYERS = 10;
 const MAX_POINTS = 1000;
 const MIN_POINTS = 100;
-const months = ["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
 
 let game = null; // { pin, host, players, questions, currentQ, phase, timer, answers }
 
@@ -38,21 +39,6 @@ function emitPlayerList() {
 
 function generatePin() {
   return String(Math.floor(100000 + Math.random() * 900000));
-}
-
-function shuffle(arr) {
-  const a = [...arr];
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
-  }
-  return a;
-}
-
-function parseDate(filename) {
-  const match = filename.match(/(\d{4})(\d{2})(\d{2})/);
-  if (!match) return "";
-  return `${parseInt(match[3])} ${months[parseInt(match[2]) - 1]} ${match[1]}`;
 }
 
 function getOptionCounts(options, answers) {
@@ -92,7 +78,7 @@ function loadQuestions() {
       image: before.image ? `assets/images/${before.image}` : null,
       music: before.music ? `assets/music/${before.music}` : null,
       video: before.video ? `assets/videos/${before.video}` : null,
-      date: audioFile ? parseDate(audioFile) : "",
+      date: audioFile ? parseDateParts(audioFile).date : "",
     };
   });
 }

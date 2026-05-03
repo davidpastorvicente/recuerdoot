@@ -1,5 +1,4 @@
 // ========== Shared ==========
-const months = ["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
 const shapes = [
   `<svg viewBox="0 0 32 32" width="32" height="32"><polygon points="16,2 2,30 30,30" fill="white"/></svg>`,
   `<svg viewBox="0 0 32 32" width="32" height="32"><rect x="2" y="2" width="28" height="28" rx="4" fill="white"/></svg>`,
@@ -9,20 +8,23 @@ const shapes = [
   `<svg viewBox="0 0 32 32" width="32" height="32"><polygon points="2,4 30,4 16,30" fill="white"/></svg>`,
 ];
 
+const AUDIO_VOLUME = 1;
+const BACKGROUND_MUSIC_VOLUME = 0.22;
+const MEDIA_FADE_OUT_MS = 180;
+
 const audio = document.getElementById("game-audio");
 const backgroundMusic = document.getElementById("background-music");
+
+const mediaFadeState = new WeakMap();
+const { COUNTDOWN_GAME_START_SECONDS, LEADERBOARD_DISPLAY_LIMIT } = window.RECUERDOOT_CONFIG;
+const { createStartCountdownController, escapeHtml, parseDateParts, shuffle } = window.RECUERDOOT_SHARED;
+const { clearStartCountdownTimer, showStartCountdown, hideStartCountdown } = createStartCountdownController();
+
 let isPlaying = false;
 let countdownInterval = null;
 let mode = null; // "solo" or "multi"
-let startCountdownInterval = null;
 let scoreboardTransitionTimer = null;
-
-backgroundMusic.volume = 0.22;
-
-function clearStartCountdownTimer() {
-  clearTimeout(startCountdownInterval);
-  startCountdownInterval = null;
-}
+backgroundMusic.volume = BACKGROUND_MUSIC_VOLUME;
 
 function clearScoreboardTransitionTimer() {
   clearTimeout(scoreboardTransitionTimer);
@@ -69,96 +71,92 @@ function backToStart() {
   showScreen("start-screen");
 }
 
-function swapStartCountdownDigit(value) {
-  const digits = Array.from(document.querySelectorAll("#start-countdown-number .start-countdown-digit"));
-  const activeDigit = digits.find((digit) => digit.classList.contains("active")) || digits[0];
-  const nextDigit = digits.find((digit) => digit !== activeDigit) || digits[1];
-
-  nextDigit.textContent = String(value);
-  nextDigit.classList.remove("exit");
-  void nextDigit.offsetWidth;
-  nextDigit.classList.add("active");
-
-  activeDigit.classList.remove("active");
-  activeDigit.classList.add("exit");
-}
-
-function getStartCountdownLabel(seconds, remaining) {
-  if (remaining <= 1) return "\u00A1YA!";
-  return remaining > Math.ceil(seconds / 2) ? "Preparados" : "Listos";
-}
-
-function showStartCountdown(seconds, options = {}) {
-  const { startsAt = Date.now(), onEnd = null } = options;
-  const overlay = document.getElementById("start-countdown-overlay");
-  const label = document.getElementById("start-countdown-label");
-  const digits = Array.from(document.querySelectorAll("#start-countdown-number .start-countdown-digit"));
-
-  clearStartCountdownTimer();
-  digits[0].textContent = String(seconds);
-  digits[0].classList.add("active");
-  digits[0].classList.remove("exit");
-  digits[1].classList.remove("active", "exit");
-
-  const renderTick = () => {
-    const elapsedSteps = Math.floor(Math.max(0, Date.now() - startsAt) / 1000);
-    if (elapsedSteps >= seconds) {
-      hideStartCountdown();
-      if (onEnd) onEnd();
-      return;
-    }
-
-    const remaining = seconds - elapsedSteps;
-    overlay.classList.add("show");
-    label.textContent = getStartCountdownLabel(seconds, remaining);
-    swapStartCountdownDigit(remaining);
-
-    const nextTickAt = startsAt + ((elapsedSteps + 1) * 1000);
-    startCountdownInterval = setTimeout(renderTick, Math.max(0, nextTickAt - Date.now()));
-  };
-
-  startCountdownInterval = setTimeout(renderTick, Math.max(0, startsAt - Date.now()));
-}
-
-function hideStartCountdown() {
-  clearStartCountdownTimer();
-  document.getElementById("start-countdown-overlay").classList.remove("show");
-  document.getElementById("start-countdown-label").textContent = "";
-  document.querySelectorAll("#start-countdown-number .start-countdown-digit").forEach((digit) => {
-    digit.classList.remove("active", "exit");
-    digit.textContent = "";
-  });
-}
-
-function parseDate(key) {
-  const m = key.match(/(\d{4})(\d{2})(\d{2})/);
-  if (!m) return { date: "", year: "" };
-  return { date: `${parseInt(m[3])} ${months[parseInt(m[2]) - 1]} ${m[1]}`, year: m[1] };
-}
-
-function shuffle(arr) {
-  const a = [...arr];
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
-  }
-  return a;
-}
 
 function toggleAudio() {
   if (isPlaying) {
     stopAudioPlayback();
   } else {
+    cancelMediaFade(audio, AUDIO_VOLUME);
+    audio.volume = AUDIO_VOLUME;
     audio.play();
     isPlaying = true;
     setPlayButtonsPlaying(true);
   }
 }
 
-function stopAudioPlayback() {
-  audio.pause();
+function cancelMediaFade(mediaElement, targetVolume) {
+  const fade = mediaFadeState.get(mediaElement);
+  if (fade?.frameId) {
+    cancelAnimationFrame(fade.frameId);
+  }
+
+  mediaFadeState.delete(mediaElement);
+  mediaElement.volume = targetVolume;
+}
+
+function stopMediaWithFade(mediaElement, targetVolume, options = {}) {
+  const { onDone = null, resetSource = false, immediate = false } = options;
+
+  cancelMediaFade(mediaElement, targetVolume);
+
+  const finalize = () => {
+    mediaFadeState.delete(mediaElement);
+    mediaElement.pause();
+    mediaElement.currentTime = 0;
+    mediaElement.volume = targetVolume;
+    if (resetSource) {
+      mediaElement.removeAttribute("src");
+      mediaElement.load();
+    }
+    if (onDone) onDone();
+  };
+
+  if (immediate || mediaElement.paused || mediaElement.ended || mediaElement.currentTime === 0) {
+    finalize();
+    return;
+  }
+
+  const fade = {
+    frameId: null,
+    startedAt: performance.now(),
+    startVolume: mediaElement.volume,
+  };
+  mediaFadeState.set(mediaElement, fade);
+
+  const step = (now) => {
+    if (mediaFadeState.get(mediaElement) !== fade) return;
+
+    const progress = Math.min((now - fade.startedAt) / MEDIA_FADE_OUT_MS, 1);
+    mediaElement.volume = fade.startVolume * (1 - progress);
+
+    if (progress < 1) {
+      fade.frameId = requestAnimationFrame(step);
+      return;
+    }
+
+    finalize();
+  };
+
+  fade.frameId = requestAnimationFrame(step);
+}
+
+function setPrimaryAudioSource(source) {
+  stopAudioPlayback({
+    onDone: () => {
+      if (source) {
+        audio.src = source;
+      } else {
+        audio.removeAttribute("src");
+      }
+      audio.load();
+    },
+  });
+}
+
+function stopAudioPlayback(options = {}) {
   isPlaying = false;
   setPlayButtonsPlaying(false);
+  stopMediaWithFade(audio, AUDIO_VOLUME, options);
 }
 
 function playBackgroundMusic(source) {
@@ -167,20 +165,28 @@ function playBackgroundMusic(source) {
     return;
   }
 
-  if (backgroundMusic.getAttribute("src") !== source) {
-    backgroundMusic.src = source;
-    backgroundMusic.load();
+  if (backgroundMusic.getAttribute("src") === source) {
+    cancelMediaFade(backgroundMusic, BACKGROUND_MUSIC_VOLUME);
+    backgroundMusic.volume = BACKGROUND_MUSIC_VOLUME;
+    if (backgroundMusic.paused) {
+      backgroundMusic.play().catch(() => {});
+    }
+    return;
   }
 
-  backgroundMusic.currentTime = 0;
-  backgroundMusic.play().catch(() => {});
+  stopMediaWithFade(backgroundMusic, BACKGROUND_MUSIC_VOLUME, {
+    onDone: () => {
+      backgroundMusic.src = source;
+      backgroundMusic.load();
+      backgroundMusic.currentTime = 0;
+      backgroundMusic.volume = BACKGROUND_MUSIC_VOLUME;
+      backgroundMusic.play().catch(() => {});
+    },
+  });
 }
 
-function stopBackgroundMusic() {
-  backgroundMusic.pause();
-  backgroundMusic.currentTime = 0;
-  backgroundMusic.removeAttribute("src");
-  backgroundMusic.load();
+function stopBackgroundMusic(options = {}) {
+  stopMediaWithFade(backgroundMusic, BACKGROUND_MUSIC_VOLUME, { resetSource: true, ...options });
 }
 
 function stopVideoPlayback(video) {
@@ -228,7 +234,7 @@ function setHighlightedQuestionText(element, question) {
 }
 
 audio.addEventListener("ended", () => {
-  stopAudioPlayback();
+  stopAudioPlayback({ immediate: true });
 });
 
 function startCountdown(seconds, onEnd) {
@@ -278,8 +284,7 @@ function renderQuestion(data) {
   const audioArea = document.getElementById("host-audio-area");
   if (data.audioBefore && data.audioSrc) {
     audioArea.style.display = "";
-    audio.src = data.audioSrc;
-    audio.load();
+    setPrimaryAudioSource(data.audioSrc);
     isPlaying = false;
     document.getElementById("host-play-button").classList.remove("playing");
   } else {
@@ -308,8 +313,6 @@ function renderQuestion(data) {
 
   return tiles;
 }
-
-function escapeHtml(value) { const div = document.createElement("div"); div.textContent = value; return div.innerHTML; }
 
 function cloneLeaderboard(list) {
   return list.map((player) => ({ ...player }));
@@ -400,9 +403,10 @@ function animateLeaderboardScores(container, previousList, nextList) {
 function renderLeaderboard(containerId, list, options = {}) {
   const { movementMap = new Map() } = options;
   const container = document.getElementById(containerId);
+  const visibleList = list.slice(0, LEADERBOARD_DISPLAY_LIMIT);
 
   if (containerId !== "scoreboard-leaderboard") {
-    container.innerHTML = list.map((player, i) =>
+    container.innerHTML = visibleList.map((player, i) =>
       `<div class="leaderboard-row leaderboard-row-appear" style="animation-delay:${i * 0.08}s">${buildLeaderboardRow(player, i + 1, movementMap.get(player.name))}</div>`
     ).join("");
     return;
@@ -416,7 +420,7 @@ function renderLeaderboard(containerId, list, options = {}) {
   );
   const orderedRows = [];
 
-  list.forEach((player, i) => {
+  visibleList.forEach((player, i) => {
     let row = existingRows.get(player.name);
 
     if (!row) {
@@ -426,7 +430,7 @@ function renderLeaderboard(containerId, list, options = {}) {
     }
 
     row.innerHTML = buildLeaderboardRow(player, i + 1, movementMap.get(player.name));
-    row.classList.toggle("leaderboard-row-moved", previousTop.has(player.name) && list.length > 1);
+    row.classList.toggle("leaderboard-row-moved", previousTop.has(player.name) && visibleList.length > 1);
     row.classList.toggle("leaderboard-row-up", movementMap.get(player.name)?.direction === "up");
     row.classList.toggle("leaderboard-row-down", movementMap.get(player.name)?.direction === "down");
     orderedRows.push(row);
@@ -527,8 +531,7 @@ function updateRevealMedia(revealData) {
 
   if (hasRevealAudio) {
     revealPlayButton.style.display = "";
-    audio.src = revealData.afterAudio;
-    audio.load();
+    setPrimaryAudioSource(revealData.afterAudio);
     isPlaying = false;
     revealPlayButton.classList.remove("playing");
     revealMediaLabel.innerHTML = revealData.date || "";
@@ -574,7 +577,7 @@ async function initSolo() {
     soloQuestions = await resp.json();
   }
   soloCurrent = 0; soloScore = 0;
-  showStartCountdown(3, {
+  showStartCountdown(COUNTDOWN_GAME_START_SECONDS, {
     onEnd: () => {
     soloLoadRound();
     },
@@ -655,12 +658,10 @@ function soloAnswer(selected) {
   setMediaElementSource(revealImg, soloCurrentQuestion.afterImage);
   setMediaElementSource(revealVideo, soloCurrentQuestion.afterVideo);
   if (hasAfterAudio) {
-    stopAudioPlayback();
-    audio.src = soloCurrentQuestion.afterAudio;
-    audio.load();
+    setPrimaryAudioSource(soloCurrentQuestion.afterAudio);
     document.getElementById("reveal-play-button").style.display = "";
     const entry = soloQuestions[soloCurrent];
-    const { date } = parseDate(entry.after.audio);
+    const { date } = parseDateParts(entry.after.audio);
     document.getElementById("reveal-label").innerHTML = `${date}`;
     audioRow.style.display = "";
   } else {
@@ -748,7 +749,7 @@ function initMultiplayer() {
       });
 
       if (data.audioBefore) {
-        document.getElementById("countdown-number").textContent = String(data.countdownBefore);
+        document.getElementById("countdown-number").textContent = String(data.countdownAfter);
         document.getElementById("countdown-container").classList.remove("urgent");
         const progressRing = document.getElementById("countdown-ring-progress");
         progressRing.style.transition = "none"; progressRing.style.strokeDashoffset = "0";
