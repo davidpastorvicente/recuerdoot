@@ -286,6 +286,8 @@ Reveal moments are performance screens.
 - The multiplayer scoreboard should briefly show the previous standings before transitioning to the updated order.
 - When ranks change, leaderboard rows should visibly travel to their new positions instead of only fading between states.
 - Rank changes can be reinforced with compact up/down indicators and the score should count up from the previous total to the new one.
+- Leaderboard views should show only the top 5 players.
+- Rank numerals should use medal colors for places 1-3: gold, silver, and bronze.
 
 ### Player Join Form
 

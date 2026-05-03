@@ -35,12 +35,62 @@
     };
   }
 
+  let sharedAudioContext = null;
+
+  function getSharedAudioContext() {
+    const AudioContextCtor = globalScope.AudioContext || globalScope.webkitAudioContext;
+    if (!AudioContextCtor) return null;
+    if (!sharedAudioContext) {
+      sharedAudioContext = new AudioContextCtor();
+    }
+    if (sharedAudioContext.state === "suspended") {
+      sharedAudioContext.resume().catch(() => {});
+    }
+    return sharedAudioContext;
+  }
+
+  function playCountdownTick(value) {
+    const context = getSharedAudioContext();
+    if (!context) return;
+
+    const now = context.currentTime;
+    const isFinalTick = value <= 1;
+    const pulses = isFinalTick
+      ? [
+        { offset: 0, frequency: 1046.5, duration: 0.08, peak: 0.12 },
+        { offset: 0.11, frequency: 1318.5, duration: 0.12, peak: 0.16 },
+      ]
+      : [
+        { offset: 0, frequency: 880, duration: 0.06, peak: 0.08 },
+        { offset: 0.09, frequency: 987.8, duration: 0.05, peak: 0.06 },
+      ];
+
+    pulses.forEach(({ offset, frequency, duration, peak }) => {
+      const oscillator = context.createOscillator();
+      const gainNode = context.createGain();
+      const pulseStart = now + offset;
+
+      oscillator.type = isFinalTick ? "triangle" : "square";
+      oscillator.frequency.setValueAtTime(frequency, pulseStart);
+      gainNode.gain.setValueAtTime(0.0001, pulseStart);
+      gainNode.gain.exponentialRampToValueAtTime(peak, pulseStart + 0.01);
+      gainNode.gain.exponentialRampToValueAtTime(0.0001, pulseStart + duration);
+
+      oscillator.connect(gainNode);
+      gainNode.connect(context.destination);
+      oscillator.start(pulseStart);
+      oscillator.stop(pulseStart + duration + 0.02);
+    });
+  }
+
   function createStartCountdownController() {
     let startCountdownTimer = null;
+    let lastAnnouncedValue = null;
 
     function clearStartCountdownTimer() {
       clearTimeout(startCountdownTimer);
       startCountdownTimer = null;
+      lastAnnouncedValue = null;
     }
 
     function swapStartCountdownDigit(value) {
@@ -86,6 +136,10 @@
         overlay.classList.add("show");
         label.textContent = getStartCountdownLabel(seconds, remaining);
         swapStartCountdownDigit(remaining);
+        if (lastAnnouncedValue !== remaining) {
+          lastAnnouncedValue = remaining;
+          playCountdownTick(remaining);
+        }
 
         const nextTickAt = startsAt + ((elapsedSteps + 1) * 1000);
         startCountdownTimer = setTimeout(renderTick, Math.max(0, nextTickAt - Date.now()));
@@ -111,6 +165,7 @@
     createStartCountdownController,
     escapeHtml,
     parseDateParts,
+    playCountdownTick,
     shuffle,
   };
 

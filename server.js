@@ -21,7 +21,7 @@ app.use(connectLivereload());
 app.use(express.static(__dirname));
 
 // ---------- Game state ----------
-const COUNTDOWN_QUESTION_SECONDS = 30;
+const COUNTDOWN_QUESTION_SECONDS = 20;
 const COUNTDOWN_AUDIO_BEFORE_SECONDS = 3;
 const COUNTDOWN_AUDIO_AFTER_SECONDS = 10;
 

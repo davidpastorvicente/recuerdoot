@@ -9,15 +9,15 @@ const shapes = [
 ];
 
 const AUDIO_VOLUME = 1;
-const BACKGROUND_MUSIC_VOLUME = 0.22;
+const BACKGROUND_MUSIC_VOLUME = 0.2;
 const MEDIA_FADE_OUT_MS = 180;
 
 const audio = document.getElementById("game-audio");
 const backgroundMusic = document.getElementById("background-music");
 
 const mediaFadeState = new WeakMap();
-const { COUNTDOWN_GAME_START_SECONDS, LEADERBOARD_DISPLAY_LIMIT } = window.RECUERDOOT_CONFIG;
-const { createStartCountdownController, escapeHtml, parseDateParts, shuffle } = window.RECUERDOOT_SHARED;
+const { COUNTDOWN_GAME_START_SECONDS, DEFAULT_QUESTION_MUSIC_SRC, LEADERBOARD_DISPLAY_LIMIT } = window.RECUERDOOT_CONFIG;
+const { createStartCountdownController, escapeHtml, parseDateParts, playCountdownTick, shuffle } = window.RECUERDOOT_SHARED;
 const { clearStartCountdownTimer, showStartCountdown, hideStartCountdown } = createStartCountdownController();
 
 let isPlaying = false;
@@ -185,6 +185,10 @@ function playBackgroundMusic(source) {
   });
 }
 
+function playQuestionBackgroundMusic(source) {
+  playBackgroundMusic(source || DEFAULT_QUESTION_MUSIC_SRC);
+}
+
 function stopBackgroundMusic(options = {}) {
   stopMediaWithFade(backgroundMusic, BACKGROUND_MUSIC_VOLUME, { resetSource: true, ...options });
 }
@@ -247,6 +251,9 @@ function startCountdown(seconds, onEnd) {
   progressRing.style.strokeDashoffset = "0";
   num.textContent = remaining;
   container.classList.toggle("urgent", remaining <= 5);
+  if (mode === "multi" && remaining <= 5) {
+    playCountdownTick(remaining);
+  }
   progressRing.getBoundingClientRect();
   progressRing.style.transition = `stroke-dashoffset ${seconds}s linear`;
   progressRing.style.strokeDashoffset = circumference;
@@ -263,13 +270,16 @@ function startCountdown(seconds, onEnd) {
     }
     num.textContent = remaining;
     container.classList.toggle("urgent", remaining <= 5);
+    if (mode === "multi" && remaining <= 5) {
+      playCountdownTick(remaining);
+    }
   }, 1000);
 }
 
 function renderQuestion(data) {
   showScreen("question-screen");
   document.getElementById("question-counter").textContent = `Pregunta ${data.index + 1} de ${data.total}`;
-  playBackgroundMusic(data.music);
+  playQuestionBackgroundMusic(data.music);
 
   // Visual media
   const questionImage = document.getElementById("question-image");

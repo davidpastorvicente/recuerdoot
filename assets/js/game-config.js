@@ -1,6 +1,7 @@
 (function initGameConfig(globalScope) {
   const config = {
     COUNTDOWN_GAME_START_SECONDS: 5,
+    DEFAULT_QUESTION_MUSIC_SRC: "assets/music/default.mp3",
     LEADERBOARD_DISPLAY_LIMIT: 5,
   };
 

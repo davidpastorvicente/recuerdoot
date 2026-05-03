@@ -34,6 +34,8 @@ For multiplayer, players join from their phones at `http://<your-ip>:8000/player
 - `server.js` — Node.js server (Express + Socket.IO) handling multiplayer game logic
 - `index.html` — HTML structure for host/solo screen
 - `player.html` — HTML structure for player phone screen
+- `assets/js/game-config.js` — Shared game configuration used by both server and client code
+- `assets/js/game-shared.js` — Shared utility helpers used by server, host, and player scripts
 - `assets/js/host.js` — Client-side JavaScript for host and solo mode
 - `assets/js/player.js` — Client-side JavaScript for the player phone screen
 - `assets/css/main.css` — Shared application styles
@@ -67,7 +69,7 @@ An ordered JSON array. Questions play in the order defined. Every question uses 
 
 ### Audio behavior
 
-- `before.audio` — Audio plays before players can answer (3s reading time, then audio plays, then 5s countdown in multiplayer)
+- `before.audio` — In multiplayer, the host waits 3s, auto-plays the audio, and then opens a 10s answer countdown after the audio ends. In solo, the user can play the audio manually and there is no forced countdown.
 - `after.audio` — Audio available on the reveal screen after answering
 - For filtered audio questions, use the `_filtered` version in `before.audio` and the original in `after.audio`
 
@@ -83,6 +85,7 @@ An ordered JSON array. Questions play in the order defined. Every question uses 
 ### Music behavior
 
 - `before.music` — Background music plays quietly in a loop while the question is on screen
+- If `before.music` is missing, the host falls back to `assets/music/default.mp3` during the question
 - `after.music` — Background music plays quietly in a loop on the reveal screen or solo result modal after answering
 - Music files are loaded from `assets/music/`
 
@@ -105,8 +108,10 @@ An ordered JSON array. Questions play in the order defined. Every question uses 
 - Reveal screen order is: question, revealed media, answer distribution chart, next action
 - Kahoot-style bar chart shows answer distribution on the reveal screen after each question
 - Leaderboard is shown on its own scoreboard screen after each round and at the end
+- Host leaderboard views are capped to the top 5 players
 - The host scoreboard first shows the previous standings, then animates rows into the new order with up/down movement badges
 - Score totals on the host scoreboard count up from the previous score to the new score during the rank transition
+- The game-start countdown plays an audio cue on each second for both host and player screens
 
 ## Viewport behavior
 
@@ -118,6 +123,8 @@ An ordered JSON array. Questions play in the order defined. Every question uses 
 ## Audio files
 
 Place audio files in `assets/audios/`, music in `assets/music/`, images in `assets/images/`, and videos in `assets/videos/`.
+
+The host uses `assets/music/default.mp3` as the default question loop when a question does not define `before.music`.
 
 Filtered versions use the same filename with a `_filtered` suffix (e.g., `PTT-20140627-WA0012_filtered.mp3`).
 
