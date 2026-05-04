@@ -72,6 +72,7 @@ An ordered JSON array. Questions play in the order defined. Every question uses 
 - `before.audio` — In multiplayer, the host waits 3s, auto-plays the audio, and then opens a 10s answer countdown after the audio ends. In solo, the user can play the audio manually and there is no forced countdown.
 - `after.audio` — Audio available on the reveal screen after answering
 - For filtered audio questions, use the `_filtered` version in `before.audio` and the original in `after.audio`
+- When a question or reveal also has background music, that music ducks while the foreground audio is playing and returns after it ends or is stopped
 
 ### Image behavior
 
@@ -87,6 +88,7 @@ An ordered JSON array. Questions play in the order defined. Every question uses 
 - `before.music` — Background music plays quietly in a loop while the question is on screen
 - If `before.music` is missing, the host falls back to `assets/music/default.mp3` during the question
 - `after.music` — Background music plays quietly in a loop on the reveal screen or solo result modal after answering
+- In multiplayer, the lobby plays `assets/music/waiting.mp3` in the background while players are joining
 - Music files are loaded from `assets/music/`
 
 ### Notes
@@ -112,6 +114,7 @@ An ordered JSON array. Questions play in the order defined. Every question uses 
 - The host scoreboard first shows the previous standings, then animates rows into the new order with up/down movement badges
 - Score totals on the host scoreboard count up from the previous score to the new score during the rank transition
 - The game-start countdown plays an audio cue on each second for both host and player screens
+- When the multiplayer question countdown ends, or ends early because all players answered, the host plays a deeper gong cue
 
 ## Viewport behavior
 
@@ -124,7 +127,7 @@ An ordered JSON array. Questions play in the order defined. Every question uses 
 
 Place audio files in `assets/audios/`, music in `assets/music/`, images in `assets/images/`, and videos in `assets/videos/`.
 
-The host uses `assets/music/default.mp3` as the default question loop when a question does not define `before.music`.
+The host uses `assets/music/default.mp3` as the default question loop when a question does not define `before.music`, and uses `assets/music/waiting.mp3` in the multiplayer lobby before the game starts.
 
 Filtered versions use the same filename with a `_filtered` suffix (e.g., `PTT-20140627-WA0012_filtered.mp3`).
 

@@ -10,20 +10,25 @@ const shapes = [
 
 const AUDIO_VOLUME = 1;
 const BACKGROUND_MUSIC_VOLUME = 0.2;
+const BACKGROUND_MUSIC_DUCKED_VOLUME = 0.08;
 const MEDIA_FADE_OUT_MS = 180;
+const LOBBY_WAITING_MUSIC_SRC = "assets/music/waiting.mp3";
 
 const audio = document.getElementById("game-audio");
 const backgroundMusic = document.getElementById("background-music");
 
 const mediaFadeState = new WeakMap();
 const { COUNTDOWN_GAME_START_SECONDS, DEFAULT_QUESTION_MUSIC_SRC, LEADERBOARD_DISPLAY_LIMIT } = window.RECUERDOOT_CONFIG;
-const { createStartCountdownController, escapeHtml, parseDateParts, playCountdownTick, shuffle } = window.RECUERDOOT_SHARED;
+const { createStartCountdownController, escapeHtml, parseDateParts, playCountdownTick, playQuestionEndGong, shuffle } = window.RECUERDOOT_SHARED;
 const { clearStartCountdownTimer, showStartCountdown, hideStartCountdown } = createStartCountdownController();
 
 let isPlaying = false;
 let countdownInterval = null;
 let mode = null; // "solo" or "multi"
 let scoreboardTransitionTimer = null;
+let backgroundMusicDuckCount = 0;
+let questionCountdownRunning = false;
+let questionCountdownEndCuePlayed = false;
 backgroundMusic.volume = BACKGROUND_MUSIC_VOLUME;
 
 function clearScoreboardTransitionTimer() {
@@ -31,10 +36,43 @@ function clearScoreboardTransitionTimer() {
   scoreboardTransitionTimer = null;
 }
 
+function resetQuestionCountdownCue() {
+  questionCountdownRunning = false;
+  questionCountdownEndCuePlayed = false;
+}
+
+function triggerQuestionCountdownEndCue() {
+  if (mode !== "multi" || questionCountdownEndCuePlayed || !questionCountdownRunning) {
+    return;
+  }
+
+  questionCountdownRunning = false;
+  questionCountdownEndCuePlayed = true;
+  stopBackgroundMusic({ immediate: true });
+  playQuestionEndGong();
+}
+
 function setPlayButtonsPlaying(playing) {
   document.querySelectorAll(".play-button").forEach((button) => {
     button.classList.toggle("playing", playing);
   });
+}
+
+function syncBackgroundMusicVolume() {
+  if (!backgroundMusic.getAttribute("src")) return;
+  backgroundMusic.volume = backgroundMusicDuckCount > 0
+    ? BACKGROUND_MUSIC_DUCKED_VOLUME
+    : BACKGROUND_MUSIC_VOLUME;
+}
+
+function duckBackgroundMusic() {
+  backgroundMusicDuckCount++;
+  syncBackgroundMusicVolume();
+}
+
+function unduckBackgroundMusic() {
+  backgroundMusicDuckCount = Math.max(0, backgroundMusicDuckCount - 1);
+  syncBackgroundMusicVolume();
 }
 
 function bindHostUi() {
@@ -65,6 +103,7 @@ function showScreen(id) {
 function backToStart() {
   stopAudioPlayback();
   clearInterval(countdownInterval);
+  resetQuestionCountdownCue();
   clearStartCountdownTimer();
   clearScoreboardTransitionTimer();
   hideStartCountdown();
@@ -77,8 +116,11 @@ function toggleAudio() {
     stopAudioPlayback();
   } else {
     cancelMediaFade(audio, AUDIO_VOLUME);
+    duckBackgroundMusic();
     audio.volume = AUDIO_VOLUME;
-    audio.play();
+    audio.play().catch(() => {
+      unduckBackgroundMusic();
+    });
     isPlaying = true;
     setPlayButtonsPlaying(true);
   }
@@ -154,9 +196,16 @@ function setPrimaryAudioSource(source) {
 }
 
 function stopAudioPlayback(options = {}) {
+  const { onDone = null, ...mediaOptions } = options;
   isPlaying = false;
   setPlayButtonsPlaying(false);
-  stopMediaWithFade(audio, AUDIO_VOLUME, options);
+  stopMediaWithFade(audio, AUDIO_VOLUME, {
+    ...mediaOptions,
+    onDone: () => {
+      unduckBackgroundMusic();
+      if (onDone) onDone();
+    },
+  });
 }
 
 function playBackgroundMusic(source) {
@@ -167,7 +216,8 @@ function playBackgroundMusic(source) {
 
   if (backgroundMusic.getAttribute("src") === source) {
     cancelMediaFade(backgroundMusic, BACKGROUND_MUSIC_VOLUME);
-    backgroundMusic.volume = BACKGROUND_MUSIC_VOLUME;
+    backgroundMusic.loop = true;
+    syncBackgroundMusicVolume();
     if (backgroundMusic.paused) {
       backgroundMusic.play().catch(() => {});
     }
@@ -177,9 +227,10 @@ function playBackgroundMusic(source) {
   stopMediaWithFade(backgroundMusic, BACKGROUND_MUSIC_VOLUME, {
     onDone: () => {
       backgroundMusic.src = source;
+      backgroundMusic.loop = true;
       backgroundMusic.load();
       backgroundMusic.currentTime = 0;
-      backgroundMusic.volume = BACKGROUND_MUSIC_VOLUME;
+      syncBackgroundMusicVolume();
       backgroundMusic.play().catch(() => {});
     },
   });
@@ -190,6 +241,7 @@ function playQuestionBackgroundMusic(source) {
 }
 
 function stopBackgroundMusic(options = {}) {
+  backgroundMusicDuckCount = 0;
   stopMediaWithFade(backgroundMusic, BACKGROUND_MUSIC_VOLUME, { resetSource: true, ...options });
 }
 
@@ -243,6 +295,10 @@ audio.addEventListener("ended", () => {
 
 function startCountdown(seconds, onEnd) {
   let remaining = seconds;
+  if (mode === "multi") {
+    questionCountdownRunning = true;
+    questionCountdownEndCuePlayed = false;
+  }
   const circumference = 2 * Math.PI * 44;
   const progressRing = document.getElementById("countdown-ring-progress");
   const num = document.getElementById("countdown-number");
@@ -265,7 +321,10 @@ function startCountdown(seconds, onEnd) {
       clearInterval(countdownInterval);
       num.textContent = "0";
       container.classList.add("urgent");
-      if (onEnd) onEnd();
+      triggerQuestionCountdownEndCue();
+      if (onEnd) {
+        setTimeout(onEnd, mode === "multi" ? 40 : 0);
+      }
       return;
     }
     num.textContent = remaining;
@@ -278,6 +337,7 @@ function startCountdown(seconds, onEnd) {
 
 function renderQuestion(data) {
   showScreen("question-screen");
+  resetQuestionCountdownCue();
   document.getElementById("question-counter").textContent = `Pregunta ${data.index + 1} de ${data.total}`;
   playQuestionBackgroundMusic(data.music);
 
@@ -718,6 +778,7 @@ let multiplayerHandlersBound = false;
 function initMultiplayer() {
   mode = "multi";
   hideStartCountdown();
+  resetQuestionCountdownCue();
   clearScoreboardTransitionTimer();
   multiplayerRevealLeaderboard = [];
   multiplayerPreviousLeaderboard = [];
@@ -728,6 +789,7 @@ function initMultiplayer() {
 
     socket.on("host:created", ({ pin }) => {
       showScreen("lobby");
+      playBackgroundMusic(LOBBY_WAITING_MUSIC_SRC);
       document.getElementById("pin-display").textContent = pin;
       const joinUrl = `${location.origin}/player.html?pin=${pin}`;
       const joinEl = document.getElementById("join-url");
@@ -784,10 +846,12 @@ function initMultiplayer() {
     });
 
     socket.on("game:startCountdown", ({ seconds, startsAt }) => {
+      stopBackgroundMusic();
       showStartCountdown(seconds, { startsAt });
     });
 
     socket.on("host:reveal", (data) => {
+      triggerQuestionCountdownEndCue();
       clearInterval(countdownInterval);
       hideStartCountdown();
       stopAudioPlayback();
@@ -812,6 +876,7 @@ function initMultiplayer() {
 
     socket.on("game:end", ({ leaderboard }) => {
       clearInterval(countdownInterval);
+      resetQuestionCountdownCue();
       hideStartCountdown();
       stopAudioPlayback();
       showScreen("multiplayer-end-screen");

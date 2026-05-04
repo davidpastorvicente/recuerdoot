@@ -49,6 +49,7 @@ Every question has the same structure:
 - Multiplayer scoring: faster correct answers = more points (1000 max, 100 min, linear)
 - No inline JavaScript in HTML files — all JS lives in separate `.js` files
 - Multiplayer lobby shows a QR code for easy player joining
+- The multiplayer lobby plays `assets/music/waiting.mp3` in the background before the game starts
 - The full visual system and UI behavior guidance live in `DESIGN.md`
 - Naming convention: use ids for singleton UI hooks and classes for shared/repeated styling patterns
 - Host gameplay screens should be viewport-constrained with no page scrolling
@@ -57,6 +58,8 @@ Every question has the same structure:
 - Host leaderboard views are capped to the top 5 players
 - The game-start countdown plays a short audio cue each second on both host and player screens
 - If a question has no `before.music`, the host uses `assets/music/default.mp3` as the default question loop
+- When foreground question/reveal audio plays over background music, the background music ducks and then returns
+- The multiplayer question countdown plays a deeper gong when it ends, including when the round ends early because everyone answered
 
 ## Running
 

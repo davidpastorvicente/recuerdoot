@@ -83,6 +83,35 @@
     });
   }
 
+  function playQuestionEndGong() {
+    const context = getSharedAudioContext();
+    if (!context) return;
+
+    const now = context.currentTime;
+    const partials = [
+      { type: "sine", frequency: 261.63, peak: 0.16, decay: 2.9 },
+      { type: "triangle", frequency: 392, peak: 0.07, decay: 2.3 },
+      { type: "sine", frequency: 523.25, peak: 0.03, decay: 1.9 },
+    ];
+
+    partials.forEach(({ type, frequency, peak, decay }) => {
+      const oscillator = context.createOscillator();
+      const gainNode = context.createGain();
+
+      oscillator.type = type;
+      oscillator.frequency.setValueAtTime(frequency, now);
+      oscillator.frequency.exponentialRampToValueAtTime(frequency * 0.996, now + decay);
+      gainNode.gain.setValueAtTime(0.0001, now);
+      gainNode.gain.exponentialRampToValueAtTime(peak, now + 0.02);
+      gainNode.gain.exponentialRampToValueAtTime(0.0001, now + decay);
+
+      oscillator.connect(gainNode);
+      gainNode.connect(context.destination);
+      oscillator.start(now);
+      oscillator.stop(now + decay + 0.05);
+    });
+  }
+
   function createStartCountdownController() {
     let startCountdownTimer = null;
     let lastAnnouncedValue = null;
@@ -166,6 +195,7 @@
     escapeHtml,
     parseDateParts,
     playCountdownTick,
+    playQuestionEndGong,
     shuffle,
   };
 
