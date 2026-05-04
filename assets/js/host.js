@@ -904,6 +904,8 @@ function lobbyStart() {
 
 function nextMultiplayerQuestion() {
   if (document.getElementById("reveal-screen").classList.contains("active")) {
+    stopAudioPlayback({ immediate: true });
+    stopBackgroundMusic({ immediate: true });
     showScoreboardTransition(multiplayerPreviousLeaderboard, multiplayerRevealLeaderboard);
     return;
   }
