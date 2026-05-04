@@ -283,11 +283,16 @@ Reveal moments are performance screens.
 - If reveal media contains an image, use a larger framed treatment sized with viewport-relative limits.
 - The bar chart should feel simple and bold, not analytical.
 - Correct answers should be reinforced with both text/icon treatment and color.
-- The multiplayer scoreboard should briefly show the previous standings before transitioning to the updated order.
+- The first multiplayer scoreboard should appear directly without rank-change indicators; later scoreboards should briefly show the previous standings before transitioning to the updated order.
 - When ranks change, leaderboard rows should visibly travel to their new positions instead of only fading between states.
 - Rank changes can be reinforced with compact up/down indicators and the score should count up from the previous total to the new one.
 - Leaderboard views should show only the top 5 players.
 - Rank numerals should use medal colors for places 1-3: gold, silver, and bronze.
+
+### Player Result Screen
+
+- After each multiplayer question, the player phone should show correctness state, points earned, total score, current rank, and streak.
+- Reuse the medal-style rank badge for places 1-3 and show numeric position for lower ranks.
 
 ### Player Join Form
 

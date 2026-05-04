@@ -111,8 +111,9 @@ An ordered JSON array. Questions play in the order defined. Every question uses 
 - Kahoot-style bar chart shows answer distribution on the reveal screen after each question
 - Leaderboard is shown on its own scoreboard screen after each round and at the end
 - Host leaderboard views are capped to the top 5 players
-- The host scoreboard first shows the previous standings, then animates rows into the new order with up/down movement badges
+- The first host scoreboard appears directly without movement indicators; later rounds first show the previous standings, then animate rows into the new order with up/down movement badges
 - Score totals on the host scoreboard count up from the previous score to the new score during the rank transition
+- After each question, each player phone shows the player's current rank, total score, and streak on the result screen
 - The game-start countdown plays an audio cue on each second for both host and player screens
 - When the multiplayer question countdown ends, or ends early because all players answered, the host plays a deeper gong cue
 

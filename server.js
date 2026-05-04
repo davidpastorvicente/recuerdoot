@@ -56,6 +56,13 @@ function emitPlayerResult(socketId, result) {
   io.to(socketId).emit("player:result", result);
 }
 
+function getPlayerRank(socketId, leaderboard) {
+  const player = game?.players[socketId];
+  if (!player) return null;
+  const index = leaderboard.findIndex((entry) => entry.name === player.name);
+  return index >= 0 ? index + 1 : null;
+}
+
 function loadQuestions() {
   const raw = JSON.parse(fs.readFileSync(path.join(__dirname, "questions.json"), "utf-8"));
 
@@ -292,11 +299,13 @@ function endQuestion() {
   Object.keys(game.players).forEach((socketId) => {
     const answer = game.answers[socketId];
     const player = game.players[socketId];
+    const rank = getPlayerRank(socketId, leaderboard);
     if (!answer) {
       player.streak = 0;
       emitPlayerResult(socketId, {
         isCorrect: false,
         points: 0,
+        rank,
         score: player.score,
         streak: 0,
         timeout: true,
@@ -307,6 +316,7 @@ function endQuestion() {
     emitPlayerResult(socketId, {
       isCorrect: answer.isCorrect,
       points: answer.points,
+      rank,
       score: player.score,
       streak: player.streak,
       timeout: false,

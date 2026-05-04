@@ -45,6 +45,23 @@ function setResultState({ icon, text, textClass, pointsText }) {
   document.getElementById("result-points").textContent = pointsText;
 }
 
+function renderRankBadge(containerId, rank) {
+  const container = document.getElementById(containerId);
+  const rankLabels = ["", "Primera posicion", "Segunda posicion", "Tercera posicion"];
+
+  if (!rank || rank < 1) {
+    container.textContent = "";
+    return;
+  }
+
+  if (rank <= 3) {
+    container.innerHTML = `<span class="rank-badge rank-${rank}" aria-label="${rankLabels[rank]}">${rank}</span>`;
+    return;
+  }
+
+  container.textContent = `#${rank}`;
+}
+
 function getResultState({ isCorrect, points, timeout }) {
   if (timeout) {
     return {
@@ -121,10 +138,12 @@ function sendAnswer(button) {
   });
 }
 
-socket.on("player:result", ({ isCorrect, points, score, streak, timeout }) => {
+socket.on("player:result", ({ isCorrect, points, rank, score, streak, timeout }) => {
   hideStartCountdown();
   showScreen("result-screen");
   setResultState(getResultState({ isCorrect, points, timeout }));
+  renderRankBadge("result-rank", rank);
+  document.getElementById("result-position").textContent = rank ? `Vas en el puesto ${rank}` : "";
   document.getElementById("result-score").textContent = `${score} pts`;
   document.getElementById("result-streak").textContent = streak > 1 ? `Racha de ${streak}` : "";
 });
@@ -134,13 +153,7 @@ socket.on("game:end", ({ leaderboard }) => {
   showScreen("end-screen");
   const myIndex = leaderboard.findIndex((player) => player.name === myName);
   const rank = myIndex + 1;
-  const rankEl = document.getElementById("end-rank");
-  const rankLabels = ["", "Primera posicion", "Segunda posicion", "Tercera posicion"];
-  if (rank >= 1 && rank <= 3) {
-    rankEl.innerHTML = `<span class="rank-badge rank-${rank}" aria-label="${rankLabels[rank]}">${rank}</span>`;
-  } else {
-    rankEl.textContent = `#${rank}`;
-  }
+  renderRankBadge("end-rank", rank);
   document.getElementById("end-position").textContent = rank === 1 ? "\u00A1Has ganado!" : `Puesto ${rank}`;
   document.getElementById("end-score").textContent = myIndex >= 0 ? `${leaderboard[myIndex].score} puntos` : "";
 });

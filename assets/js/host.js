@@ -543,14 +543,20 @@ function renderLeaderboard(containerId, list, options = {}) {
 function showScoreboardTransition(previousList, nextList) {
   const scoreboardButton = document.getElementById("scoreboard-next-button");
   const scoreboardLeaderboard = document.getElementById("scoreboard-leaderboard");
-  const previousLeaderboard = previousList.length ? cloneLeaderboard(previousList) : cloneLeaderboard(nextList);
+  const hasPreviousLeaderboard = previousList.length > 0;
+  const previousLeaderboard = hasPreviousLeaderboard ? cloneLeaderboard(previousList) : cloneLeaderboard(nextList);
   const nextLeaderboard = cloneLeaderboard(nextList);
-  const movementMap = getLeaderboardMovement(previousLeaderboard, nextLeaderboard);
+  const movementMap = hasPreviousLeaderboard ? getLeaderboardMovement(previousLeaderboard, nextLeaderboard) : new Map();
 
   clearScoreboardTransitionTimer();
   showScreen("scoreboard-screen");
   scoreboardButton.disabled = true;
   renderLeaderboard("scoreboard-leaderboard", previousLeaderboard);
+
+  if (!hasPreviousLeaderboard) {
+    scoreboardButton.disabled = false;
+    return;
+  }
 
   scoreboardTransitionTimer = setTimeout(() => {
     renderLeaderboard("scoreboard-leaderboard", nextLeaderboard, { movementMap });
@@ -802,9 +808,6 @@ function initMultiplayer() {
       const grid = document.getElementById("player-grid");
       grid.innerHTML = players.map((player) => `<div class="player-chip">${player.name}</div>`).join("");
       multiplayerCurrentLeaderboard = cloneLeaderboard(players);
-      if (multiplayerPreviousLeaderboard.length === 0) {
-        multiplayerPreviousLeaderboard = cloneLeaderboard(players);
-      }
       const startButton = document.getElementById("lobby-start-button");
       startButton.disabled = players.length === 0;
       startButton.textContent = players.length > 0 ? `Empezar (${players.length} jugador${players.length > 1 ? 'es' : ''})` : "Esperando jugadores...";
@@ -855,7 +858,9 @@ function initMultiplayer() {
       clearInterval(countdownInterval);
       hideStartCountdown();
       stopAudioPlayback();
-      multiplayerPreviousLeaderboard = cloneLeaderboard(multiplayerCurrentLeaderboard.length ? multiplayerCurrentLeaderboard : data.leaderboard);
+      multiplayerPreviousLeaderboard = multiplayerCurrentQuestion.index > 0
+        ? cloneLeaderboard(multiplayerCurrentLeaderboard)
+        : [];
       multiplayerRevealLeaderboard = cloneLeaderboard(data.leaderboard);
       multiplayerCurrentLeaderboard = cloneLeaderboard(data.leaderboard);
 

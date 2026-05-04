@@ -1741,6 +1741,20 @@ body.player #player-answer-grid[data-option-count="6"] {
   margin-bottom: 4px;
 }
 
+#result-rank {
+  font-family: var(--font-display);
+  font-size: 2.4rem;
+  font-weight: 800;
+  color: var(--accent);
+  min-height: 1.4em;
+}
+
+#result-position {
+  font-size: 1rem;
+  color: var(--text-secondary);
+  margin-top: -2px;
+}
+
 #result-score {
   font-family: var(--font-display);
   font-size: 2rem;
