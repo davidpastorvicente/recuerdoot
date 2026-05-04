@@ -1,6 +1,7 @@
 const express = require("express");
 const http = require("http");
 const { Server } = require("socket.io");
+const { randomUUID } = require("crypto");
 const fs = require("fs");
 const path = require("path");
 const livereload = require("livereload");
@@ -33,7 +34,7 @@ let game = null; // { pin, host, players, questions, currentQ, phase, timer, ans
 
 function emitPlayerList() {
   if (game?.host) {
-    io.to(game.host).emit("host:playerList", getPlayerList());
+    io.to(game.host).emit("host:playerList", getPlayerList({ includeDisconnected: game.phase !== "lobby" }));
   }
 }
 
@@ -56,11 +57,93 @@ function emitPlayerResult(socketId, result) {
   io.to(socketId).emit("player:result", result);
 }
 
-function getPlayerRank(socketId, leaderboard) {
-  const player = game?.players[socketId];
+function getPlayerRank(playerId, leaderboard) {
+  const player = game?.players[playerId];
   if (!player) return null;
   const index = leaderboard.findIndex((entry) => entry.name === player.name);
   return index >= 0 ? index + 1 : null;
+}
+
+function getPlayerEntryBySocketId(socketId) {
+  if (!game) return null;
+
+  return Object.entries(game.players).find(([, player]) => player.socketId === socketId) || null;
+}
+
+function getConnectedPlayerCount() {
+  if (!game) return 0;
+  return Object.values(game.players).filter((player) => player.connected).length;
+}
+
+function emitAnswerCount() {
+  if (!game?.host || game.phase !== "question") return;
+
+  io.to(game.host).emit("host:answerCount", {
+    answered: Object.keys(game.answers).length,
+    total: Object.keys(game.players).length,
+  });
+}
+
+function removePlayer(playerId) {
+  if (!game?.players[playerId]) return false;
+
+  delete game.players[playerId];
+  delete game.answers[playerId];
+  emitPlayerList();
+  emitAnswerCount();
+
+  if (game.phase === "question" && Object.keys(game.answers).length >= Object.keys(game.players).length) {
+    clearTimeout(game.timer);
+    endQuestion();
+  }
+
+  return true;
+}
+
+function emitPlayerState(playerId) {
+  if (!game) return;
+
+  const player = game.players[playerId];
+  if (!player?.socketId) return;
+
+  if (game.phase === "starting" && game.startsAt) {
+    io.to(player.socketId).emit("game:startCountdown", { seconds: COUNTDOWN_GAME_START_SECONDS, startsAt: game.startsAt });
+    return;
+  }
+
+  if (game.phase === "question") {
+    const question = game.questions[game.currentQ];
+    const answer = game.answers[playerId] || null;
+    io.to(player.socketId).emit("player:question", {
+      index: game.currentQ,
+      total: game.questions.length,
+      options: question.options,
+      countdown: question.audioBefore && !game.answersOpen ? null : COUNTDOWN_QUESTION_SECONDS,
+      audioBefore: question.audioBefore,
+      answersOpen: !question.audioBefore || game.answersOpen,
+      hasAnswered: !!answer,
+      selectedAnswer: answer?.answer || null,
+    });
+    return;
+  }
+
+  if (game.phase === "reveal") {
+    const leaderboard = getPlayerList();
+    const answer = game.answers[playerId] || null;
+    emitPlayerResult(player.socketId, {
+      isCorrect: answer?.isCorrect || false,
+      points: answer?.points || 0,
+      rank: getPlayerRank(playerId, leaderboard),
+      score: player.score,
+      streak: player.streak,
+      timeout: !answer,
+    });
+    return;
+  }
+
+  if (game.phase === "end") {
+    io.to(player.socketId).emit("game:end", { leaderboard: getPlayerList() });
+  }
 }
 
 function loadQuestions() {
@@ -103,38 +186,54 @@ io.on("connection", (socket) => {
     game = {
       pin,
       host: socket.id,
-      players: {},   // { socketId: { name, score, streak } }
+      players: {},   // { playerId: { name, score, streak, socketId, connected } }
       questions: loadQuestions(),
       currentQ: -1,
       phase: "lobby", // lobby | starting | question | reveal | end
       timer: null,
       answers: {},
       questionStartTime: 0,
+      startsAt: null,
+      answersOpen: false,
     };
     socket.join(`game-${pin}`);
     socket.emit("host:created", { pin });
   });
 
   // Player joins
-  socket.on("player:join", ({ pin, name }) => {
+  socket.on("player:join", ({ pin, name, playerId }) => {
     if (!game || game.pin !== pin) {
       return socket.emit("player:error", "PIN incorrecto");
     }
+
+    const existingPlayer = playerId ? game.players[playerId] : null;
+    if (existingPlayer) {
+      existingPlayer.socketId = socket.id;
+      existingPlayer.connected = true;
+      socket.join(`game-${pin}`);
+      socket.emit("player:joined", { name: existingPlayer.name, pin, playerId });
+      emitPlayerList();
+      emitPlayerState(playerId);
+      return;
+    }
+
     if (game.phase !== "lobby") {
       return socket.emit("player:error", "La partida ya ha comenzado");
     }
-    if (Object.keys(game.players).length >= MAX_PLAYERS) {
+    if (getConnectedPlayerCount() >= MAX_PLAYERS) {
       return socket.emit("player:error", "Sala llena (máx 10)");
     }
+
     // Check duplicate name
     const names = Object.values(game.players).map((player) => player.name.toLowerCase());
     if (names.includes(name.toLowerCase())) {
       return socket.emit("player:error", "Ese nombre ya está en uso");
     }
 
-    game.players[socket.id] = { name, score: 0, streak: 0 };
+    const newPlayerId = randomUUID();
+    game.players[newPlayerId] = { name, score: 0, streak: 0, socketId: socket.id, connected: true };
     socket.join(`game-${pin}`);
-    socket.emit("player:joined", { name });
+    socket.emit("player:joined", { name, pin, playerId: newPlayerId });
 
     // Notify host
     emitPlayerList();
@@ -148,6 +247,7 @@ io.on("connection", (socket) => {
 
     game.phase = "starting";
     const startsAt = Date.now() + 250;
+    game.startsAt = startsAt;
     io.to(`game-${game.pin}`).emit("game:startCountdown", { seconds: COUNTDOWN_GAME_START_SECONDS, startsAt });
     game.timer = setTimeout(() => {
       nextQuestion();
@@ -158,6 +258,7 @@ io.on("connection", (socket) => {
   socket.on("host:answersOpen", () => {
     if (!game || socket.id !== game.host) return;
     if (game.phase !== "question") return;
+    game.answersOpen = true;
     game.timer = setTimeout(() => { endQuestion(); }, COUNTDOWN_AUDIO_AFTER_SECONDS * 1000);
   });
 
@@ -177,11 +278,25 @@ io.on("connection", (socket) => {
     }
   });
 
+  socket.on("host:purgeDisconnected", () => {
+    if (!game || socket.id !== game.host) return;
+
+    Object.entries(game.players).forEach(([playerId, player]) => {
+      if (!player.connected) {
+        removePlayer(playerId);
+      }
+    });
+  });
+
   // Player answers
   socket.on("player:answer", ({ answer }) => {
     if (!game || game.phase !== "question") return;
-    if (!game.players[socket.id]) return;
-    if (game.answers[socket.id] !== undefined) return; // already answered
+
+    const playerEntry = getPlayerEntryBySocketId(socket.id);
+    if (!playerEntry) return;
+
+    const [playerId, player] = playerEntry;
+    if (game.answers[playerId] !== undefined) return; // already answered
 
     const question = game.questions[game.currentQ];
     const elapsed = (Date.now() - game.questionStartTime) / 1000;
@@ -192,18 +307,18 @@ io.on("connection", (socket) => {
       // Linear interpolation: faster = more points
       const timeFraction = Math.max(0, 1 - elapsed / COUNTDOWN_QUESTION_SECONDS);
       points = Math.round(MIN_POINTS + (MAX_POINTS - MIN_POINTS) * timeFraction);
-      game.players[socket.id].score += points;
-      game.players[socket.id].streak++;
+      player.score += points;
+      player.streak++;
     } else {
-      game.players[socket.id].streak = 0;
+      player.streak = 0;
     }
 
-    game.answers[socket.id] = { answer, isCorrect, points, elapsed };
+    game.answers[playerId] = { answer, isCorrect, points, elapsed };
 
     // Notify host of answer count
     const totalPlayers = Object.keys(game.players).length;
     const answeredCount = Object.keys(game.answers).length;
-    io.to(game.host).emit("host:answerCount", { answered: answeredCount, total: totalPlayers });
+    emitAnswerCount();
 
     // If all answered, end question early
     if (answeredCount >= totalPlayers) {
@@ -220,21 +335,37 @@ io.on("connection", (socket) => {
       io.to(`game-${game.pin}`).emit("player:gameOver", "El host se ha desconectado");
       clearTimeout(game.timer);
       game = null;
-    } else if (game.players[socket.id]) {
-      delete game.players[socket.id];
-      emitPlayerList();
+      return;
     }
+
+    const playerEntry = getPlayerEntryBySocketId(socket.id);
+    if (!playerEntry) return;
+
+    const [playerId, player] = playerEntry;
+    if (player.socketId !== socket.id) return;
+
+    if (game.phase === "lobby") {
+      removePlayer(playerId);
+      return;
+    }
+
+    player.connected = false;
+    player.socketId = null;
+    emitPlayerList();
   });
 });
 
-function getPlayerList() {
+function getPlayerList({ includeDisconnected = true } = {}) {
   if (!game) return [];
-  return Object.values(game.players).map((player) => ({ name: player.name, score: player.score }))
+  return Object.values(game.players)
+    .filter((player) => includeDisconnected || player.connected)
+    .map((player) => ({ name: player.name, score: player.score }))
     .sort((a, b) => b.score - a.score);
 }
 
 function nextQuestion() {
   game.currentQ++;
+  game.startsAt = null;
   if (game.currentQ >= game.questions.length) {
     game.phase = "end";
     const leaderboard = getPlayerList();
@@ -246,6 +377,7 @@ function nextQuestion() {
   game.phase = "question";
   game.answers = {};
   game.questionStartTime = Date.now();
+  game.answersOpen = !question.audioBefore;
 
   // Send question to host (full info)
   io.to(game.host).emit("host:question", {
@@ -269,6 +401,8 @@ function nextQuestion() {
     total: game.questions.length,
     options: question.options,
     countdown: question.audioBefore ? null : COUNTDOWN_QUESTION_SECONDS,
+    audioBefore: question.audioBefore,
+    answersOpen: !question.audioBefore,
   });
 
   if (!question.audioBefore) {
@@ -302,25 +436,29 @@ function endQuestion() {
     const rank = getPlayerRank(socketId, leaderboard);
     if (!answer) {
       player.streak = 0;
-      emitPlayerResult(socketId, {
-        isCorrect: false,
-        points: 0,
-        rank,
-        score: player.score,
-        streak: 0,
-        timeout: true,
-      });
+      if (player.socketId) {
+        emitPlayerResult(player.socketId, {
+          isCorrect: false,
+          points: 0,
+          rank,
+          score: player.score,
+          streak: 0,
+          timeout: true,
+        });
+      }
       return;
     }
 
-    emitPlayerResult(socketId, {
-      isCorrect: answer.isCorrect,
-      points: answer.points,
-      rank,
-      score: player.score,
-      streak: player.streak,
-      timeout: false,
-    });
+    if (player.socketId) {
+      emitPlayerResult(player.socketId, {
+        isCorrect: answer.isCorrect,
+        points: answer.points,
+        rank,
+        score: player.score,
+        streak: player.streak,
+        timeout: false,
+      });
+    }
   });
 }
 

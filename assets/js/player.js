@@ -1,8 +1,63 @@
 const socket = io();
 let myName = "";
+let currentPin = "";
+let playerId = "";
 let answered = false;
 const { createStartCountdownController, escapeHtml } = window.RECUERDOOT_SHARED;
 const { showStartCountdown, hideStartCountdown } = createStartCountdownController();
+const PLAYER_SESSION_KEY = "recuerdoot-player-session";
+
+function getStoredSession() {
+  try {
+    const raw = sessionStorage.getItem(PLAYER_SESSION_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+function storeSession(session) {
+  sessionStorage.setItem(PLAYER_SESSION_KEY, JSON.stringify(session));
+}
+
+function clearSession() {
+  sessionStorage.removeItem(PLAYER_SESSION_KEY);
+}
+
+function setJoinButtonDisabled(disabled) {
+  document.getElementById("join-button").disabled = disabled;
+}
+
+function populateJoinForm(session) {
+  if (!session) return;
+  if (session.pin) document.getElementById("pin-input").value = session.pin;
+  if (session.name) document.getElementById("name-input").value = session.name;
+}
+
+function restoreSelectedAnswer(answer) {
+  if (!answer) return;
+
+  document.querySelectorAll(".player-answer").forEach((button) => {
+    button.disabled = true;
+    if (button.dataset.answer !== answer) {
+      button.classList.add("dim");
+      return;
+    }
+
+    button.classList.add("selected");
+  });
+}
+
+function tryAutoRejoin() {
+  const session = getStoredSession();
+  if (!session?.pin || !session?.name || !session?.playerId) return;
+
+  myName = session.name;
+  currentPin = session.pin;
+  playerId = session.playerId;
+  populateJoinForm(session);
+  setJoinButtonDisabled(true);
+}
 
 const shapes = [
   `<svg viewBox="0 0 24 24" width="24" height="24"><polygon points="12,2 2,22 22,22" fill="currentColor"/></svg>`,
@@ -29,8 +84,10 @@ function joinGame() {
     return;
   }
 
-  document.getElementById("join-button").disabled = true;
-  socket.emit("player:join", { pin, name });
+  currentPin = pin;
+  myName = name;
+  setJoinButtonDisabled(true);
+  socket.emit("player:join", { pin, name, playerId: playerId || undefined });
 }
 
 function bindPlayerUi() {
@@ -90,13 +147,23 @@ function getResultState({ isCorrect, points, timeout }) {
 }
 
 socket.on("player:error", (msg) => {
+  if (playerId) {
+    playerId = "";
+    currentPin = "";
+    clearSession();
+  }
   document.getElementById("error-msg").textContent = msg;
-  document.getElementById("join-button").disabled = false;
+  setJoinButtonDisabled(false);
+  showScreen("join-screen");
 });
 
-socket.on("player:joined", ({ name }) => {
+socket.on("player:joined", ({ name, pin, playerId: joinedPlayerId }) => {
   myName = name;
+  currentPin = pin;
+  playerId = joinedPlayerId;
+  storeSession({ pin, name, playerId: joinedPlayerId });
   document.getElementById("my-name").textContent = name;
+  document.getElementById("error-msg").textContent = "";
   showScreen("waiting-screen");
 });
 
@@ -111,9 +178,10 @@ socket.on("game:startCountdown", ({ seconds, startsAt }) => {
 });
 
 socket.on("player:question", (data) => {
-  answered = false;
+  answered = !!data.hasAnswered;
   hideStartCountdown();
   showScreen("answer-screen");
+  document.getElementById("listen-question-meta").textContent = `Pregunta ${data.index + 1} de ${data.total}`;
   const grid = document.getElementById("player-answer-grid");
   grid.dataset.optionCount = String(data.options.length);
   grid.innerHTML = data.options.map((opt, i) =>
@@ -122,6 +190,10 @@ socket.on("player:question", (data) => {
   grid.querySelectorAll(".player-answer").forEach((button) => {
     button.addEventListener("click", () => sendAnswer(button));
   });
+
+  if (data.hasAnswered && data.selectedAnswer) {
+    restoreSelectedAnswer(data.selectedAnswer);
+  }
 });
 
 function sendAnswer(button) {
@@ -150,6 +222,7 @@ socket.on("player:result", ({ isCorrect, points, rank, score, streak, timeout })
 
 socket.on("game:end", ({ leaderboard }) => {
   hideStartCountdown();
+  clearSession();
   showScreen("end-screen");
   const myIndex = leaderboard.findIndex((player) => player.name === myName);
   const rank = myIndex + 1;
@@ -160,6 +233,7 @@ socket.on("game:end", ({ leaderboard }) => {
 
 socket.on("player:gameOver", (msg) => {
   hideStartCountdown();
+  clearSession();
   showScreen("end-screen");
   document.getElementById("end-rank").textContent = "";
   document.getElementById("end-position").textContent = msg;
@@ -170,6 +244,12 @@ function showScreen(id) {
   document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
   document.getElementById(id).classList.add("active");
 }
+
+socket.on("connect", () => {
+  if (playerId) {
+    socket.emit("player:join", { pin: currentPin, name: myName, playerId });
+  }
+});
 
 // Auto-fill PIN from URL query param
 const urlPin = new URLSearchParams(location.search).get("pin");
@@ -191,3 +271,5 @@ document.querySelectorAll("#join-screen input").forEach((input) => {
 });
 
 bindPlayerUi();
+populateJoinForm(getStoredSession());
+tryAutoRejoin();

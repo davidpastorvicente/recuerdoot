@@ -915,4 +915,10 @@ function nextMultiplayerQuestion() {
   if (socket) socket.emit("host:next");
 }
 
+window.purgeDisconnectedPlayers = function purgeDisconnectedPlayers() {
+  if (!socket || mode !== "multi") return false;
+  socket.emit("host:purgeDisconnected");
+  return true;
+};
+
 bindHostUi();

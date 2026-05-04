@@ -69,7 +69,7 @@ An ordered JSON array. Questions play in the order defined. Every question uses 
 
 ### Audio behavior
 
-- `before.audio` — In multiplayer, the host waits 3s, auto-plays the audio, and then opens a 10s answer countdown after the audio ends. In solo, the user can play the audio manually and there is no forced countdown.
+- `before.audio` — In multiplayer, the host waits 3s, auto-plays the audio, and then opens a 10s answer countdown after the audio ends. Players still receive the answer options immediately on their phones while the audio is playing. In solo, the user can play the audio manually and there is no forced countdown.
 - `after.audio` — Audio available on the reveal screen after answering
 - For filtered audio questions, use the `_filtered` version in `before.audio` and the original in `after.audio`
 - When a question or reveal also has background music, that music ducks while the foreground audio is playing and returns after it ends or is stopped
@@ -116,6 +116,8 @@ An ordered JSON array. Questions play in the order defined. Every question uses 
 - After each question, each player phone shows the player's current rank, total score, and streak on the result screen
 - The game-start countdown plays an audio cue on each second for both host and player screens
 - When the multiplayer question countdown ends, or ends early because all players answered, the host plays a deeper gong cue
+- Player phones keep their multiplayer session in `sessionStorage`, so a refresh or brief reconnect in the same tab can restore the player mid-game
+- Disconnected players remain in the match state so they can rejoin, but the host can manually remove all currently disconnected players from the host browser console with `purgeDisconnectedPlayers()`
 
 ## Viewport behavior
 
