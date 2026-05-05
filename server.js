@@ -27,6 +27,16 @@ function getNetworkIp() {
   return "localhost";
 }
 
+function getJoinBaseUrl() {
+  const publicBaseUrl = process.env.PUBLIC_BASE_URL?.trim();
+
+  if (publicBaseUrl) {
+    return publicBaseUrl.replace(/\/$/, "");
+  }
+
+  return `http://${getNetworkIp()}:${PORT}`;
+}
+
 // Livereload: watch HTML files and auto-refresh browsers
 const lrServer = livereload.createServer({ exts: ["html", "css", "js"], delay: 300 });
 lrServer.watch(__dirname);
@@ -213,7 +223,7 @@ io.on("connection", (socket) => {
     socket.join(`game-${pin}`);
     socket.emit("host:created", {
       pin,
-      joinBaseUrl: `http://${getNetworkIp()}:${PORT}`,
+      joinBaseUrl: getJoinBaseUrl(),
     });
   });
 
@@ -482,7 +492,11 @@ function endQuestion() {
 const PORT = process.env.PORT || 8000;
 server.listen(PORT, "0.0.0.0", () => {
   const localIp = getNetworkIp();
+  const publicBaseUrl = process.env.PUBLIC_BASE_URL?.trim();
   console.log(`\n  Recuerdoot server running!\n`);
   console.log(`  Local:   http://localhost:${PORT}`);
   console.log(`  Network: http://${localIp}:${PORT}\n`);
+  if (publicBaseUrl) {
+    console.log(`  Public:  ${publicBaseUrl.replace(/\/$/, "")}\n`);
+  }
 });
