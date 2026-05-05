@@ -13,6 +13,20 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 
+function getNetworkIp() {
+  const nets = require("os").networkInterfaces();
+
+  for (const name of Object.keys(nets)) {
+    for (const net of nets[name] || []) {
+      if (net.family === "IPv4" && !net.internal) {
+        return net.address;
+      }
+    }
+  }
+
+  return "localhost";
+}
+
 // Livereload: watch HTML files and auto-refresh browsers
 const lrServer = livereload.createServer({ exts: ["html", "css", "js"], delay: 300 });
 lrServer.watch(__dirname);
@@ -197,7 +211,10 @@ io.on("connection", (socket) => {
       answersOpen: false,
     };
     socket.join(`game-${pin}`);
-    socket.emit("host:created", { pin });
+    socket.emit("host:created", {
+      pin,
+      joinBaseUrl: `http://${getNetworkIp()}:${PORT}`,
+    });
   });
 
   // Player joins
@@ -464,17 +481,7 @@ function endQuestion() {
 
 const PORT = process.env.PORT || 8000;
 server.listen(PORT, "0.0.0.0", () => {
-  // Get local IP for display
-  const nets = require("os").networkInterfaces();
-  let localIp = "localhost";
-  for (const name of Object.keys(nets)) {
-    for (const net of nets[name]) {
-      if (net.family === "IPv4" && !net.internal) {
-        localIp = net.address;
-        break;
-      }
-    }
-  }
+  const localIp = getNetworkIp();
   console.log(`\n  Recuerdoot server running!\n`);
   console.log(`  Local:   http://localhost:${PORT}`);
   console.log(`  Network: http://${localIp}:${PORT}\n`);

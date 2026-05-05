@@ -793,13 +793,14 @@ function initMultiplayer() {
   if (!multiplayerHandlersBound) {
     multiplayerHandlersBound = true;
 
-    socket.on("host:created", ({ pin }) => {
+    socket.on("host:created", ({ pin, joinBaseUrl }) => {
       showScreen("lobby");
       playBackgroundMusic(LOBBY_WAITING_MUSIC_SRC);
       document.getElementById("pin-display").textContent = pin;
-      const joinUrl = `${location.origin}/player.html?pin=${pin}`;
+      const baseUrl = joinBaseUrl || location.origin;
+      const joinUrl = `${baseUrl}/player.html?pin=${pin}`;
       const joinEl = document.getElementById("join-url");
-      joinEl.textContent = `${location.host}/player.html`;
+      joinEl.textContent = `${baseUrl.replace(/^https?:\/\//, "")}/player.html`;
       joinEl.href = joinUrl;
       new QRious({ element: document.getElementById("qr-canvas"), value: joinUrl, size: 200, backgroundAlpha: 0, foreground: "#ffffff" });
     });
