@@ -779,6 +779,7 @@ let multiplayerCurrentQuestion = null;
 let multiplayerRevealLeaderboard = [];
 let multiplayerPreviousLeaderboard = [];
 let multiplayerCurrentLeaderboard = [];
+let multiplayerPlayerList = [];
 let multiplayerHandlersBound = false;
 
 function initMultiplayer() {
@@ -806,6 +807,7 @@ function initMultiplayer() {
     });
 
     socket.on("host:playerList", (players) => {
+      multiplayerPlayerList = players;
       const grid = document.getElementById("player-grid");
       grid.innerHTML = players.map((player) => `<div class="player-chip">${player.name}</div>`).join("");
       multiplayerCurrentLeaderboard = cloneLeaderboard(players);
@@ -920,6 +922,19 @@ window.purgeDisconnectedPlayers = function purgeDisconnectedPlayers() {
   if (!socket || mode !== "multi") return false;
   socket.emit("host:purgeDisconnected");
   return true;
+};
+
+window.listDisconnectedPlayers = function listDisconnectedPlayers() {
+  if (mode !== "multi") return [];
+
+  return multiplayerPlayerList
+    .filter((player) => !player.connected)
+    .map(({ playerId, name, score }) => ({ playerId, name, score }));
+};
+
+window.getCurrentRanking = function getCurrentRanking() {
+  return cloneLeaderboard(multiplayerCurrentLeaderboard)
+    .map(({ name, score }) => ({ name, score }));
 };
 
 bindHostUi();

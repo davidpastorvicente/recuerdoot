@@ -119,6 +119,12 @@ An ordered JSON array. Questions play in the order defined. Every question uses 
 - Player phones keep their multiplayer session in `sessionStorage`, so a refresh or brief reconnect in the same tab can restore the player mid-game
 - Disconnected players remain in the match state so they can rejoin, but the host can manually remove all currently disconnected players from the host browser console with `purgeDisconnectedPlayers()`
 
+### Host console helpers
+
+- `purgeDisconnectedPlayers()` — Removes all players currently marked as disconnected from the active multiplayer match
+- `listDisconnectedPlayers()` — Returns the currently disconnected players as `{ playerId, name, score }` objects
+- `getCurrentRanking()` — Returns the current multiplayer ranking as `{ name, score }` objects in ranking order
+
 ## Viewport behavior
 
 - Host gameplay screens are designed to stay within the viewport without page scrolling

@@ -258,7 +258,7 @@ io.on("connection", (socket) => {
     }
 
     const newPlayerId = randomUUID();
-    game.players[newPlayerId] = { name, score: 0, streak: 0, socketId: socket.id, connected: true };
+    game.players[newPlayerId] = { playerId: newPlayerId, name, score: 0, streak: 0, socketId: socket.id, connected: true };
     socket.join(`game-${pin}`);
     socket.emit("player:joined", { name, pin, playerId: newPlayerId });
 
@@ -386,7 +386,12 @@ function getPlayerList({ includeDisconnected = true } = {}) {
   if (!game) return [];
   return Object.values(game.players)
     .filter((player) => includeDisconnected || player.connected)
-    .map((player) => ({ name: player.name, score: player.score }))
+    .map((player) => ({
+      playerId: player.playerId,
+      name: player.name,
+      score: player.score,
+      connected: player.connected,
+    }))
     .sort((a, b) => b.score - a.score);
 }
 
