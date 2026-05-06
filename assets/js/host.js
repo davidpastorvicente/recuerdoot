@@ -29,11 +29,18 @@ let scoreboardTransitionTimer = null;
 let backgroundMusicDuckCount = 0;
 let questionCountdownRunning = false;
 let questionCountdownEndCuePlayed = false;
+let audioEndedAction = null;
+let questionAudioAutoplayTimer = null;
 backgroundMusic.volume = BACKGROUND_MUSIC_VOLUME;
 
 function clearScoreboardTransitionTimer() {
   clearTimeout(scoreboardTransitionTimer);
   scoreboardTransitionTimer = null;
+}
+
+function clearQuestionAudioAutoplayTimer() {
+  clearTimeout(questionAudioAutoplayTimer);
+  questionAudioAutoplayTimer = null;
 }
 
 function resetQuestionCountdownCue() {
@@ -102,6 +109,7 @@ function showScreen(id) {
 
 function backToStart() {
   stopAudioPlayback();
+  clearQuestionAudioAutoplayTimer();
   clearInterval(countdownInterval);
   resetQuestionCountdownCue();
   clearStartCountdownTimer();
@@ -185,6 +193,7 @@ function stopMediaWithFade(mediaElement, targetVolume, options = {}) {
 function setPrimaryAudioSource(source) {
   stopAudioPlayback({
     onDone: () => {
+      audioEndedAction = null;
       if (source) {
         audio.src = source;
       } else {
@@ -198,6 +207,7 @@ function setPrimaryAudioSource(source) {
 function stopAudioPlayback(options = {}) {
   const { onDone = null, ...mediaOptions } = options;
   isPlaying = false;
+  audioEndedAction = null;
   setPlayButtonsPlaying(false);
   stopMediaWithFade(audio, AUDIO_VOLUME, {
     ...mediaOptions,
@@ -290,7 +300,10 @@ function setHighlightedQuestionText(element, question) {
 }
 
 audio.addEventListener("ended", () => {
+  const endedAction = audioEndedAction;
+  audioEndedAction = null;
   stopAudioPlayback({ immediate: true });
+  if (endedAction) endedAction();
 });
 
 function startCountdown(seconds, onEnd) {
@@ -337,6 +350,7 @@ function startCountdown(seconds, onEnd) {
 
 function renderQuestion(data) {
   showScreen("question-screen");
+  clearQuestionAudioAutoplayTimer();
   resetQuestionCountdownCue();
   document.getElementById("question-counter").textContent = `Pregunta ${data.index + 1} de ${data.total}`;
   playQuestionBackgroundMusic(data.music);
@@ -832,10 +846,11 @@ function initMultiplayer() {
         const progressRing = document.getElementById("countdown-ring-progress");
         progressRing.style.transition = "none"; progressRing.style.strokeDashoffset = "0";
 
-        setTimeout(() => {
+        questionAudioAutoplayTimer = setTimeout(() => {
+          questionAudioAutoplayTimer = null;
           audio.play(); isPlaying = true;
           document.getElementById("host-play-button").classList.add("playing");
-          audio.onended = () => {
+          audioEndedAction = () => {
             isPlaying = false;
             document.getElementById("host-play-button").classList.remove("playing");
             startCountdown(data.countdownAfter, () => socket.emit("host:timeUp"));
@@ -858,6 +873,7 @@ function initMultiplayer() {
 
     socket.on("host:reveal", (data) => {
       triggerQuestionCountdownEndCue();
+      clearQuestionAudioAutoplayTimer();
       clearInterval(countdownInterval);
       hideStartCountdown();
       stopAudioPlayback();
@@ -883,6 +899,7 @@ function initMultiplayer() {
     });
 
     socket.on("game:end", ({ leaderboard }) => {
+      clearQuestionAudioAutoplayTimer();
       clearInterval(countdownInterval);
       resetQuestionCountdownCue();
       hideStartCountdown();
@@ -906,6 +923,7 @@ function lobbyStart() {
 }
 
 function nextMultiplayerQuestion() {
+  clearQuestionAudioAutoplayTimer();
   if (document.getElementById("reveal-screen").classList.contains("active")) {
     stopAudioPlayback({ immediate: true });
     stopBackgroundMusic({ immediate: true });
