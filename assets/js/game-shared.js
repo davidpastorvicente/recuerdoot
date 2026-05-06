@@ -1,5 +1,17 @@
 (function initGameShared(globalScope) {
   const MONTHS_ES = ["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
+  const APP_NAME = globalScope.RECUERDOOT_CONFIG?.APP_NAME;
+
+  function syncBranding() {
+    if (typeof document === "undefined") return;
+
+    document.querySelectorAll(".brand").forEach((element) => {
+      element.textContent = APP_NAME;
+    });
+
+    const pageTitleSuffix = document.body?.dataset.pageTitleSuffix?.trim();
+    document.title = pageTitleSuffix ? `${APP_NAME} - ${pageTitleSuffix}` : APP_NAME;
+  }
 
   function escapeHtml(value) {
     const stringValue = String(value);
@@ -197,6 +209,7 @@
     playCountdownTick,
     playQuestionEndGong,
     shuffle,
+    syncBranding,
   };
 
   if (typeof module !== "undefined" && module.exports) {
@@ -204,4 +217,6 @@
   }
 
   globalScope.RECUERDOOT_SHARED = shared;
+
+  syncBranding();
 })(typeof globalThis !== "undefined" ? globalThis : window);

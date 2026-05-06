@@ -6,7 +6,7 @@ const fs = require("fs");
 const path = require("path");
 const livereload = require("livereload");
 const connectLivereload = require("connect-livereload");
-const { COUNTDOWN_GAME_START_SECONDS } = require("./assets/js/game-config.js");
+const { APP_NAME, COUNTDOWN_GAME_START_SECONDS } = require("./assets/js/game-config.js");
 const { parseDateParts, shuffle } = require("./assets/js/game-shared.js");
 
 const app = express();
@@ -498,7 +498,7 @@ const PORT = process.env.PORT || 8000;
 server.listen(PORT, "0.0.0.0", () => {
   const localIp = getNetworkIp();
   const publicBaseUrl = process.env.PUBLIC_BASE_URL?.trim();
-  console.log(`\n  Recuerdoot server running!\n`);
+  console.log(`\n  ${APP_NAME} server running!\n`);
   console.log(`  Local:   http://localhost:${PORT}`);
   console.log(`  Network: http://${localIp}:${PORT}\n`);
   if (publicBaseUrl) {
