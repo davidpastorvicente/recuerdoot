@@ -42,7 +42,7 @@ html, body {
 }
 
 body {
-  font-family: var(--font-body);
+  font-family: var(--font-body), system-ui;
   background: var(--bg);
   color: var(--text);
   min-height: 100dvh;
@@ -116,7 +116,7 @@ body::after {
 
 #start-countdown-number {
   position: relative;
-  font-family: var(--font-display);
+  font-family: var(--font-display), system-ui;
   font-size: clamp(5rem, 20vw, 12rem);
   line-height: 0.9;
   color: #ffffff;
@@ -303,7 +303,7 @@ body::after {
 }
 
 #result-modal-status {
-  font-family: var(--font-display);
+  font-family: var(--font-display), system-ui;
   font-size: 1.6rem;
   font-weight: 800;
   text-align: center;
@@ -334,8 +334,9 @@ body::after {
   display: none;
   flex-direction: column;
   align-items: center;
-  gap: 16px;
+  max-height: 50vh;
   width: 100%;
+  gap: 16px;
 }
 
 #result-modal-audio-row {
@@ -385,7 +386,7 @@ body::after {
    ─────────────────────────────────────────────── */
 
 .brand {
-  font-family: var(--font-display);
+  font-family: var(--font-display), system-ui;
   font-size: 3.4rem;
   font-weight: 800;
   letter-spacing: -0.03em;
@@ -401,7 +402,7 @@ body::after {
    ─────────────────────────────────────────────── */
 
 #start-subtitle {
-  font-family: var(--font-display);
+  font-family: var(--font-display), system-ui;
   font-size: 1rem;
   font-weight: 700;
   letter-spacing: 0.12em;
@@ -433,7 +434,7 @@ body::after {
   font-weight: 700;
   cursor: pointer;
   transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s;
-  font-family: var(--font-body);
+  font-family: var(--font-body), system-ui;
   position: relative;
   overflow: hidden;
 }
@@ -485,7 +486,7 @@ body::after {
    ─────────────────────────────────────────────── */
 
 #pin-display {
-  font-family: var(--font-display);
+  font-family: var(--font-display), system-ui;
   font-size: 5rem;
   font-weight: 800;
   letter-spacing: 0.15em;
@@ -641,7 +642,7 @@ body::after {
   border-radius: 999px;
   background: var(--accent);
   color: #fff;
-  font-family: var(--font-display);
+  font-family: var(--font-display), system-ui;
   font-size: 1.5rem;
   font-weight: 800;
   display: flex;
@@ -728,7 +729,7 @@ body::after {
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  font-family: var(--font-display);
+  font-family: var(--font-display), system-ui;
   font-size: 2rem;
   font-weight: 800;
   color: var(--accent);
@@ -851,7 +852,7 @@ body::after {
   display: flex;
   align-items: center;
   gap: 14px;
-  font-family: var(--font-body);
+  font-family: var(--font-body), system-ui;
   opacity: 1;
   cursor: pointer;
   position: relative;
@@ -986,9 +987,10 @@ body::after {
   flex: 0 1 260px;
 }
 
-.reveal-image {
-  max-width: 100%;
+.reveal-element {
+  min-height: 0;
   max-height: 100%;
+  max-width: 100%;
   border-radius: 10px;
   object-fit: contain;
 }
@@ -1190,7 +1192,7 @@ body::after {
    ─────────────────────────────────────────────── */
 
 #final-score {
-  font-family: var(--font-display);
+  font-family: var(--font-display), system-ui;
   font-size: 4rem;
   font-weight: 800;
   background: linear-gradient(135deg, var(--accent), #7fb0ff);
@@ -1217,7 +1219,7 @@ body::after {
 }
 
 #winner-name {
-  font-family: var(--font-display);
+  font-family: var(--font-display), system-ui;
   font-size: 2.8rem;
   font-weight: 800;
   background: linear-gradient(135deg, #82b7ff, #4f8cff);
@@ -1334,7 +1336,7 @@ body::after {
 }
 
 .leaderboard-rank {
-  font-family: var(--font-display);
+  font-family: var(--font-display), system-ui;
   font-size: 1.5rem;
   font-weight: 800;
   margin-right: 1rem;
@@ -1426,14 +1428,11 @@ body.player {
 }
 
 body.player .screen {
+  padding: calc(10px + env(safe-area-inset-top)) 20px calc(10px + env(safe-area-inset-bottom));
   width: min(100%, 420px);
   max-width: 420px;
   height: 100dvh;
   max-height: 100dvh;
-  padding-left: 20px;
-  padding-right: 20px;
-  padding-top: calc(10px + env(safe-area-inset-top));
-  padding-bottom: calc(10px + env(safe-area-inset-bottom));
   overflow: hidden;
 }
 
@@ -1485,7 +1484,7 @@ body.player .button:hover {
   font-size: 1.2rem;
   font-weight: 600;
   text-align: center;
-  font-family: var(--font-body);
+  font-family: var(--font-body), system-ui;
   outline: none;
   transition: border-color 0.2s, box-shadow 0.2s;
 }
@@ -1525,7 +1524,7 @@ body.player .button:hover {
 }
 
 #my-name {
-  font-family: var(--font-display);
+  font-family: var(--font-display), system-ui;
   font-size: 2rem;
   font-weight: 800;
   color: var(--accent);
@@ -1729,7 +1728,7 @@ body.player #player-answer-grid[data-option-count="6"] {
 }
 
 .result-text {
-  font-family: var(--font-display);
+  font-family: var(--font-display), system-ui;
   font-size: 1.5rem;
   font-weight: 800;
   margin-bottom: 8px;
@@ -1742,7 +1741,7 @@ body.player #player-answer-grid[data-option-count="6"] {
 }
 
 #result-rank {
-  font-family: var(--font-display);
+  font-family: var(--font-display), system-ui;
   font-size: 2.4rem;
   font-weight: 800;
   color: var(--accent);
@@ -1756,7 +1755,7 @@ body.player #player-answer-grid[data-option-count="6"] {
 }
 
 #result-score {
-  font-family: var(--font-display);
+  font-family: var(--font-display), system-ui;
   font-size: 2rem;
   font-weight: 800;
   color: var(--accent);
@@ -1782,7 +1781,7 @@ body.player #player-answer-grid[data-option-count="6"] {
    ─────────────────────────────────────────────── */
 
 #end-rank {
-  font-family: var(--font-display);
+  font-family: var(--font-display), system-ui;
   font-size: 5rem;
   font-weight: 800;
   color: var(--accent);

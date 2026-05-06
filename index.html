@@ -80,8 +80,8 @@
         <div id="result-modal-status"></div>
         <div id="result-modal-detail"></div>
         <div id="result-modal-media">
-          <img class="reveal-image" id="reveal-image" style="display:none;" alt="Imagen revelada tras responder">
-          <video class="reveal-image" id="reveal-video" style="display:none;" playsinline preload="metadata" controls aria-label="Video revelado tras responder"></video>
+          <img class="reveal-element" id="reveal-image" style="display:none;" alt="Imagen revelada tras responder">
+          <video class="reveal-element" id="reveal-video" style="display:none;" playsinline preload="metadata" controls aria-label="Video revelado tras responder"></video>
           <div id="result-modal-audio-row" style="display:none;">
             <button class="play-button" id="reveal-play-button" aria-label="Reproducir o pausar audio revelado">
               <svg class="icon-play" width="28" height="28" viewBox="0 0 24 24"><polygon points="6,3 20,12 6,21"/></svg>
@@ -106,8 +106,8 @@
   </div>
   <div id="reveal-body">
     <div id="reveal-media">
-      <img class="reveal-image" id="reveal-media-image" style="display:none;" alt="Imagen revelada de la pregunta">
-      <video class="reveal-image" id="reveal-media-video" style="display:none;" playsinline preload="metadata" controls aria-label="Video revelado de la pregunta"></video>
+      <img class="reveal-element" id="reveal-media-image" style="display:none;" alt="Imagen revelada de la pregunta">
+      <video class="reveal-element" id="reveal-media-video" style="display:none;" playsinline preload="metadata" controls aria-label="Video revelado de la pregunta"></video>
       <button class="play-button" id="reveal-media-play-button" aria-label="Reproducir o pausar audio revelado">
         <svg class="icon-play" width="28" height="28" viewBox="0 0 24 24"><polygon points="6,3 20,12 6,21"/></svg>
         <svg class="icon-pause" width="28" height="28" viewBox="0 0 24 24"><rect x="5" y="3" width="5" height="18" rx="1"/><rect x="14" y="3" width="5" height="18" rx="1"/></svg>
@@ -156,7 +156,7 @@
 <audio id="background-music" loop></audio>
 
 <script src="https://cdn.jsdelivr.net/npm/qrious@4.0.2/dist/qrious.min.js"></script>
-<script src="/socket.io/socket.io.js"></script>
+<script src="socket.io/socket.io.js"></script>
 <script src="assets/js/game-config.js"></script>
 <script src="assets/js/game-shared.js"></script>
 <script src="assets/js/host.js"></script>
