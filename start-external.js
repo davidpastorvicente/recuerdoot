@@ -48,7 +48,6 @@ function startServer(publicBaseUrl) {
 
 function handleCloudflaredOutput(chunk) {
   const text = chunk.toString();
-  process.stderr.write(text);
 
   if (resolved) return;
 

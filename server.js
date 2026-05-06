@@ -498,10 +498,10 @@ const PORT = process.env.PORT || 8000;
 server.listen(PORT, "0.0.0.0", () => {
   const localIp = getNetworkIp();
   const publicBaseUrl = process.env.PUBLIC_BASE_URL?.trim();
-  console.log(`\n  ${APP_NAME} server running!\n`);
+  console.log(`  ${APP_NAME} server running!\n`);
   console.log(`  Local:   http://localhost:${PORT}`);
-  console.log(`  Network: http://${localIp}:${PORT}\n`);
+  console.log(`  Network: http://${localIp}:${PORT}`);
   if (publicBaseUrl) {
-    console.log(`  Public:  ${publicBaseUrl.replace(/\/$/, "")}\n`);
+    console.log(`  Public:  ${publicBaseUrl.replace(/\/$/, "")}`);
   }
 });
