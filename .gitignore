@@ -1,10 +1,13 @@
 node_modules/
 assets/audios/
 assets/images/
+assets/music/
 assets/videos/
 .agents/
 .idea/
 .DS_Store
 *.log
+!assets/music/default.mp3
+!assets/music/waiting.mp3
 skills-lock.json
 questions.json
