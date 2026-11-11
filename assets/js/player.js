@@ -230,7 +230,7 @@ function onMatchUnavailable() {
 }
 
 function onConnectionFailure() {
-  showJoinError("No se ha podido conectar con la partida. Revisa tu conexión e inténtalo de nuevo.");
+  showJoinError("No se ha podido conectar. Revisa tu conexión e inténtalo de nuevo.");
 }
 
 // ========== Host events ==========

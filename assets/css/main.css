@@ -2047,6 +2047,110 @@ button.answer-tile:disabled {
   }
 }
 
+/* Short phone screens (landscape, small phones): compact the player stacks so they fit without scrolling. */
+@media (max-height: 600px) {
+  .screen-phone {
+    padding-top: var(--space-3);
+    padding-bottom: calc(var(--space-3) + env(safe-area-inset-bottom));
+  }
+
+  .phone-stack {
+    gap: var(--space-2);
+  }
+
+  .page-player .headline {
+    font-size: 28px;
+  }
+
+  .form-card {
+    gap: var(--space-3);
+    padding: var(--space-4);
+    margin-top: 0;
+  }
+
+  .page-player .input {
+    height: 44px;
+  }
+
+  .result-icon {
+    width: 48px;
+    height: 48px;
+  }
+
+  .result-stat {
+    gap: var(--space-1);
+    padding: var(--space-2) var(--space-4);
+  }
+
+  .result-rank,
+  .result-score {
+    min-height: 40px;
+    font-size: var(--text-subhead);
+  }
+
+  .result-rank .rank-badge-lg {
+    width: 40px;
+    height: 40px;
+  }
+}
+
+/* Landscape phones: heading beside the form or the stats instead of one tall column. */
+@media (max-height: 500px) and (orientation: landscape) {
+  .page-player .screen-phone:not(.screen-answer) {
+    max-width: 760px;
+  }
+
+  #join-screen .phone-stack,
+  #result-screen .phone-stack {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-auto-flow: row dense;
+    align-content: center;
+    column-gap: var(--space-8);
+  }
+
+  #join-screen .phone-stack > :not(.form-card),
+  #result-screen .phone-stack > :nth-child(-n+3) {
+    grid-column: 1;
+  }
+
+  #join-screen .form-card {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+    gap: var(--space-2);
+  }
+
+  #join-screen .field {
+    gap: var(--space-1);
+  }
+
+  /* Keep the overline and heading together in the middle of the left column. */
+  #join-screen .phone-stack > .overline {
+    align-self: end;
+  }
+
+  #join-screen .phone-stack > .headline {
+    align-self: start;
+  }
+
+  #result-screen .phone-stack > :nth-child(n+4) {
+    grid-column: 2;
+  }
+
+  #result-screen .phone-stack {
+    justify-items: center;
+  }
+
+  /* Icon, heading and points sit in the first three rows; pull them together around the middle one. */
+  #result-screen .result-icon {
+    align-self: end;
+  }
+
+  #result-screen .result-points {
+    align-self: start;
+  }
+}
+
 @media (min-width: 900px) {
   .page-player .screen-answer {
     max-width: 1400px;

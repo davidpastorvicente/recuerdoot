@@ -110,7 +110,7 @@ Answer colours are structural gameplay signals, not decoration, so they are exem
 - Sticky 56px nav with backdrop blur: brand left, question progress centre, context (PIN chip, theme toggle, Salir) right.
 - Host gameplay screens (`.screen-stage`: question, reveal, scoreboard, multiplayer end) use `100dvh - nav` and `overflow: hidden`. When space is tight, shrink internals before overflowing.
 - Question stage: header (overline counter + phase chip + question), body grid `[countdown | media | answer count]`, answer grid.
-- Player screens are a centred single column (max 480px), except the answer grid, which fills the viewport.
+- Player screens are a centred single column (max 480px), except the answer grid, which fills the viewport. On short screens (under 600px tall) the stacks compact their spacing, headline and result card; on landscape phones (under 500px tall) the join and result screens split into two columns (heading left, form or stats right) so every player screen fits without scrolling.
 - Respect safe areas (`viewport-fit=cover` + `env(safe-area-inset-*)`).
 
 ## Elevation
