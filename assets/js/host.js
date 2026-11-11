@@ -1,958 +1,761 @@
-// ========== Shared ==========
-const shapes = [
-  `<svg viewBox="0 0 32 32" width="32" height="32"><polygon points="16,2 2,30 30,30" fill="white"/></svg>`,
-  `<svg viewBox="0 0 32 32" width="32" height="32"><rect x="2" y="2" width="28" height="28" rx="4" fill="white"/></svg>`,
-  `<svg viewBox="0 0 32 32" width="32" height="32"><circle cx="16" cy="16" r="14" fill="white"/></svg>`,
-  `<svg viewBox="0 0 32 32" width="32" height="32"><polygon points="16,2 30,16 16,30 2,16" fill="white"/></svg>`,
-  `<svg viewBox="0 0 32 32" width="32" height="32"><polygon points="16,2 29,12 24,28 8,28 3,12" fill="white"/></svg>`,
-  `<svg viewBox="0 0 32 32" width="32" height="32"><polygon points="2,4 30,4 16,30" fill="white"/></svg>`,
-];
+// Host page: solo mode and multiplayer big screen. Every flow goes through the `host` state machine.
+const CONFIG = globalThis.RECUERDOOT_CONFIG;
+const {
+  ANSWER_SHAPES,
+  createStartCountdownController,
+  escapeHtml,
+  formatQuestionCounter,
+  normalizeQuestion,
+  playCountdownTick,
+  playQuestionEndGong,
+} = globalThis.RECUERDOOT_SHARED;
+const { MACHINES, createStateMachine } = globalThis.RECUERDOOT_STATE_MACHINES;
+const { createMediaController, setMediaSource, stopVideo } = globalThis.RECUERDOOT_MEDIA;
+const LEADERBOARD = globalThis.RECUERDOOT_LEADERBOARD;
+const { showToast } = globalThis.RECUERDOOT_UI;
 
-const AUDIO_VOLUME = 1;
-const BACKGROUND_MUSIC_VOLUME = 0.2;
-const BACKGROUND_MUSIC_DUCKED_VOLUME = 0.08;
-const MEDIA_FADE_OUT_MS = 180;
-const LOBBY_WAITING_MUSIC_SRC = "assets/music/waiting.mp3";
+const $ = (id) => document.getElementById(id);
 
-const audio = document.getElementById("game-audio");
-const backgroundMusic = document.getElementById("background-music");
+const RING_CIRCUMFERENCE = 2 * Math.PI * 44;
+const URGENT_SECONDS = 5;
+const TIME_UP_DELAY_MS = 40;
+const SCOREBOARD_SETTLE_MS = 850;
 
-const mediaFadeState = new WeakMap();
-const { COUNTDOWN_GAME_START_SECONDS, DEFAULT_QUESTION_MUSIC_SRC, LEADERBOARD_DISPLAY_LIMIT } = window.RECUERDOOT_CONFIG;
-const { createStartCountdownController, escapeHtml, parseDateParts, playCountdownTick, playQuestionEndGong, shuffle } = window.RECUERDOOT_SHARED;
-const { clearStartCountdownTimer, showStartCountdown, hideStartCountdown } = createStartCountdownController();
+const SCREEN_BY_STATE = Object.freeze({
+  start: "start-screen",
+  "solo-countdown": null,
+  "solo-question": "question-screen",
+  "solo-feedback": "question-screen",
+  "solo-end": "solo-end-screen",
+  "multi-connecting": "start-screen",
+  "multi-lobby": "lobby-screen",
+  "multi-countdown": "lobby-screen",
+  "multi-reading": "question-screen",
+  "multi-listening": "question-screen",
+  "multi-answering": "question-screen",
+  "multi-reveal": "reveal-screen",
+  "multi-scoreboard": "scoreboard-screen",
+  "multi-end": "multiplayer-end-screen",
+});
+// Entering these states always restarts their screen, even when it is already visible.
+const FRESH_SCREEN_STATES = new Set(["solo-question"]);
+const PHASE_LABEL_BY_STATE = Object.freeze({
+  "multi-reading": "Atentos al audio",
+  "multi-listening": "Escuchando",
+  "multi-answering": "¡A responder!",
+});
+const PROGRESS_STATES = new Set(["solo-question", "solo-feedback", "multi-reading", "multi-listening", "multi-answering", "multi-reveal", "multi-scoreboard"]);
+const EXIT_HIDDEN_STATES = new Set(["start", "multi-connecting", "solo-end", "multi-end"]);
+const AUDIO_QUESTION_STATES = new Set(["multi-reading", "multi-listening"]);
 
-let isPlaying = false;
-let countdownInterval = null;
-let mode = null; // "solo" or "multi"
-let scoreboardTransitionTimer = null;
-let backgroundMusicDuckCount = 0;
-let questionCountdownRunning = false;
-let questionCountdownEndCuePlayed = false;
-let audioEndedAction = null;
-let questionAudioAutoplayTimer = null;
-backgroundMusic.volume = BACKGROUND_MUSIC_VOLUME;
-
-function clearScoreboardTransitionTimer() {
-  clearTimeout(scoreboardTransitionTimer);
-  scoreboardTransitionTimer = null;
-}
-
-function clearQuestionAudioAutoplayTimer() {
-  clearTimeout(questionAudioAutoplayTimer);
-  questionAudioAutoplayTimer = null;
-}
-
-function resetQuestionCountdownCue() {
-  questionCountdownRunning = false;
-  questionCountdownEndCuePlayed = false;
-}
-
-function triggerQuestionCountdownEndCue() {
-  if (mode !== "multi" || questionCountdownEndCuePlayed || !questionCountdownRunning) {
-    return;
-  }
-
-  questionCountdownRunning = false;
-  questionCountdownEndCuePlayed = true;
-  stopBackgroundMusic({ immediate: true });
-  playQuestionEndGong();
-}
-
-function setPlayButtonsPlaying(playing) {
-  document.querySelectorAll(".play-button").forEach((button) => {
-    button.classList.toggle("playing", playing);
-  });
-}
-
-function syncBackgroundMusicVolume() {
-  if (!backgroundMusic.getAttribute("src")) return;
-  backgroundMusic.volume = backgroundMusicDuckCount > 0
-    ? BACKGROUND_MUSIC_DUCKED_VOLUME
-    : BACKGROUND_MUSIC_VOLUME;
-}
-
-function duckBackgroundMusic() {
-  backgroundMusicDuckCount++;
-  syncBackgroundMusicVolume();
-}
-
-function unduckBackgroundMusic() {
-  backgroundMusicDuckCount = Math.max(0, backgroundMusicDuckCount - 1);
-  syncBackgroundMusicVolume();
-}
-
-function bindHostUi() {
-  document.getElementById("start-solo-button").addEventListener("click", initSolo);
-  document.getElementById("start-multiplayer-button").addEventListener("click", initMultiplayer);
-  document.getElementById("lobby-start-button").addEventListener("click", lobbyStart);
-  document.getElementById("host-play-button").addEventListener("click", toggleAudio);
-  document.getElementById("reveal-play-button").addEventListener("click", toggleAudio);
-  document.getElementById("solo-next-button").addEventListener("click", nextQuestion);
-  document.getElementById("reveal-media-play-button").addEventListener("click", toggleAudio);
-  document.getElementById("reveal-next-button").addEventListener("click", nextMultiplayerQuestion);
-  document.getElementById("scoreboard-next-button").addEventListener("click", nextMultiplayerQuestion);
-  document.getElementById("solo-restart-button").addEventListener("click", initSolo);
-  document.getElementById("solo-back-button").addEventListener("click", backToStart);
-  document.getElementById("multiplayer-back-button").addEventListener("click", backToStart);
-}
-
-function showScreen(id) {
-  document.querySelectorAll(".screen").forEach((screen) => screen.classList.remove("active"));
-  document.querySelectorAll("video").forEach((video) => {
-    stopVideoPlayback(video);
-  });
-  stopBackgroundMusic();
-  document.getElementById(id).classList.add("active");
-  document.getElementById(id).scrollTop = 0;
-}
-
-function backToStart() {
-  stopAudioPlayback();
-  clearQuestionAudioAutoplayTimer();
-  clearInterval(countdownInterval);
-  resetQuestionCountdownCue();
-  clearStartCountdownTimer();
-  clearScoreboardTransitionTimer();
-  hideStartCountdown();
-  showScreen("start-screen");
-}
-
-
-function toggleAudio() {
-  if (isPlaying) {
-    stopAudioPlayback();
-  } else {
-    cancelMediaFade(audio, AUDIO_VOLUME);
-    duckBackgroundMusic();
-    audio.volume = AUDIO_VOLUME;
-    audio.play().catch(() => {
-      unduckBackgroundMusic();
+const host = createStateMachine(MACHINES.host);
+const startCountdown = createStartCountdownController();
+const media = createMediaController({
+  foreground: $("game-audio"),
+  music: $("background-music"),
+  volumes: { foreground: 1, music: 0.2, musicDucked: 0.08 },
+  onForegroundChange: (playing) => {
+    document.querySelectorAll(".play-button").forEach((button) => {
+      button.classList.toggle("playing", playing);
+      button.setAttribute("aria-pressed", String(playing));
     });
-    isPlaying = true;
-    setPlayButtonsPlaying(true);
-  }
-}
-
-function cancelMediaFade(mediaElement, targetVolume) {
-  const fade = mediaFadeState.get(mediaElement);
-  if (fade?.frameId) {
-    cancelAnimationFrame(fade.frameId);
-  }
-
-  mediaFadeState.delete(mediaElement);
-  mediaElement.volume = targetVolume;
-}
-
-function stopMediaWithFade(mediaElement, targetVolume, options = {}) {
-  const { onDone = null, resetSource = false, immediate = false } = options;
-
-  cancelMediaFade(mediaElement, targetVolume);
-
-  const finalize = () => {
-    mediaFadeState.delete(mediaElement);
-    mediaElement.pause();
-    mediaElement.currentTime = 0;
-    mediaElement.volume = targetVolume;
-    if (resetSource) {
-      mediaElement.removeAttribute("src");
-      mediaElement.load();
-    }
-    if (onDone) onDone();
-  };
-
-  if (immediate || mediaElement.paused || mediaElement.ended || mediaElement.currentTime === 0) {
-    finalize();
-    return;
-  }
-
-  const fade = {
-    frameId: null,
-    startedAt: performance.now(),
-    startVolume: mediaElement.volume,
-  };
-  mediaFadeState.set(mediaElement, fade);
-
-  const step = (now) => {
-    if (mediaFadeState.get(mediaElement) !== fade) return;
-
-    const progress = Math.min((now - fade.startedAt) / MEDIA_FADE_OUT_MS, 1);
-    mediaElement.volume = fade.startVolume * (1 - progress);
-
-    if (progress < 1) {
-      fade.frameId = requestAnimationFrame(step);
-      return;
-    }
-
-    finalize();
-  };
-
-  fade.frameId = requestAnimationFrame(step);
-}
-
-function setPrimaryAudioSource(source) {
-  stopAudioPlayback({
-    onDone: () => {
-      audioEndedAction = null;
-      if (source) {
-        audio.src = source;
-      } else {
-        audio.removeAttribute("src");
-      }
-      audio.load();
-    },
-  });
-}
-
-function stopAudioPlayback(options = {}) {
-  const { onDone = null, ...mediaOptions } = options;
-  isPlaying = false;
-  audioEndedAction = null;
-  setPlayButtonsPlaying(false);
-  stopMediaWithFade(audio, AUDIO_VOLUME, {
-    ...mediaOptions,
-    onDone: () => {
-      unduckBackgroundMusic();
-      if (onDone) onDone();
-    },
-  });
-}
-
-function playBackgroundMusic(source) {
-  if (!source) {
-    stopBackgroundMusic();
-    return;
-  }
-
-  if (backgroundMusic.getAttribute("src") === source) {
-    cancelMediaFade(backgroundMusic, BACKGROUND_MUSIC_VOLUME);
-    backgroundMusic.loop = true;
-    syncBackgroundMusicVolume();
-    if (backgroundMusic.paused) {
-      backgroundMusic.play().catch(() => {});
-    }
-    return;
-  }
-
-  stopMediaWithFade(backgroundMusic, BACKGROUND_MUSIC_VOLUME, {
-    onDone: () => {
-      backgroundMusic.src = source;
-      backgroundMusic.loop = true;
-      backgroundMusic.load();
-      backgroundMusic.currentTime = 0;
-      syncBackgroundMusicVolume();
-      backgroundMusic.play().catch(() => {});
-    },
-  });
-}
-
-function playQuestionBackgroundMusic(source) {
-  playBackgroundMusic(source || DEFAULT_QUESTION_MUSIC_SRC);
-}
-
-function stopBackgroundMusic(options = {}) {
-  backgroundMusicDuckCount = 0;
-  stopMediaWithFade(backgroundMusic, BACKGROUND_MUSIC_VOLUME, { resetSource: true, ...options });
-}
-
-function stopVideoPlayback(video) {
-  video.pause();
-  video.currentTime = 0;
-}
-
-function setMediaElementSource(element, source) {
-  const isVideo = element.tagName === "VIDEO";
-
-  if (source) {
-    element.src = source;
-    element.style.display = "";
-    if (isVideo) {
-      element.load();
-    }
-    return;
-  }
-
-  if (isVideo) {
-    element.pause();
-  }
-  element.removeAttribute("src");
-  if (isVideo) {
-    element.load();
-  }
-  element.style.display = "none";
-}
-
-function formatSoloCounter() {
-  return `Pregunta ${soloCurrent + 1} de ${soloQuestions.length}`;
-}
-
-function setHighlightedQuestionText(element, question) {
-  const quoteMatch = question.match(/"([^"]+)"/);
-  if (!quoteMatch) {
-    element.textContent = question;
-    return;
-  }
-
-  element.innerHTML = question.replace(
-    `"${quoteMatch[1]}"`,
-    `<span class="quote text-highlight-success">${quoteMatch[1]}</span>`
-  );
-}
-
-audio.addEventListener("ended", () => {
-  const endedAction = audioEndedAction;
-  audioEndedAction = null;
-  stopAudioPlayback({ immediate: true });
-  if (endedAction) endedAction();
+  },
 });
 
-function startCountdown(seconds, onEnd) {
-  let remaining = seconds;
-  if (mode === "multi") {
-    questionCountdownRunning = true;
-    questionCountdownEndCuePlayed = false;
-  }
-  const circumference = 2 * Math.PI * 44;
-  const progressRing = document.getElementById("countdown-ring-progress");
-  const num = document.getElementById("countdown-number");
-  const container = document.getElementById("countdown-container");
-  progressRing.style.transition = "none";
-  progressRing.style.strokeDashoffset = "0";
-  num.textContent = remaining;
-  container.classList.toggle("urgent", remaining <= 5);
-  if (mode === "multi" && remaining <= 5) {
-    playCountdownTick(remaining);
-  }
-  progressRing.getBoundingClientRect();
-  progressRing.style.transition = `stroke-dashoffset ${seconds}s linear`;
-  progressRing.style.strokeDashoffset = circumference;
+const solo = { questions: [], index: 0, score: 0, current: null };
+const multi = {
+  socket: null,
+  pin: null,
+  question: null,
+  players: [],
+  previousLeaderboard: [],
+  revealLeaderboard: [],
+  currentLeaderboard: [],
+  startRequested: false,
+  autoplayTimer: null,
+  scoreboardTimer: null,
+};
+let activeScreenId = "start-screen";
+let progress = null;
 
-  clearInterval(countdownInterval);
-  countdownInterval = setInterval(() => {
-    remaining--;
-    if (remaining <= 0) {
-      clearInterval(countdownInterval);
-      num.textContent = "0";
-      container.classList.add("urgent");
-      triggerQuestionCountdownEndCue();
-      if (onEnd) {
-        setTimeout(onEnd, mode === "multi" ? 40 : 0);
-      }
-      return;
-    }
-    num.textContent = remaining;
-    container.classList.toggle("urgent", remaining <= 5);
-    if (mode === "multi" && remaining <= 5) {
-      playCountdownTick(remaining);
-    }
-  }, 1000);
-}
+const modeOf = (state) => {
+  if (state.startsWith("solo-")) return "solo";
+  if (state.startsWith("multi-")) return "multi";
+  return "idle";
+};
+const isMultiInProgress = () => modeOf(host.state) === "multi" && !host.is("multi-end");
 
-function renderQuestion(data) {
-  showScreen("question-screen");
-  clearQuestionAudioAutoplayTimer();
-  resetQuestionCountdownCue();
-  document.getElementById("question-counter").textContent = `Pregunta ${data.index + 1} de ${data.total}`;
-  playQuestionBackgroundMusic(data.music);
+// ========== Screens & chrome ==========
 
-  // Visual media
-  const questionImage = document.getElementById("question-image");
-  const questionVideo = document.getElementById("question-video");
-  questionImage.alt = "Imagen de la pregunta";
-  setMediaElementSource(questionImage, data.image);
-  setMediaElementSource(questionVideo, data.video);
-
-  setHighlightedQuestionText(document.getElementById("question-text"), data.question);
-
-  // Audio area
-  const audioArea = document.getElementById("host-audio-area");
-  if (data.audioBefore && data.audioSrc) {
-    audioArea.style.display = "";
-    setPrimaryAudioSource(data.audioSrc);
-    isPlaying = false;
-    document.getElementById("host-play-button").classList.remove("playing");
-  } else {
-    audioArea.style.display = "none";
-  }
-
-  // Options
-  const tiles = document.getElementById("stage-answer-grid");
-  tiles.dataset.optionCount = String(data.options.length);
-  tiles.innerHTML = data.options.map((opt, i) =>
-    `<button class="answer-choice stage-answer" data-value="${escapeHtml(opt)}"><span class="shape">${shapes[i]}</span>${escapeHtml(opt)}</button>`
-  ).join("");
-
-  // Hide post-answer stuff
-  document.getElementById("result-modal").classList.remove("show");
-  document.getElementById("countdown-container").style.display = "";
-
-  // Answer count: show only in multiplayer
-  const answerCountEl = document.getElementById("answer-count");
-  if (mode === "multi") {
-    answerCountEl.classList.add("show");
-    document.getElementById("answer-count-number").textContent = `0/${data.totalPlayers}`;
-  } else {
-    answerCountEl.classList.remove("show");
-  }
-
-  return tiles;
-}
-
-function cloneLeaderboard(list) {
-  return list.map((player) => ({ ...player }));
-}
-
-function getLeaderboardMovement(previousList, nextList) {
-  const previousRanks = new Map(previousList.map((player, index) => [player.name, index]));
-
-  return new Map(nextList.map((player, index) => {
-    const previousRank = previousRanks.get(player.name);
-    if (previousRank === undefined) return [player.name, { direction: "new", places: 0 }];
-    if (previousRank > index) return [player.name, { direction: "up", places: previousRank - index }];
-    if (previousRank < index) return [player.name, { direction: "down", places: index - previousRank }];
-    return [player.name, { direction: "same", places: 0 }];
-  }));
-}
-
-function buildLeaderboardMovementBadge(movement) {
-  if (!movement || movement.direction === "same") {
-    return '<span class="leaderboard-movement leaderboard-movement-idle"></span>';
-  }
-
-  if (movement.direction === "new") {
-    return '<span class="leaderboard-movement leaderboard-movement-new">NUEVO</span>';
-  }
-
-  const label = movement.direction === "up" ? "▲" : "▼";
-  const movementClass = movement.direction === "up" ? "leaderboard-movement-up" : "leaderboard-movement-down";
-  return `<span class="leaderboard-movement ${movementClass}">${label} ${movement.places}</span>`;
-}
-
-function buildLeaderboardRow(player, rank, movement = null) {
-  return `<span class="leaderboard-rank">${rank}</span>
-    <span class="leaderboard-name">${escapeHtml(player.name)}</span>
-    ${buildLeaderboardMovementBadge(movement)}
-    <span class="leaderboard-score" data-score="${player.score}">${player.score}</span>`;
-}
-
-function animateLeaderboardScores(container, previousList, nextList) {
-  const previousScores = new Map(previousList.map((player) => [player.name, player.score]));
-
-  nextList.forEach((player) => {
-    const row = container.querySelector(`.leaderboard-row[data-player-name="${CSS.escape(player.name)}"]`);
-    const scoreEl = row?.querySelector(".leaderboard-score");
-    if (!scoreEl) return;
-
-    const startScore = previousScores.get(player.name) ?? 0;
-    const endScore = player.score;
-
-    scoreEl.textContent = String(startScore);
-    if (startScore === endScore) {
-      scoreEl.dataset.score = String(endScore);
-      return;
-    }
-
-    const scoreAnimation = scoreEl.animate(
-      [
-        { opacity: 0.85, transform: "scale(0.98)" },
-        { opacity: 1, transform: "scale(1)" },
-      ],
-      {
-        duration: 2000,
-        easing: "linear",
-        fill: "both",
-      }
-    );
-
-    const startedAt = performance.now();
-    const step = (now) => {
-      const progress = Math.min((now - startedAt) / 2000, 1);
-      const currentScore = Math.round(startScore + ((endScore - startScore) * progress));
-      scoreEl.textContent = String(currentScore);
-
-      if (progress < 1) {
-        requestAnimationFrame(step);
-        return;
-      }
-
-      scoreEl.textContent = String(endScore);
-      scoreEl.dataset.score = String(endScore);
-      scoreAnimation.cancel();
-    };
-
-    requestAnimationFrame(step);
+function showScreen(screenId) {
+  document.querySelectorAll(".screen").forEach((screen) => {
+    screen.hidden = screen.id !== screenId;
   });
+  document.querySelectorAll("video").forEach(stopVideo);
+  media.stopMusic();
+  activeScreenId = screenId;
+  $(screenId).scrollTop = 0;
 }
 
-function renderLeaderboard(containerId, list, options = {}) {
-  const { movementMap = new Map() } = options;
-  const container = document.getElementById(containerId);
-  const visibleList = list.slice(0, LEADERBOARD_DISPLAY_LIMIT);
+function renderNav() {
+  const state = host.state;
+  const showProgress = PROGRESS_STATES.has(state) && progress;
+  $("nav-progress").hidden = !showProgress;
+  if (showProgress) {
+    $("nav-progress-label").textContent = formatQuestionCounter(progress.index, progress.total);
+    $("nav-progress-fill").style.width = `${((progress.index + 1) / progress.total) * 100}%`;
+  }
 
-  if (containerId !== "scoreboard-leaderboard") {
-    container.innerHTML = visibleList.map((player, i) =>
-      `<div class="leaderboard-row leaderboard-row-appear" style="animation-delay:${i * 0.08}s">${buildLeaderboardRow(player, i + 1, movementMap.get(player.name))}</div>`
-    ).join("");
+  $("nav-pin-chip").hidden = !(isMultiInProgress() && multi.pin);
+  $("nav-pin").textContent = multi.pin ?? "";
+  $("exit-button").hidden = EXIT_HIDDEN_STATES.has(state);
+}
+
+function renderStartScreen() {
+  const connecting = host.is("multi-connecting");
+  const button = $("start-multiplayer-button");
+  button.disabled = connecting;
+  button.setAttribute("aria-busy", String(connecting));
+  button.textContent = connecting ? "Creando partida…" : "Multijugador";
+  $("start-solo-button").disabled = connecting;
+}
+
+function renderPhaseChip() {
+  const label = PHASE_LABEL_BY_STATE[host.state];
+  const chip = $("question-phase");
+  chip.hidden = !label;
+  chip.textContent = label ?? "";
+  chip.dataset.phase = host.state;
+}
+
+host.subscribe(({ from, to }) => {
+  document.body.dataset.state = to;
+  document.body.dataset.mode = modeOf(to);
+
+  const screenId = SCREEN_BY_STATE[to];
+  if (screenId && (screenId !== activeScreenId || (from !== to && FRESH_SCREEN_STATES.has(to)))) {
+    showScreen(screenId);
+  }
+  if (AUDIO_QUESTION_STATES.has(from) && !AUDIO_QUESTION_STATES.has(to)) {
+    clearAutoplayTimer();
+  }
+  if (from === "multi-scoreboard" && to !== from) {
+    clearScoreboardTimer();
+  }
+  if (from === "solo-feedback" && to !== from) {
+    $("result-modal").hidden = true;
+  }
+
+  renderStartScreen();
+  renderPhaseChip();
+  renderNav();
+});
+
+function setQuestionText(element, text) {
+  const quoteMatch = /"([^"]+)"/.exec(text);
+  if (!quoteMatch) {
+    element.textContent = text;
     return;
   }
 
-  const existingRows = new Map(
-    Array.from(container.querySelectorAll(".leaderboard-row")).map((row) => [row.dataset.playerName, row])
+  const highlight = document.createElement("mark");
+  highlight.className = "quote";
+  highlight.textContent = quoteMatch[1];
+  element.replaceChildren(
+    text.slice(0, quoteMatch.index),
+    highlight,
+    text.slice(quoteMatch.index + quoteMatch[0].length)
   );
-  const previousTop = new Map(
-    Array.from(existingRows.values()).map((row) => [row.dataset.playerName, row.getBoundingClientRect().top])
-  );
-  const orderedRows = [];
-
-  visibleList.forEach((player, i) => {
-    let row = existingRows.get(player.name);
-
-    if (!row) {
-      row = document.createElement("div");
-      row.className = "leaderboard-row leaderboard-row-enter";
-      row.dataset.playerName = player.name;
-    }
-
-    row.innerHTML = buildLeaderboardRow(player, i + 1, movementMap.get(player.name));
-    row.classList.toggle("leaderboard-row-moved", previousTop.has(player.name) && visibleList.length > 1);
-    row.classList.toggle("leaderboard-row-up", movementMap.get(player.name)?.direction === "up");
-    row.classList.toggle("leaderboard-row-down", movementMap.get(player.name)?.direction === "down");
-    orderedRows.push(row);
-  });
-
-  container.replaceChildren(...orderedRows);
-
-  requestAnimationFrame(() => {
-    orderedRows.forEach((row) => {
-      const previousRowTop = previousTop.get(row.dataset.playerName);
-      if (previousRowTop === undefined) {
-        row.classList.add("leaderboard-row-enter-active");
-        return;
-      }
-
-      const currentTop = row.getBoundingClientRect().top;
-      const deltaY = previousRowTop - currentTop;
-
-      if (Math.abs(deltaY) < 1) {
-        row.classList.remove("leaderboard-row-moved");
-        return;
-      }
-
-      row.getAnimations().forEach((animation) => animation.cancel());
-      row.animate(
-        [
-          { transform: `translateY(${deltaY}px)` },
-          { transform: "translateY(0)" },
-        ],
-        {
-          duration: 2000,
-          easing: "cubic-bezier(0.22, 1, 0.36, 1)",
-          fill: "both",
-        }
-      );
-    });
-  });
 }
 
-function showScoreboardTransition(previousList, nextList) {
-  const scoreboardButton = document.getElementById("scoreboard-next-button");
-  const scoreboardLeaderboard = document.getElementById("scoreboard-leaderboard");
-  const hasPreviousLeaderboard = previousList.length > 0;
-  const previousLeaderboard = hasPreviousLeaderboard ? cloneLeaderboard(previousList) : cloneLeaderboard(nextList);
-  const nextLeaderboard = cloneLeaderboard(nextList);
-  const movementMap = hasPreviousLeaderboard ? getLeaderboardMovement(previousLeaderboard, nextLeaderboard) : new Map();
+function setButtonLabel(button, label) {
+  button.querySelector(".button-label").textContent = label;
+}
 
-  clearScoreboardTransitionTimer();
-  showScreen("scoreboard-screen");
-  scoreboardButton.disabled = true;
-  renderLeaderboard("scoreboard-leaderboard", previousLeaderboard);
+// ========== Question countdown (idle -> running -> finished) ==========
 
-  if (!hasPreviousLeaderboard) {
-    scoreboardButton.disabled = false;
-    return;
+const questionTimer = (() => {
+  const ring = $("countdown-ring-progress");
+  const number = $("countdown-number");
+  const container = $("countdown");
+  let interval = null;
+  let state = "idle";
+
+  function render(remaining) {
+    number.textContent = String(remaining);
+    container.classList.toggle("is-urgent", remaining <= URGENT_SECONDS);
   }
 
-  scoreboardTransitionTimer = setTimeout(() => {
-    renderLeaderboard("scoreboard-leaderboard", nextLeaderboard, { movementMap });
-    animateLeaderboardScores(scoreboardLeaderboard, previousLeaderboard, nextLeaderboard);
-    scoreboardButton.disabled = false;
-  }, 850);
-}
+  function stop() {
+    clearInterval(interval);
+    interval = null;
+    state = "idle";
+  }
 
-function renderRevealChart(revealData) {
-  const revealChart = document.getElementById("reveal-chart");
-  revealChart.dataset.optionCount = String(multiplayerCurrentQuestion.options.length);
-  const maxCount = Math.max(1, ...multiplayerCurrentQuestion.options.map((option) => revealData.optionCounts[option] || 0));
-  revealChart.innerHTML = multiplayerCurrentQuestion.options.map((option, i) => {
-    const count = revealData.optionCounts[option] || 0;
-    const isCorrect = option === revealData.correct;
-    const heightPercent = count > 0 ? Math.max(10, (count / maxCount) * 100) : 4;
+  function prime(seconds) {
+    stop();
+    ring.style.transition = "none";
+    ring.style.strokeDashoffset = "0";
+    render(seconds);
+  }
 
-    return `<div class="bar-col">
-      <div class="bar-check ${isCorrect ? "" : "hidden"}">${isCorrect ? "\u2714" : ""}</div>
-      <div class="bar-count">${count}</div>
-      <div class="bar-track">
-        <div class="bar-fill c${i} ${isCorrect ? "" : "dim-bar"}" style="height:${heightPercent}%"></div>
-      </div>
-      <div class="bar-base c${i}">${shapes[i]} ${escapeHtml(option)}</div>
-    </div>`;
+  /** Plays the end gong once, whether time ran out or the round ended early. */
+  function finish() {
+    if (state !== "running") return;
+    clearInterval(interval);
+    interval = null;
+    state = "finished";
+    media.stopMusic({ immediate: true });
+    playQuestionEndGong();
+  }
+
+  function cue(remaining) {
+    if (remaining <= URGENT_SECONDS) playCountdownTick(remaining);
+  }
+
+  function start(seconds, onEnd) {
+    prime(seconds);
+    state = "running";
+    cue(seconds);
+    ring.getBoundingClientRect();
+    ring.style.transition = `stroke-dashoffset ${seconds}s linear`;
+    ring.style.strokeDashoffset = String(RING_CIRCUMFERENCE);
+
+    let remaining = seconds;
+    interval = setInterval(() => {
+      remaining -= 1;
+      render(Math.max(remaining, 0));
+      if (remaining > 0) {
+        cue(remaining);
+        return;
+      }
+      finish();
+      setTimeout(onEnd, TIME_UP_DELAY_MS);
+    }, 1000);
+  }
+
+  return { finish, prime, start, stop };
+})();
+
+// ========== Shared rendering ==========
+
+function renderAnswerTiles(options, { interactive }) {
+  const grid = $("stage-answer-grid");
+  grid.dataset.optionCount = String(options.length);
+  grid.innerHTML = options.map((option, index) => {
+    const label = escapeHtml(option);
+    const content = `<span class="answer-shape">${ANSWER_SHAPES[index]}</span><span class="answer-label">${label}</span>`;
+    if (!interactive) {
+      return `<div class="answer-tile option-${index}">${content}</div>`;
+    }
+    const shortcut = `<kbd class="kbd answer-key">${index + 1}</kbd>`;
+    return `<button type="button" class="answer-tile option-${index}" data-value="${label}">${content}${shortcut}</button>`;
   }).join("");
 }
 
-function updateRevealMedia(revealData) {
-  const revealMedia = document.getElementById("reveal-media");
-  const revealImage = document.getElementById("reveal-media-image");
-  const revealVideo = document.getElementById("reveal-media-video");
-  const revealPlayButton = document.getElementById("reveal-media-play-button");
-  const revealMediaLabel = document.getElementById("reveal-media-label");
-  const hasRevealImage = !!revealData.afterImage;
-  const hasRevealVideo = !!revealData.afterVideo;
-  const hasRevealAudio = !!revealData.afterAudio;
+function renderQuestion(data, { mode }) {
+  progress = { index: data.index, total: data.total };
+  $("question-counter").textContent = formatQuestionCounter(data.index, data.total);
+  setQuestionText($("question-text"), data.question);
 
-  playBackgroundMusic(revealData.afterMusic);
+  const hasAudio = data.audioBefore && Boolean(data.before.audio);
+  setMediaSource($("question-image"), data.before.image);
+  setMediaSource($("question-video"), data.before.video);
+  $("host-audio-area").hidden = !hasAudio;
+  $("question-media").hidden = !(data.before.image || data.before.video || hasAudio);
+  media.loadForeground(hasAudio ? data.before.audio : null);
+  media.playMusic(data.before.music || CONFIG.DEFAULT_QUESTION_MUSIC_SRC);
 
-  revealImage.alt = "Imagen revelada de la pregunta";
-  setMediaElementSource(revealImage, revealData.afterImage);
-  setMediaElementSource(revealVideo, revealData.afterVideo);
-
-  revealMedia.classList.toggle("show", hasRevealImage || hasRevealVideo || hasRevealAudio);
-  revealMedia.classList.toggle("has-image", hasRevealImage || hasRevealVideo);
-  revealMedia.classList.toggle("has-audio", hasRevealAudio);
-
-  if (hasRevealAudio) {
-    revealPlayButton.style.display = "";
-    setPrimaryAudioSource(revealData.afterAudio);
-    isPlaying = false;
-    revealPlayButton.classList.remove("playing");
-    revealMediaLabel.innerHTML = revealData.date || "";
-    revealMediaLabel.style.display = revealData.date ? "block" : "none";
-    return;
-  }
-
-  revealPlayButton.style.display = "none";
-  revealMediaLabel.innerHTML = "";
-  revealMediaLabel.style.display = "none";
+  renderAnswerTiles(data.options, { interactive: mode === "solo" });
+  $("countdown").hidden = mode !== "multi";
+  $("answer-count").hidden = mode !== "multi";
+  $("answer-count-number").textContent = `0/${data.totalPlayers ?? 0}`;
+  renderNav();
 }
 
-// ========== SOLO MODE ==========
-let soloQuestions = [];
-let soloCurrent = 0, soloScore = 0, soloCurrentQuestion = null, soloAnswered = false;
+/** Fills a "gallery frame" with the media revealed after answering. */
+function renderRevealMedia({ frame, image, video, audioRow, label }, { after, date }) {
+  const hasVisual = Boolean(after.image || after.video);
+  const hasAudio = Boolean(after.audio);
 
-function buildSoloQuestion(entry) {
-  const before = entry.before || {};
-  const after = entry.after || {};
-  const audioBefore = !!before.audio;
-  const audioFile = before.audio || after.audio;
-  return {
-    question: entry.question,
-    options: shuffle([entry.answers.right, ...entry.answers.wrong]),
-    correct: entry.answers.right,
-    audioBefore,
-    audioFile: audioFile ? `assets/audios/${audioFile}` : null,
-    afterAudio: after.audio ? `assets/audios/${after.audio}` : null,
-    afterImage: after.image ? `assets/images/${after.image}` : null,
-    afterMusic: after.music ? `assets/music/${after.music}` : null,
-    afterVideo: after.video ? `assets/videos/${after.video}` : null,
-    image: before.image ? `assets/images/${before.image}` : null,
-    music: before.music ? `assets/music/${before.music}` : null,
-    video: before.video ? `assets/videos/${before.video}` : null,
-  };
+  setMediaSource(image, after.image);
+  setMediaSource(video, after.video);
+  frame.hidden = !(hasVisual || hasAudio);
+  frame.classList.toggle("has-visual", hasVisual);
+  audioRow.hidden = !hasAudio;
+  label.textContent = hasAudio && date ? date : "";
+  label.hidden = !label.textContent;
+  media.loadForeground(after.audio);
 }
 
-async function initSolo() {
-  mode = "solo";
-  hideStartCountdown();
-  if (!soloQuestions.length) {
-    const resp = await fetch("questions.json");
-    soloQuestions = await resp.json();
+// ========== Solo mode ==========
+
+async function loadQuestionsFile() {
+  if (solo.questions.length > 0) return solo.questions;
+
+  const response = await fetch("questions.json");
+  if (!response.ok) {
+    throw new Error(`questions.json responded ${response.status}`);
   }
-  soloCurrent = 0; soloScore = 0;
-  showStartCountdown(COUNTDOWN_GAME_START_SECONDS, {
-    onEnd: () => {
-    soloLoadRound();
-    },
+  solo.questions = await response.json();
+  return solo.questions;
+}
+
+function startSolo() {
+  if (!host.is("start", "solo-end")) return;
+
+  loadQuestionsFile().then(() => {
+    if (!host.is("start", "solo-end")) return;
+    Object.assign(solo, { index: 0, score: 0, current: null });
+    host.transition("solo-countdown");
+    startCountdown.showStartCountdown(CONFIG.COUNTDOWN_GAME_START_SECONDS, { onEnd: soloLoadRound });
+  }, () => {
+    showToast("No se han podido cargar las preguntas. Revisa questions.json.", { tone: "error" });
   });
 }
 
 function soloLoadRound() {
-  soloAnswered = false;
-  const entry = soloQuestions[soloCurrent];
-  soloCurrentQuestion = buildSoloQuestion(entry);
+  solo.current = normalizeQuestion(solo.questions[solo.index]);
+  if (!host.transition("solo-question")) return;
+  renderQuestion({ ...solo.current, index: solo.index, total: solo.questions.length }, { mode: "solo" });
+}
 
-  const audioSrc = soloCurrentQuestion.audioFile;
-
-  const data = {
-    index: soloCurrent, total: soloQuestions.length,
-    question: soloCurrentQuestion.question,
-    options: soloCurrentQuestion.options, audioBefore: soloCurrentQuestion.audioBefore,
-    audioSrc, image: soloCurrentQuestion.image, music: soloCurrentQuestion.music, video: soloCurrentQuestion.video,
-  };
-
-  document.getElementById("question-counter").textContent = formatSoloCounter();
-  const tiles = renderQuestion(data);
-
-  // No countdown in solo mode
-  document.getElementById("countdown-container").style.display = "none";
-
-  // Bind click handlers for solo
-  tiles.querySelectorAll(".stage-answer").forEach((button) => {
-    button.onclick = () => soloAnswer(button.dataset.value);
+function markSoloTiles(correct, selected) {
+  $("stage-answer-grid").querySelectorAll(".answer-tile").forEach((tile) => {
+    const value = tile.dataset.value;
+    tile.disabled = true;
+    tile.classList.toggle("is-correct", value === correct);
+    tile.classList.toggle("is-wrong", value === selected && selected !== correct);
+    tile.classList.toggle("is-dimmed", value !== correct && value !== selected);
   });
-
 }
 
 function soloAnswer(selected) {
-  if (soloAnswered) return;
-  soloAnswered = true;
-  const correct = soloCurrentQuestion.correct;
+  if (!host.is("solo-question")) return;
+  host.transition("solo-feedback");
 
-  document.querySelectorAll(".stage-answer").forEach((answerButton) => {
-    answerButton.disabled = true;
-    if (answerButton.dataset.value === correct) answerButton.classList.add("answer-correct");
-    else answerButton.classList.add("dim");
-    if (answerButton.dataset.value === selected && selected !== correct) {
-      answerButton.classList.remove("dim");
-      answerButton.classList.add("answer-wrong");
-    }
-  });
+  const { correct, after, date } = solo.current;
+  const isCorrect = selected === correct;
+  if (isCorrect) solo.score += 1;
+  markSoloTiles(correct, selected);
 
-  const statusEl = document.getElementById("result-modal-status");
-  const detailEl = document.getElementById("result-modal-detail");
-  if (selected === correct) {
-    soloScore++;
-    statusEl.className = "correct";
-    statusEl.textContent = "¡Correcto!";
-    detailEl.style.display = "none";
-    detailEl.textContent = "";
-    detailEl.innerHTML = "";
-  } else {
-    statusEl.className = "wrong";
-    statusEl.textContent = "¡Incorrecto!";
-    detailEl.style.display = "block";
-    detailEl.innerHTML = `La respuesta correcta era <span class="text-highlight-success">${escapeHtml(correct)}</span>`;
-  }
-  document.getElementById("question-counter").textContent = formatSoloCounter();
+  const status = $("result-modal-status");
+  status.textContent = isCorrect ? "¡Correcto!" : "¡Incorrecto!";
+  status.dataset.result = isCorrect ? "correct" : "wrong";
+  const detail = $("result-modal-detail");
+  detail.hidden = isCorrect;
+  detail.innerHTML = isCorrect ? "" : `La respuesta correcta era <strong class="text-success">${escapeHtml(correct)}</strong>`;
 
-  // Show after media in modal
-  const revealImg = document.getElementById("reveal-image");
-  const revealVideo = document.getElementById("reveal-video");
-  const mediaEl = document.getElementById("result-modal-media");
-  const audioRow = document.getElementById("result-modal-audio-row");
-  const hasAfterImage = !!soloCurrentQuestion.afterImage;
-  const hasAfterVideo = !!soloCurrentQuestion.afterVideo;
-  const hasAfterAudio = !!soloCurrentQuestion.afterAudio;
+  media.playMusic(after.music);
+  renderRevealMedia({
+    frame: $("result-modal-media"),
+    image: $("reveal-image"),
+    video: $("reveal-video"),
+    audioRow: $("result-modal-audio-row"),
+    label: $("reveal-label"),
+  }, { after, date });
 
-  playBackgroundMusic(soloCurrentQuestion.afterMusic);
-  mediaEl.style.display = hasAfterImage || hasAfterVideo || hasAfterAudio ? "flex" : "none";
-  revealImg.alt = "Imagen revelada tras responder";
-  setMediaElementSource(revealImg, soloCurrentQuestion.afterImage);
-  setMediaElementSource(revealVideo, soloCurrentQuestion.afterVideo);
-  if (hasAfterAudio) {
-    setPrimaryAudioSource(soloCurrentQuestion.afterAudio);
-    document.getElementById("reveal-play-button").style.display = "";
-    const entry = soloQuestions[soloCurrent];
-    const { date } = parseDateParts(entry.after.audio);
-    document.getElementById("reveal-label").innerHTML = `${date}`;
-    audioRow.style.display = "";
-  } else {
-    document.getElementById("reveal-play-button").style.display = "none";
-    document.getElementById("reveal-label").innerHTML = "";
-    audioRow.style.display = "none";
-  }
-
-  document.getElementById("solo-next-button").textContent =
-    soloCurrent < soloQuestions.length - 1 ? "Siguiente" : "Ver resultado";
-  document.getElementById("result-modal").classList.add("show");
+  setButtonLabel($("solo-next-button"), solo.index < solo.questions.length - 1 ? "Siguiente" : "Ver resultado");
+  $("result-modal").hidden = false;
+  $("solo-next-button").focus();
 }
 
-function nextQuestion() {
-  if (mode === "solo") {
-    stopAudioPlayback();
-    soloCurrent++;
-    if (soloCurrent >= soloQuestions.length) soloEnd();
-    else soloLoadRound();
-  }
+function soloEndMessage(ratio) {
+  if (ratio === 1) return "Memoria perfecta. Conocéis a vuestras amigas mejor que nadie.";
+  if (ratio >= 0.75) return "¡Muy bien! Casi acertáis todas.";
+  if (ratio >= 0.5) return "No está mal, ¡pero hay que repasar esos audios!";
+  return "Uy… ¡toca volver a escuchar esos audios!";
 }
 
-function soloEnd() {
-  showScreen("solo-end-screen");
-  const total = soloQuestions.length;
-  document.getElementById("final-score").textContent = `${soloScore} / ${total}`;
-  const pct = soloScore / total;
-  let msg;
-  if (pct === 1) msg = "Memoria perfecta. Conocéis a vuestras amigas mejor que nadie.";
-  else if (pct >= 0.75) msg = "¡Muy bien! Casi acertáis todas.";
-  else if (pct >= 0.5) msg = "No está mal, ¡pero hay que repasar esos audios!";
-  else msg = "Uy... ¡toca volver a escuchar esos audios!";
-  document.getElementById("end-message").textContent = msg;
-}
+function soloNext() {
+  if (!host.is("solo-feedback")) return;
 
-// ========== MULTIPLAYER MODE ==========
-let socket = null;
-let multiplayerCurrentQuestion = null;
-let multiplayerRevealLeaderboard = [];
-let multiplayerPreviousLeaderboard = [];
-let multiplayerCurrentLeaderboard = [];
-let multiplayerPlayerList = [];
-let multiplayerHandlersBound = false;
-
-function initMultiplayer() {
-  mode = "multi";
-  hideStartCountdown();
-  resetQuestionCountdownCue();
-  clearScoreboardTransitionTimer();
-  multiplayerRevealLeaderboard = [];
-  multiplayerPreviousLeaderboard = [];
-  multiplayerCurrentLeaderboard = [];
-  if (!socket) socket = io();
-  if (!multiplayerHandlersBound) {
-    multiplayerHandlersBound = true;
-
-    socket.on("host:created", ({ pin, joinBaseUrl }) => {
-      showScreen("lobby");
-      playBackgroundMusic(LOBBY_WAITING_MUSIC_SRC);
-      document.getElementById("pin-display").textContent = pin;
-      const baseUrl = joinBaseUrl || location.origin;
-      const joinUrl = `${baseUrl}/player.html?pin=${pin}`;
-      const joinEl = document.getElementById("join-url");
-      joinEl.textContent = `${baseUrl.replace(/^https?:\/\//, "")}/player.html`;
-      joinEl.href = joinUrl;
-      new QRious({ element: document.getElementById("qr-canvas"), value: joinUrl, size: 200, backgroundAlpha: 0, foreground: "#ffffff" });
-    });
-
-    socket.on("host:playerList", (players) => {
-      multiplayerPlayerList = players;
-      const grid = document.getElementById("player-grid");
-      grid.innerHTML = players.map((player) => `<div class="player-chip">${player.name}</div>`).join("");
-      multiplayerCurrentLeaderboard = cloneLeaderboard(players);
-      const startButton = document.getElementById("lobby-start-button");
-      startButton.disabled = players.length === 0;
-      startButton.textContent = players.length > 0 ? `Empezar (${players.length} jugador${players.length > 1 ? 'es' : ''})` : "Esperando jugadores...";
-    });
-
-    socket.on("host:question", (data) => {
-      multiplayerCurrentQuestion = data;
-      hideStartCountdown();
-      renderQuestion(data);
-
-      // In multiplayer, tiles are NOT clickable
-      document.querySelectorAll(".stage-answer").forEach((button) => {
-        button.onclick = null;
-      });
-
-      if (data.audioBefore) {
-        document.getElementById("countdown-number").textContent = String(data.countdownAfter);
-        document.getElementById("countdown-container").classList.remove("urgent");
-        const progressRing = document.getElementById("countdown-ring-progress");
-        progressRing.style.transition = "none"; progressRing.style.strokeDashoffset = "0";
-
-        questionAudioAutoplayTimer = setTimeout(() => {
-          questionAudioAutoplayTimer = null;
-          audio.play(); isPlaying = true;
-          document.getElementById("host-play-button").classList.add("playing");
-          audioEndedAction = () => {
-            isPlaying = false;
-            document.getElementById("host-play-button").classList.remove("playing");
-            startCountdown(data.countdownAfter, () => socket.emit("host:timeUp"));
-            socket.emit("host:answersOpen");
-          };
-        }, data.countdownBefore * 1000);
-      } else {
-        startCountdown(data.countdownAfter, () => socket.emit("host:timeUp"));
-      }
-    });
-
-    socket.on("host:answerCount", ({ answered, total }) => {
-      document.getElementById("answer-count-number").textContent = `${answered}/${total}`;
-    });
-
-    socket.on("game:startCountdown", ({ seconds, startsAt }) => {
-      stopBackgroundMusic();
-      showStartCountdown(seconds, { startsAt });
-    });
-
-    socket.on("host:reveal", (data) => {
-      triggerQuestionCountdownEndCue();
-      clearQuestionAudioAutoplayTimer();
-      clearInterval(countdownInterval);
-      hideStartCountdown();
-      stopAudioPlayback();
-      multiplayerPreviousLeaderboard = multiplayerCurrentQuestion.index > 0
-        ? cloneLeaderboard(multiplayerCurrentLeaderboard)
-        : [];
-      multiplayerRevealLeaderboard = cloneLeaderboard(data.leaderboard);
-      multiplayerCurrentLeaderboard = cloneLeaderboard(data.leaderboard);
-
-      showScreen("reveal-screen");
-
-      document.getElementById("reveal-question-meta").textContent =
-        `Pregunta ${multiplayerCurrentQuestion.index + 1} de ${multiplayerCurrentQuestion.total}`;
-      setHighlightedQuestionText(document.getElementById("reveal-text"), multiplayerCurrentQuestion.question);
-
-      // Bar chart
-      renderRevealChart(data);
-      updateRevealMedia(data);
-
-      document.getElementById("reveal-next-button").textContent = "Ver marcador";
-      document.getElementById("scoreboard-next-button").textContent =
-        multiplayerCurrentQuestion.index < multiplayerCurrentQuestion.total - 1 ? "Siguiente" : "Ver resultados";
-    });
-
-    socket.on("game:end", ({ leaderboard }) => {
-      clearQuestionAudioAutoplayTimer();
-      clearInterval(countdownInterval);
-      resetQuestionCountdownCue();
-      hideStartCountdown();
-      stopAudioPlayback();
-      showScreen("multiplayer-end-screen");
-      if (leaderboard.length > 0) {
-        document.getElementById("winner-name").textContent = leaderboard[0].name;
-        document.getElementById("winner-score").textContent = `${leaderboard[0].score} puntos`;
-      }
-      renderLeaderboard("end-leaderboard", leaderboard);
-    });
-  }
-
-  socket.emit("host:create");
-}
-
-function lobbyStart() {
-  if (!socket) return;
-  document.getElementById("lobby-start-button").disabled = true;
-  socket.emit("host:start");
-}
-
-function nextMultiplayerQuestion() {
-  clearQuestionAudioAutoplayTimer();
-  if (document.getElementById("reveal-screen").classList.contains("active")) {
-    stopAudioPlayback({ immediate: true });
-    stopBackgroundMusic({ immediate: true });
-    showScoreboardTransition(multiplayerPreviousLeaderboard, multiplayerRevealLeaderboard);
+  media.stopForeground();
+  solo.index += 1;
+  if (solo.index < solo.questions.length) {
+    soloLoadRound();
     return;
   }
 
-  clearScoreboardTransitionTimer();
-  stopAudioPlayback();
-  if (socket) socket.emit("host:next");
+  host.transition("solo-end");
+  const total = solo.questions.length;
+  $("final-score").textContent = `${solo.score} / ${total}`;
+  $("end-message").textContent = soloEndMessage(solo.score / total);
 }
 
-window.purgeDisconnectedPlayers = function purgeDisconnectedPlayers() {
-  if (!socket || mode !== "multi") return false;
-  socket.emit("host:purgeDisconnected");
+// ========== Multiplayer mode ==========
+
+function clearAutoplayTimer() {
+  clearTimeout(multi.autoplayTimer);
+  multi.autoplayTimer = null;
+}
+
+function clearScoreboardTimer() {
+  clearTimeout(multi.scoreboardTimer);
+  multi.scoreboardTimer = null;
+}
+
+function startMultiplayer() {
+  if (!host.is("start")) return;
+  host.transition("multi-connecting");
+
+  Object.assign(multi, {
+    pin: null,
+    question: null,
+    players: [],
+    previousLeaderboard: [],
+    revealLeaderboard: [],
+    currentLeaderboard: [],
+    startRequested: false,
+  });
+  ensureSocket().emit("host:create");
+}
+
+function renderLobbyPlayers(players) {
+  $("player-grid").innerHTML = players.map((player) => `<li class="chip chip-player">${escapeHtml(player.name)}</li>`).join("");
+  $("player-empty").hidden = players.length > 0;
+  $("player-count").textContent = `${players.length}/${CONFIG.MAX_PLAYERS}`;
+
+  if (multi.startRequested) return;
+  const button = $("lobby-start-button");
+  button.disabled = players.length === 0;
+  const plural = players.length === 1 ? "" : "es";
+  setButtonLabel(button, players.length > 0 ? `Empezar (${players.length} jugador${plural})` : "Esperando jugadores…");
+}
+
+function onHostCreated({ pin, joinBaseUrl, joinUrl, qrSvg }) {
+  if (!host.is("multi-connecting")) {
+    multi.socket.emit("host:end");
+    return;
+  }
+
+  multi.pin = pin;
+  host.transition("multi-lobby");
+  media.playMusic(CONFIG.LOBBY_WAITING_MUSIC_SRC);
+  $("pin-display").textContent = `${pin.slice(0, 3)} ${pin.slice(3)}`;
+  $("pin-display").setAttribute("aria-label", pin.split("").join(" "));
+  const link = $("join-url");
+  link.href = joinUrl;
+  link.textContent = `${joinBaseUrl.replace(/^https?:\/\//, "")}/player.html`;
+  $("qr-code").innerHTML = qrSvg;
+  const qrImage = $("qr-code").querySelector("svg");
+  qrImage?.setAttribute("role", "img");
+  qrImage?.setAttribute("aria-label", "Código QR para unirse a la partida");
+  renderLobbyPlayers([]);
+  renderNav();
+}
+
+function onHostError(message) {
+  showToast(message, { tone: "error" });
+  if (host.is("multi-connecting")) host.transition("start");
+}
+
+function onPlayerList(players) {
+  multi.players = players;
+  multi.currentLeaderboard = LEADERBOARD.cloneLeaderboard(players);
+  if (multi.startRequested && players.length === 0 && host.is("multi-lobby")) {
+    multi.startRequested = false;
+  }
+  renderLobbyPlayers(players);
+}
+
+function requestStart() {
+  if (!host.is("multi-lobby") || multi.players.length === 0 || multi.startRequested) return;
+
+  multi.startRequested = true;
+  const button = $("lobby-start-button");
+  button.disabled = true;
+  setButtonLabel(button, "Empezando…");
+  multi.socket.emit("host:start");
+}
+
+function onStartCountdown({ seconds, startsAt }) {
+  if (!host.transition("multi-countdown")) return;
+  media.stopMusic();
+  startCountdown.showStartCountdown(seconds, { startsAt });
+}
+
+const emitTimeUp = () => multi.socket.emit("host:timeUp");
+
+function openAnswersAfterAudio() {
+  if (!host.is("multi-listening")) return;
+
+  host.transition("multi-answering");
+  questionTimer.start(multi.question.countdownAfter, emitTimeUp);
+  multi.socket.emit("host:answersOpen");
+}
+
+/** Plays the question clip; if the browser refuses or the file fails, answers open right away. */
+function beginListening() {
+  clearAutoplayTimer();
+  if (!host.transition("multi-listening")) return;
+
+  media.playForeground({ onEnded: openAnswersAfterAudio }).then((started) => {
+    if (!started) openAnswersAfterAudio();
+  });
+}
+
+function onHostQuestion(data) {
+  startCountdown.hideStartCountdown();
+  multi.question = data;
+  if (!host.transition(data.audioBefore ? "multi-reading" : "multi-answering")) return;
+
+  renderQuestion(data, { mode: "multi" });
+  if (data.audioBefore) {
+    questionTimer.prime(data.countdownAfter);
+    multi.autoplayTimer = setTimeout(beginListening, data.countdownBefore * 1000);
+  } else {
+    questionTimer.start(data.countdownAfter, emitTimeUp);
+  }
+}
+
+function onQuestionAudioButton() {
+  if (host.is("multi-reading")) {
+    beginListening();
+    return;
+  }
+  if (host.is("multi-listening")) {
+    media.stopForeground({ immediate: true });
+    openAnswersAfterAudio();
+    return;
+  }
+  media.toggleForeground();
+}
+
+function onAnswerCount({ answered, total }) {
+  $("answer-count-number").textContent = `${answered}/${total}`;
+}
+
+function renderRevealChart(options, { optionCounts, correct }) {
+  const chart = $("reveal-chart");
+  const maxCount = Math.max(1, ...options.map((option) => optionCounts[option] || 0));
+  chart.dataset.optionCount = String(options.length);
+  chart.innerHTML = options.map((option, index) => {
+    const count = optionCounts[option] || 0;
+    const isCorrect = option === correct;
+    const height = count > 0 ? Math.max(10, (count / maxCount) * 100) : 3;
+    const stateClass = isCorrect ? "is-correct" : "is-dimmed";
+    const badge = isCorrect ? '<span class="chart-badge">✓ Correcta</span>' : '<span class="chart-badge chart-badge-empty" aria-hidden="true"></span>';
+
+    return `<div class="chart-column option-${index} ${stateClass}">
+      ${badge}
+      <span class="chart-count mono">${count}</span>
+      <div class="chart-track"><div class="chart-bar" style="height:${height}%"></div></div>
+      <div class="chart-label"><span class="answer-shape">${ANSWER_SHAPES[index]}</span><span>${escapeHtml(option)}</span></div>
+    </div>`;
+  }).join("");
+}
+
+function onHostReveal(data) {
+  questionTimer.finish();
+  clearAutoplayTimer();
+  startCountdown.hideStartCountdown();
+  media.stopForeground();
+
+  const { question } = multi;
+  multi.previousLeaderboard = question.index > 0 ? LEADERBOARD.cloneLeaderboard(multi.currentLeaderboard) : [];
+  multi.revealLeaderboard = LEADERBOARD.cloneLeaderboard(data.leaderboard);
+  multi.currentLeaderboard = LEADERBOARD.cloneLeaderboard(data.leaderboard);
+  if (!host.transition("multi-reveal")) return;
+
+  $("reveal-question-meta").textContent = formatQuestionCounter(question.index, question.total);
+  setQuestionText($("reveal-text"), question.question);
+  renderRevealChart(question.options, data);
+  media.playMusic(data.after.music);
+  renderRevealMedia({
+    frame: $("reveal-media"),
+    image: $("reveal-media-image"),
+    video: $("reveal-media-video"),
+    audioRow: $("reveal-media-audio-row"),
+    label: $("reveal-media-label"),
+  }, data);
+
+  const isLastQuestion = question.index >= question.total - 1;
+  setButtonLabel($("scoreboard-next-button"), isLastQuestion ? "Ver resultados" : "Siguiente pregunta");
+  $("reveal-next-button").focus();
+}
+
+/** First scoreboard appears directly; later ones show the old order, then animate to the new one. */
+function showScoreboard() {
+  if (!host.is("multi-reveal")) return;
+  host.transition("multi-scoreboard");
+
+  media.stopForeground({ immediate: true });
+  media.stopMusic({ immediate: true });
+  $("scoreboard-meta").textContent = formatQuestionCounter(multi.question.index, multi.question.total);
+
+  const previous = multi.previousLeaderboard;
+  const next = multi.revealLeaderboard;
+  const list = $("scoreboard-leaderboard");
+  const button = $("scoreboard-next-button");
+  const limit = CONFIG.LEADERBOARD_DISPLAY_LIMIT;
+
+  button.disabled = true;
+  LEADERBOARD.renderAnimated(list, previous.length > 0 ? previous : next, { limit });
+  if (previous.length === 0) {
+    button.disabled = false;
+    button.focus();
+    return;
+  }
+
+  const movementMap = LEADERBOARD.getLeaderboardMovement(previous, next);
+  multi.scoreboardTimer = setTimeout(() => {
+    multi.scoreboardTimer = null;
+    LEADERBOARD.renderAnimated(list, next, { limit, movementMap });
+    LEADERBOARD.animateScores(list, previous, next);
+    button.disabled = false;
+    button.focus();
+  }, SCOREBOARD_SETTLE_MS);
+}
+
+function requestNextQuestion() {
+  const button = $("scoreboard-next-button");
+  if (!host.is("multi-scoreboard") || button.disabled) return;
+
+  button.disabled = true;
+  media.stopForeground();
+  multi.socket.emit("host:next");
+}
+
+function onGameEnd({ leaderboard }) {
+  clearAutoplayTimer();
+  questionTimer.stop();
+  startCountdown.hideStartCountdown();
+  media.stopForeground();
+  if (!host.transition("multi-end")) return;
+
+  const [winner] = leaderboard;
+  $("winner-name").textContent = winner ? winner.name : "Sin ganador";
+  $("winner-score").textContent = winner ? `${winner.score} puntos` : "";
+  LEADERBOARD.renderStatic($("end-leaderboard"), leaderboard, { limit: CONFIG.LEADERBOARD_DISPLAY_LIMIT });
+}
+
+function onSocketDisconnect() {
+  if (!isMultiInProgress()) return;
+  showToast("Se ha perdido la conexión con el servidor y la partida ha terminado.", { tone: "error" });
+  backToStart();
+}
+
+function ensureSocket() {
+  if (multi.socket) return multi.socket;
+
+  const socket = io();
+  multi.socket = socket;
+  socket.on("host:created", onHostCreated);
+  socket.on("host:error", onHostError);
+  socket.on("host:playerList", onPlayerList);
+  socket.on("game:startCountdown", onStartCountdown);
+  socket.on("host:question", onHostQuestion);
+  socket.on("host:answerCount", onAnswerCount);
+  socket.on("host:reveal", onHostReveal);
+  socket.on("game:end", onGameEnd);
+  socket.on("disconnect", onSocketDisconnect);
+  return socket;
+}
+
+// ========== Exit & navigation ==========
+
+function backToStart() {
+  if (isMultiInProgress()) {
+    multi.socket?.emit("host:end");
+  }
+
+  clearAutoplayTimer();
+  clearScoreboardTimer();
+  questionTimer.stop();
+  startCountdown.hideStartCountdown();
+  media.stopForeground();
+  multi.pin = null;
+  host.transition("start");
+}
+
+function requestExit() {
+  const dialog = $("exit-dialog");
+  // Escape closes without a value and keeps the previous returnValue, so reset it first.
+  dialog.returnValue = "";
+  $("exit-dialog-text").textContent = modeOf(host.state) === "multi"
+    ? "La partida terminará para todos los jugadores."
+    : "Perderás el progreso de esta partida.";
+  dialog.showModal();
+}
+
+function getShortcutTarget() {
+  const scope = host.is("solo-feedback") ? $("result-modal") : $(activeScreenId);
+  const candidates = scope ? scope.querySelectorAll('[data-shortcut="next"]') : [];
+  return Array.from(candidates).find((button) => !button.disabled && !button.closest("[hidden]")) ?? null;
+}
+
+function onKeyDown(event) {
+  if (event.defaultPrevented || event.metaKey || event.ctrlKey || event.altKey || $("exit-dialog").open) return;
+  if (event.target.closest?.("input, textarea, select")) return;
+
+  if (host.is("solo-question") && /^[1-6]$/.test(event.key)) {
+    $("stage-answer-grid").querySelectorAll("button.answer-tile")[Number(event.key) - 1]?.click();
+    return;
+  }
+  if (event.key === "ArrowRight") {
+    getShortcutTarget()?.click();
+  }
+}
+
+function bindHostUi() {
+  $("start-solo-button").addEventListener("click", startSolo);
+  $("start-multiplayer-button").addEventListener("click", startMultiplayer);
+  $("lobby-start-button").addEventListener("click", requestStart);
+  $("host-play-button").addEventListener("click", onQuestionAudioButton);
+  $("reveal-play-button").addEventListener("click", () => media.toggleForeground());
+  $("reveal-media-play-button").addEventListener("click", () => media.toggleForeground());
+  $("stage-answer-grid").addEventListener("click", (event) => {
+    const tile = event.target.closest("button.answer-tile");
+    if (tile) soloAnswer(tile.dataset.value);
+  });
+  $("solo-next-button").addEventListener("click", soloNext);
+  $("reveal-next-button").addEventListener("click", showScoreboard);
+  $("scoreboard-next-button").addEventListener("click", requestNextQuestion);
+  $("solo-restart-button").addEventListener("click", startSolo);
+  $("solo-back-button").addEventListener("click", backToStart);
+  $("multiplayer-back-button").addEventListener("click", backToStart);
+  $("exit-button").addEventListener("click", requestExit);
+  $("exit-dialog").addEventListener("close", () => {
+    if ($("exit-dialog").returnValue === "confirm") backToStart();
+  });
+  document.addEventListener("keydown", onKeyDown);
+}
+
+function showQuestionCount() {
+  loadQuestionsFile()
+    .then((questions) => {
+      $("start-question-count").textContent = `${questions.length} preguntas`;
+    })
+    .catch(() => {
+      showToast("No se encuentra questions.json. Consulta el README para crearlo.", { tone: "error" });
+    });
+}
+
+// ========== Console helpers (host browser console) ==========
+
+globalThis.purgeDisconnectedPlayers = function purgeDisconnectedPlayers() {
+  if (!multi.socket || !isMultiInProgress()) return false;
+  multi.socket.emit("host:purgeDisconnected");
   return true;
 };
 
-window.listDisconnectedPlayers = function listDisconnectedPlayers() {
-  if (mode !== "multi") return [];
-
-  return multiplayerPlayerList
+globalThis.listDisconnectedPlayers = function listDisconnectedPlayers() {
+  if (modeOf(host.state) !== "multi") return [];
+  return multi.players
     .filter((player) => !player.connected)
     .map(({ playerId, name, score }) => ({ playerId, name, score }));
 };
 
-window.getCurrentRanking = function getCurrentRanking() {
-  return cloneLeaderboard(multiplayerCurrentLeaderboard)
-    .map(({ name, score }) => ({ name, score }));
+globalThis.getCurrentRanking = function getCurrentRanking() {
+  return multi.currentLeaderboard.map(({ name, score }) => ({ name, score }));
+};
+
+globalThis.getHostState = function getHostState() {
+  return { state: host.state, mode: modeOf(host.state), pin: multi.pin, progress };
 };
 
 bindHostUi();
+renderStartScreen();
+renderNav();
+showQuestionCount();

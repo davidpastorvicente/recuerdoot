@@ -1,275 +1,321 @@
-const socket = io();
-let myName = "";
-let currentPin = "";
-let playerId = "";
-let answered = false;
-const { createStartCountdownController, escapeHtml } = window.RECUERDOOT_SHARED;
-const { showStartCountdown, hideStartCountdown } = createStartCountdownController();
-const PLAYER_SESSION_KEY = "recuerdoot-player-session";
+// Player phone page. The server is authoritative; the `player` state machine mirrors where this phone is.
+const CONFIG = globalThis.RECUERDOOT_CONFIG;
+const { ANSWER_SHAPES, createStartCountdownController, escapeHtml, formatQuestionCounter } = globalThis.RECUERDOOT_SHARED;
+const { MACHINES, createStateMachine } = globalThis.RECUERDOOT_STATE_MACHINES;
 
-function getStoredSession() {
+const $ = (id) => document.getElementById(id);
+
+const PLAYER_SESSION_KEY = "recuerdoot-player-session";
+const PIN_PATTERN = new RegExp(String.raw`^\d{${CONFIG.PIN_LENGTH}}$`);
+const SCREEN_BY_STATE = Object.freeze({
+  join: "join-screen",
+  joining: "join-screen",
+  waiting: "waiting-screen",
+  countdown: "waiting-screen",
+  answering: "answer-screen",
+  answered: "answer-screen",
+  result: "result-screen",
+  ended: "end-screen",
+});
+const RANK_LABELS = ["", "Primera posición", "Segunda posición", "Tercera posición"];
+const RESULT_ICONS = {
+  correct: '<svg viewBox="0 0 64 64" focusable="false"><path fill="currentColor" d="M32 10a22 22 0 1 1 0 44 22 22 0 0 1 0-44Zm10.4 14.6a2 2 0 0 0-2.8 0L28 36.2l-3.6-3.6a2 2 0 1 0-2.8 2.8l5 5a2 2 0 0 0 2.8 0l13-13a2 2 0 0 0 0-2.8Z"/></svg>',
+  wrong: '<svg viewBox="0 0 64 64" focusable="false"><path fill="currentColor" d="M32 10a22 22 0 1 1 0 44 22 22 0 0 1 0-44Zm-7.4 14.6a2 2 0 0 0 0 2.8l4.6 4.6-4.6 4.6a2 2 0 1 0 2.8 2.8l4.6-4.6 4.6 4.6a2 2 0 1 0 2.8-2.8L34.8 32l4.6-4.6a2 2 0 0 0-2.8-2.8L32 29.2l-4.6-4.6a2 2 0 0 0-2.8 0Z"/></svg>',
+  timeout: '<svg viewBox="0 0 64 64" focusable="false"><path fill="currentColor" d="M32 10a22 22 0 1 1 0 44 22 22 0 0 1 0-44Zm0 6a2 2 0 0 0-2 2v14.8l8.4 5.6a2 2 0 1 0 2.2-3.3L34 30.8V18a2 2 0 0 0-2-2Z"/></svg>',
+};
+
+const socket = io();
+const player = createStateMachine(MACHINES.player);
+const startCountdown = createStartCountdownController();
+const session = { pin: "", name: "", playerId: "" };
+let activeScreenId = "join-screen";
+
+// ========== Session storage ==========
+
+function readStoredSession() {
   try {
-    const raw = sessionStorage.getItem(PLAYER_SESSION_KEY);
-    return raw ? JSON.parse(raw) : null;
+    return JSON.parse(sessionStorage.getItem(PLAYER_SESSION_KEY)) ?? null;
   } catch {
     return null;
   }
 }
 
-function storeSession(session) {
+function storeSession() {
   sessionStorage.setItem(PLAYER_SESSION_KEY, JSON.stringify(session));
 }
 
 function clearSession() {
+  session.playerId = "";
   sessionStorage.removeItem(PLAYER_SESSION_KEY);
 }
 
-function setJoinButtonDisabled(disabled) {
-  document.getElementById("join-button").disabled = disabled;
-}
+// ========== Rendering ==========
 
-function populateJoinForm(session) {
-  if (!session) return;
-  if (session.pin) document.getElementById("pin-input").value = session.pin;
-  if (session.name) document.getElementById("name-input").value = session.name;
-}
-
-function restoreSelectedAnswer(answer) {
-  if (!answer) return;
-
-  document.querySelectorAll(".player-answer").forEach((button) => {
-    button.disabled = true;
-    if (button.dataset.answer !== answer) {
-      button.classList.add("dim");
-      return;
-    }
-
-    button.classList.add("selected");
+function showScreen(screenId) {
+  if (screenId === activeScreenId) return;
+  document.querySelectorAll(".screen").forEach((screen) => {
+    screen.hidden = screen.id !== screenId;
   });
+  activeScreenId = screenId;
 }
 
-function tryAutoRejoin() {
-  const session = getStoredSession();
-  if (!session?.pin || !session?.name || !session?.playerId) return;
-
-  myName = session.name;
-  currentPin = session.pin;
-  playerId = session.playerId;
-  populateJoinForm(session);
-  setJoinButtonDisabled(true);
+function renderJoinForm() {
+  const joining = player.is("joining");
+  const button = $("join-button");
+  button.disabled = joining;
+  button.setAttribute("aria-busy", String(joining));
+  button.textContent = joining ? "Uniéndote…" : "Unirse";
 }
 
-const shapes = [
-  `<svg viewBox="0 0 24 24" width="24" height="24"><polygon points="12,2 2,22 22,22" fill="currentColor"/></svg>`,
-  `<svg viewBox="0 0 24 24" width="24" height="24"><rect x="2" y="2" width="20" height="20" rx="3" fill="currentColor"/></svg>`,
-  `<svg viewBox="0 0 24 24" width="24" height="24"><circle cx="12" cy="12" r="10" fill="currentColor"/></svg>`,
-  `<svg viewBox="0 0 24 24" width="24" height="24"><polygon points="12,2 22,12 12,22 2,12" fill="currentColor"/></svg>`,
-  `<svg viewBox="0 0 24 24" width="24" height="24"><polygon points="12,2 22,9 18,22 6,22 2,9" fill="currentColor"/></svg>`,
-  `<svg viewBox="0 0 24 24" width="24" height="24"><polygon points="2,3 22,3 12,22" fill="currentColor"/></svg>`,
-];
-
-function joinGame() {
-  const pin = document.getElementById("pin-input").value.trim();
-  const name = document.getElementById("name-input").value.trim();
-  const errorEl = document.getElementById("error-msg");
-  errorEl.textContent = "";
-
-  if (!pin || pin.length < 4) {
-    errorEl.textContent = "Introduce un PIN";
-    return;
-  }
-
-  if (!name) {
-    errorEl.textContent = "Introduce tu nombre";
-    return;
-  }
-
-  currentPin = pin;
-  myName = name;
-  setJoinButtonDisabled(true);
-  socket.emit("player:join", { pin, name, playerId: playerId || undefined });
+function renderNameChip() {
+  const chip = $("player-name-chip");
+  const visible = Boolean(session.playerId) && !player.is("join", "joining");
+  chip.hidden = !visible;
+  chip.textContent = session.name;
 }
 
-function bindPlayerUi() {
-  document.getElementById("join-button").addEventListener("click", joinGame);
-  document.getElementById("player-reload-button").addEventListener("click", () => location.reload());
+player.subscribe(({ to }) => {
+  document.body.dataset.state = to;
+  showScreen(SCREEN_BY_STATE[to]);
+  renderJoinForm();
+  renderNameChip();
+});
+
+function setJoinError(message) {
+  $("error-msg").textContent = message;
+  $("pin-input").setAttribute("aria-invalid", String(message.includes("PIN")));
 }
 
-function setResultState({ icon, text, textClass, pointsText }) {
-  document.getElementById("result-icon").innerHTML = icon;
-  document.getElementById("result-text").textContent = text;
-  document.getElementById("result-text").className = `result-text ${textClass}`;
-  document.getElementById("result-points").textContent = pointsText;
-}
-
-function renderRankBadge(containerId, rank) {
-  const container = document.getElementById(containerId);
-  const rankLabels = ["", "Primera posicion", "Segunda posicion", "Tercera posicion"];
-
+function renderRankBadge(container, rank) {
   if (!rank || rank < 1) {
-    container.textContent = "";
+    container.textContent = "—";
     return;
   }
-
   if (rank <= 3) {
-    container.innerHTML = `<span class="rank-badge rank-${rank}" aria-label="${rankLabels[rank]}">${rank}</span>`;
+    container.innerHTML = `<span class="rank-badge rank-badge-lg rank-${rank}"><span aria-hidden="true">${rank}</span><span class="visually-hidden">${RANK_LABELS[rank]}</span></span>`;
     return;
   }
-
   container.textContent = `#${rank}`;
 }
 
-function getResultState({ isCorrect, points, timeout }) {
-  if (timeout) {
-    return {
-      icon: `<svg viewBox="0 0 64 64" width="64" height="64" role="img" focusable="false"><path fill="currentColor" d="M32 10a22 22 0 1 1 0 44 22 22 0 0 1 0-44Zm0 6a2 2 0 0 0-2 2v14.8l8.4 5.6a2 2 0 1 0 2.2-3.3L34 30.8V18a2 2 0 0 0-2-2Zm-12.6-5.8a2 2 0 0 0 0 2.8l1.4 1.4a2 2 0 1 0 2.8-2.8l-1.4-1.4a2 2 0 0 0-2.8 0Zm24.8 0-1.4 1.4a2 2 0 1 0 2.8 2.8l1.4-1.4a2 2 0 0 0-2.8-2.8Z"/></svg>`,
-      text: "Se acabo el tiempo",
-      textClass: "result-wrong",
-      pointsText: "",
-    };
-  }
-
-  if (isCorrect) {
-    return {
-      icon: `<svg viewBox="0 0 64 64" width="64" height="64" role="img" focusable="false"><path fill="currentColor" d="M32 10a22 22 0 1 1 0 44 22 22 0 0 1 0-44Zm10.4 14.6a2 2 0 0 0-2.8 0L28 36.2l-3.6-3.6a2 2 0 1 0-2.8 2.8l5 5a2 2 0 0 0 2.8 0l13-13a2 2 0 0 0 0-2.8Z"/></svg>`,
-      text: "¡Correcto!",
-      textClass: "result-correct",
-      pointsText: `+${points} puntos`,
-    };
-  }
-
-  return {
-    icon: `<svg viewBox="0 0 64 64" width="64" height="64" role="img" focusable="false"><path fill="currentColor" d="M32 10a22 22 0 1 1 0 44 22 22 0 0 1 0-44Zm-7.4 14.6a2 2 0 0 0 0 2.8l4.6 4.6-4.6 4.6a2 2 0 1 0 2.8 2.8l4.6-4.6 4.6 4.6a2 2 0 1 0 2.8-2.8L34.8 32l4.6-4.6a2 2 0 0 0-2.8-2.8L32 29.2l-4.6-4.6a2 2 0 0 0-2.8 0Z"/></svg>`,
-    text: "Incorrecto",
-    textClass: "result-wrong",
-    pointsText: "",
-  };
+function getResultView({ isCorrect, points, timeout }) {
+  if (timeout) return { icon: RESULT_ICONS.timeout, text: "Se acabó el tiempo", tone: "wrong", pointsText: "" };
+  if (isCorrect) return { icon: RESULT_ICONS.correct, text: "¡Correcto!", tone: "correct", pointsText: `+${points} puntos` };
+  return { icon: RESULT_ICONS.wrong, text: "Incorrecto", tone: "wrong", pointsText: "" };
 }
 
-socket.on("player:error", (msg) => {
-  if (playerId) {
-    playerId = "";
-    currentPin = "";
-    clearSession();
-  }
-  document.getElementById("error-msg").textContent = msg;
-  setJoinButtonDisabled(false);
-  showScreen("join-screen");
-});
+function setAnswerStatus(text, tone) {
+  const status = $("answer-status");
+  status.textContent = text;
+  status.dataset.tone = tone;
+}
 
-socket.on("player:joined", ({ name, pin, playerId: joinedPlayerId }) => {
-  myName = name;
-  currentPin = pin;
-  playerId = joinedPlayerId;
-  storeSession({ pin, name, playerId: joinedPlayerId });
-  document.getElementById("my-name").textContent = name;
-  document.getElementById("error-msg").textContent = "";
-  showScreen("waiting-screen");
-});
+function renderAnswerGrid({ options }) {
+  const grid = $("player-answer-grid");
+  grid.dataset.optionCount = String(options.length);
+  grid.innerHTML = options.map((option, index) => {
+    const label = escapeHtml(option);
+    return `<button type="button" class="player-answer option-${index}" data-answer="${label}" aria-label="${label}"><span class="answer-shape">${ANSWER_SHAPES[index]}</span><span class="visually-hidden">${label}</span></button>`;
+  }).join("");
+}
 
-socket.on("player:wait", (data) => {
-  hideStartCountdown();
-  showScreen("listen-screen");
-  document.getElementById("listen-question-meta").textContent = `Pregunta ${data.index + 1} de ${data.total}`;
-});
-
-socket.on("game:startCountdown", ({ seconds, startsAt }) => {
-  showStartCountdown(seconds, { startsAt });
-});
-
-socket.on("player:question", (data) => {
-  answered = !!data.hasAnswered;
-  hideStartCountdown();
-  showScreen("answer-screen");
-  document.getElementById("listen-question-meta").textContent = `Pregunta ${data.index + 1} de ${data.total}`;
-  const grid = document.getElementById("player-answer-grid");
-  grid.dataset.optionCount = String(data.options.length);
-  grid.innerHTML = data.options.map((opt, i) =>
-    `<button class="answer-choice player-answer" data-answer="${escapeHtml(opt)}" aria-label="${escapeHtml(opt)}"><span class="shape">${shapes[i]}</span><span class="player-answer-label">${escapeHtml(opt)}</span></button>`
-  ).join("");
-  grid.querySelectorAll(".player-answer").forEach((button) => {
-    button.addEventListener("click", () => sendAnswer(button));
+function markSelectedAnswer(answer) {
+  $("player-answer-grid").querySelectorAll(".player-answer").forEach((button) => {
+    const selected = button.dataset.answer === answer;
+    button.disabled = true;
+    button.classList.toggle("is-selected", selected);
+    button.classList.toggle("is-dimmed", !selected);
   });
-
-  if (data.hasAnswered && data.selectedAnswer) {
-    restoreSelectedAnswer(data.selectedAnswer);
-  }
-});
-
-function sendAnswer(button) {
-  if (answered) return;
-  answered = true;
-  const answer = button.dataset.answer;
-  socket.emit("player:answer", { answer });
-
-  // Visual feedback
-  document.querySelectorAll(".player-answer").forEach((answerButton) => {
-    answerButton.disabled = true;
-    if (answerButton !== button) answerButton.classList.add("dim");
-    else answerButton.classList.add("selected");
-  });
+  setAnswerStatus("Respuesta enviada", "done");
 }
 
-socket.on("player:result", ({ isCorrect, points, rank, score, streak, timeout }) => {
-  hideStartCountdown();
-  showScreen("result-screen");
-  setResultState(getResultState({ isCorrect, points, timeout }));
-  renderRankBadge("result-rank", rank);
-  document.getElementById("result-position").textContent = rank ? `Vas en el puesto ${rank}` : "";
-  document.getElementById("result-score").textContent = `${score} pts`;
-  document.getElementById("result-streak").textContent = streak > 1 ? `Racha de ${streak}` : "";
-});
+// ========== Join flow ==========
 
-socket.on("game:end", ({ leaderboard }) => {
-  hideStartCountdown();
-  clearSession();
-  showScreen("end-screen");
-  const myIndex = leaderboard.findIndex((player) => player.name === myName);
-  const rank = myIndex + 1;
-  renderRankBadge("end-rank", rank);
-  document.getElementById("end-position").textContent = rank === 1 ? "\u00A1Has ganado!" : `Puesto ${rank}`;
-  document.getElementById("end-score").textContent = myIndex >= 0 ? `${leaderboard[myIndex].score} puntos` : "";
-});
-
-socket.on("player:gameOver", (msg) => {
-  hideStartCountdown();
-  clearSession();
-  showScreen("end-screen");
-  document.getElementById("end-rank").textContent = "";
-  document.getElementById("end-position").textContent = msg;
-  document.getElementById("end-score").textContent = "";
-});
-
-function showScreen(id) {
-  document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
-  document.getElementById(id).classList.add("active");
+function emitJoin() {
+  socket.emit("player:join", { pin: session.pin, name: session.name, playerId: session.playerId || undefined });
 }
 
-socket.on("connect", () => {
-  if (playerId) {
-    socket.emit("player:join", { pin: currentPin, name: myName, playerId });
-  }
-});
+function requestJoin() {
+  if (!player.transition("joining")) return;
+  setJoinError("");
+  if (socket.connected) emitJoin();
+}
 
-// Auto-fill PIN from URL query param
-const urlPin = new URLSearchParams(location.search).get("pin");
-const pinInput = document.getElementById("pin-input");
-if (urlPin) {
-  pinInput.value = urlPin;
-  pinInput.readOnly = true;
-  pinInput.style.opacity = "0.7";
-  document.getElementById("name-input").focus();
-} else {
+function onJoinSubmit(event) {
+  event.preventDefault();
+  const pin = $("pin-input").value.trim();
+  const name = $("name-input").value.trim();
+
+  if (!PIN_PATTERN.test(pin)) {
+    setJoinError(`Introduce el PIN de ${CONFIG.PIN_LENGTH} cifras`);
+    $("pin-input").focus();
+    return;
+  }
+  if (!name) {
+    setJoinError("Introduce tu nombre");
+    $("name-input").focus();
+    return;
+  }
+
+  if (session.pin !== pin || session.name !== name) {
+    session.playerId = "";
+  }
+  Object.assign(session, { pin, name });
+  requestJoin();
+}
+
+function resetToJoin() {
+  clearSession();
+  const url = new URL(location.href);
+  if (url.searchParams.has("pin")) {
+    url.searchParams.delete("pin");
+    history.replaceState(null, "", url);
+  }
+  const pinInput = $("pin-input");
+  pinInput.readOnly = false;
+  pinInput.value = "";
+  player.transition("join");
   pinInput.focus();
 }
 
-// Allow Enter to submit
-document.querySelectorAll("#join-screen input").forEach((input) => {
-  input.addEventListener("keydown", (event) => {
-    if (event.key === "Enter") joinGame();
-  });
+// ========== Server events ==========
+
+socket.on("connect", () => {
+  $("connection-chip").hidden = true;
+  if (player.is("joining") || session.playerId) emitJoin();
 });
 
+socket.on("disconnect", () => {
+  $("connection-chip").hidden = player.is("join", "ended");
+});
+
+socket.on("player:error", (message) => {
+  clearSession();
+  startCountdown.hideStartCountdown();
+  $("pin-input").readOnly = false;
+  setJoinError(message);
+  player.transition("join");
+});
+
+socket.on("player:joined", ({ name, pin, playerId }) => {
+  Object.assign(session, { name, pin, playerId });
+  storeSession();
+  $("my-name").textContent = name;
+  setJoinError("");
+  if (player.is("joining")) {
+    player.transition("waiting");
+  }
+  renderNameChip();
+});
+
+socket.on("game:startCountdown", ({ seconds, startsAt }) => {
+  if (!player.transition("countdown")) return;
+  startCountdown.showStartCountdown(seconds, { startsAt });
+});
+
+socket.on("player:question", (data) => {
+  startCountdown.hideStartCountdown();
+  if (!player.transition(data.hasAnswered ? "answered" : "answering")) return;
+
+  $("answer-question-meta").textContent = formatQuestionCounter(data.index, data.total);
+  renderAnswerGrid(data);
+  if (data.hasAnswered && data.selectedAnswer) {
+    markSelectedAnswer(data.selectedAnswer);
+  } else if (data.answersOpen) {
+    setAnswerStatus("¡Responde!", "open");
+  } else {
+    setAnswerStatus("Escucha el audio", "listening");
+  }
+});
+
+socket.on("player:answersOpen", () => {
+  if (player.is("answering")) setAnswerStatus("¡Responde!", "open");
+});
+
+function sendAnswer(button) {
+  if (!player.is("answering")) return;
+  player.transition("answered");
+  socket.emit("player:answer", { answer: button.dataset.answer });
+  markSelectedAnswer(button.dataset.answer);
+}
+
+socket.on("player:result", (result) => {
+  startCountdown.hideStartCountdown();
+  if (!player.transition("result")) return;
+
+  const view = getResultView(result);
+  $("result-icon").innerHTML = view.icon;
+  $("result-icon").dataset.tone = view.tone;
+  $("result-text").textContent = view.text;
+  $("result-text").dataset.tone = view.tone;
+  $("result-points").textContent = view.pointsText;
+  renderRankBadge($("result-rank"), result.rank);
+  $("result-position").textContent = result.rank ? `Vas en el puesto ${result.rank}` : "";
+  $("result-score").textContent = String(result.score);
+  $("result-streak").hidden = result.streak <= 1;
+  $("result-streak").textContent = `Racha de ${result.streak}`;
+});
+
+socket.on("game:end", ({ leaderboard }) => {
+  startCountdown.hideStartCountdown();
+  const myIndex = leaderboard.findIndex((entry) => entry.playerId === session.playerId);
+  clearSession();
+  if (!player.transition("ended")) return;
+
+  const rank = myIndex + 1;
+  renderRankBadge($("end-rank"), rank);
+  let positionText = "Partida terminada";
+  if (rank === 1) positionText = "¡Has ganado!";
+  else if (rank > 1) positionText = `Puesto ${rank}`;
+  $("end-position").textContent = positionText;
+  $("end-score").textContent = myIndex >= 0 ? `${leaderboard[myIndex].score} puntos` : "";
+});
+
+socket.on("player:gameOver", (message) => {
+  startCountdown.hideStartCountdown();
+  clearSession();
+  if (!player.transition("ended")) return;
+
+  $("end-rank").textContent = "";
+  $("end-position").textContent = message;
+  $("end-score").textContent = "";
+});
+
+// ========== Boot ==========
+
+function bindPlayerUi() {
+  $("join-form").addEventListener("submit", onJoinSubmit);
+  $("player-reload-button").addEventListener("click", resetToJoin);
+  $("player-answer-grid").addEventListener("click", (event) => {
+    const button = event.target.closest(".player-answer");
+    if (button) sendAnswer(button);
+  });
+}
+
+function restoreSession() {
+  const stored = readStoredSession();
+  if (stored?.name) $("name-input").value = stored.name;
+  if (stored?.pin) $("pin-input").value = stored.pin;
+
+  const urlPin = new URLSearchParams(location.search).get("pin");
+  if (urlPin) {
+    $("pin-input").value = urlPin;
+    $("pin-input").readOnly = true;
+  }
+
+  const sameGame = !urlPin || urlPin === stored?.pin;
+  if (sameGame && stored?.pin && stored.name && stored.playerId) {
+    Object.assign(session, { pin: stored.pin, name: stored.name, playerId: stored.playerId });
+    requestJoin();
+    return;
+  }
+
+  (urlPin ? $("name-input") : $("pin-input")).focus();
+}
+
 bindPlayerUi();
-populateJoinForm(getStoredSession());
-tryAutoRejoin();
+restoreSession();
+
+globalThis.getPlayerState = function getPlayerState() {
+  return { state: player.state, name: session.name, pin: session.pin, connected: socket.connected };
+};

@@ -1,6 +1,24 @@
 (function initGameShared(globalScope) {
-  const MONTHS_ES = ["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
+  const MONTHS_ES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
   const APP_NAME = globalScope.RECUERDOOT_CONFIG?.APP_NAME;
+  const MEDIA_FOLDERS = Object.freeze({
+    audio: "assets/audios",
+    image: "assets/images",
+    music: "assets/music",
+    video: "assets/videos",
+  });
+  const HTML_ESCAPES = { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" };
+  const UINT32_RANGE = 2 ** 32;
+
+  // Triangle, square, circle, diamond, pentagon and inverted triangle: one per answer slot.
+  const ANSWER_SHAPES = Object.freeze([
+    '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><polygon points="12,2 2,22 22,22" fill="currentColor"/></svg>',
+    '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="2" y="2" width="20" height="20" rx="3" fill="currentColor"/></svg>',
+    '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10" fill="currentColor"/></svg>',
+    '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><polygon points="12,2 22,12 12,22 2,12" fill="currentColor"/></svg>',
+    '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><polygon points="12,2 22,9 18,22 6,22 2,9" fill="currentColor"/></svg>',
+    '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><polygon points="2,3 22,3 12,22" fill="currentColor"/></svg>',
+  ]);
 
   function syncBranding() {
     if (typeof document === "undefined") return;
@@ -10,41 +28,78 @@
     });
 
     const pageTitleSuffix = document.body?.dataset.pageTitleSuffix?.trim();
-    document.title = pageTitleSuffix ? `${APP_NAME} - ${pageTitleSuffix}` : APP_NAME;
+    document.title = pageTitleSuffix ? `${APP_NAME} · ${pageTitleSuffix}` : APP_NAME;
   }
 
   function escapeHtml(value) {
-    const stringValue = String(value);
-    if (typeof document === "undefined") {
-      return stringValue
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/\"/g, "&quot;")
-        .replace(/'/g, "&#39;");
-    }
-
-    const div = document.createElement("div");
-    div.textContent = stringValue;
-    return div.innerHTML;
+    return String(value).replaceAll(/[&<>"']/g, (character) => HTML_ESCAPES[character]);
   }
 
-  function shuffle(arr) {
-    const a = [...arr];
-    for (let i = a.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [a[i], a[j]] = [a[j], a[i]];
+  /** Unbiased integer in [0, maxExclusive) backed by the platform CSPRNG. */
+  function randomInt(maxExclusive) {
+    if (!Number.isInteger(maxExclusive) || maxExclusive <= 0 || maxExclusive > UINT32_RANGE) {
+      throw new RangeError(`randomInt expects an integer in (0, 2^32], received ${maxExclusive}`);
     }
-    return a;
+
+    const limit = UINT32_RANGE - (UINT32_RANGE % maxExclusive);
+    const buffer = new Uint32Array(1);
+    do {
+      globalScope.crypto.getRandomValues(buffer);
+    } while (buffer[0] >= limit);
+    return buffer[0] % maxExclusive;
+  }
+
+  function shuffle(items) {
+    const shuffled = [...items];
+    for (let index = shuffled.length - 1; index > 0; index--) {
+      const swapIndex = randomInt(index + 1);
+      [shuffled[index], shuffled[swapIndex]] = [shuffled[swapIndex], shuffled[index]];
+    }
+    return shuffled;
   }
 
   function parseDateParts(key) {
-    const match = String(key).match(/(\d{4})(\d{2})(\d{2})/);
+    const match = /(\d{4})(\d{2})(\d{2})/.exec(String(key));
     if (!match) return { date: "", year: "" };
+
+    const [, year, month, day] = match;
+    const monthName = MONTHS_ES[Number.parseInt(month, 10) - 1];
+    if (!monthName) return { date: "", year: "" };
+
     return {
-      date: `${parseInt(match[3], 10)} ${MONTHS_ES[parseInt(match[2], 10) - 1]} ${match[1]}`,
-      year: match[1],
+      date: `${Number.parseInt(day, 10)} ${monthName} ${year}`,
+      year,
     };
+  }
+
+  function resolveMedia(media = {}) {
+    return Object.fromEntries(
+      Object.entries(MEDIA_FOLDERS).map(([kind, folder]) => [kind, media[kind] ? `${folder}/${media[kind]}` : null])
+    );
+  }
+
+  /**
+   * Turns a raw questions.json entry into the runtime shape used by the server and solo mode.
+   * Options are shuffled once here; the stored file keeps answers in a fixed structure.
+   */
+  function normalizeQuestion(entry, { shuffleOptions = shuffle } = {}) {
+    const before = entry.before || {};
+    const after = entry.after || {};
+    const dateSource = before.audio || after.audio;
+
+    return {
+      question: entry.question,
+      options: shuffleOptions([entry.answers.right, ...entry.answers.wrong]),
+      correct: entry.answers.right,
+      audioBefore: Boolean(before.audio),
+      before: resolveMedia(before),
+      after: resolveMedia(after),
+      date: dateSource ? parseDateParts(dateSource).date : "",
+    };
+  }
+
+  function formatQuestionCounter(index, total) {
+    return `Pregunta ${index + 1} de ${total}`;
   }
 
   let sharedAudioContext = null;
@@ -52,13 +107,30 @@
   function getSharedAudioContext() {
     const AudioContextCtor = globalScope.AudioContext || globalScope.webkitAudioContext;
     if (!AudioContextCtor) return null;
-    if (!sharedAudioContext) {
-      sharedAudioContext = new AudioContextCtor();
-    }
+    sharedAudioContext ??= new AudioContextCtor();
     if (sharedAudioContext.state === "suspended") {
       sharedAudioContext.resume().catch(() => {});
     }
     return sharedAudioContext;
+  }
+
+  function playTone(context, { type, frequency, start, duration, peak, endFrequency = frequency }) {
+    const oscillator = context.createOscillator();
+    const gainNode = context.createGain();
+
+    oscillator.type = type;
+    oscillator.frequency.setValueAtTime(frequency, start);
+    if (endFrequency !== frequency) {
+      oscillator.frequency.exponentialRampToValueAtTime(endFrequency, start + duration);
+    }
+    gainNode.gain.setValueAtTime(0.0001, start);
+    gainNode.gain.exponentialRampToValueAtTime(peak, start + 0.015);
+    gainNode.gain.exponentialRampToValueAtTime(0.0001, start + duration);
+
+    oscillator.connect(gainNode);
+    gainNode.connect(context.destination);
+    oscillator.start(start);
+    oscillator.stop(start + duration + 0.05);
   }
 
   function playCountdownTick(value) {
@@ -78,20 +150,7 @@
       ];
 
     pulses.forEach(({ offset, frequency, duration, peak }) => {
-      const oscillator = context.createOscillator();
-      const gainNode = context.createGain();
-      const pulseStart = now + offset;
-
-      oscillator.type = isFinalTick ? "triangle" : "square";
-      oscillator.frequency.setValueAtTime(frequency, pulseStart);
-      gainNode.gain.setValueAtTime(0.0001, pulseStart);
-      gainNode.gain.exponentialRampToValueAtTime(peak, pulseStart + 0.01);
-      gainNode.gain.exponentialRampToValueAtTime(0.0001, pulseStart + duration);
-
-      oscillator.connect(gainNode);
-      gainNode.connect(context.destination);
-      oscillator.start(pulseStart);
-      oscillator.stop(pulseStart + duration + 0.02);
+      playTone(context, { type: isFinalTick ? "triangle" : "square", frequency, start: now + offset, duration, peak });
     });
   }
 
@@ -101,113 +160,112 @@
 
     const now = context.currentTime;
     const partials = [
-      { type: "sine", frequency: 261.63, peak: 0.16, decay: 2.9 },
-      { type: "triangle", frequency: 392, peak: 0.07, decay: 2.3 },
-      { type: "sine", frequency: 523.25, peak: 0.03, decay: 1.9 },
+      { type: "sine", frequency: 261.63, peak: 0.16, duration: 2.9 },
+      { type: "triangle", frequency: 392, peak: 0.07, duration: 2.3 },
+      { type: "sine", frequency: 523.25, peak: 0.03, duration: 1.9 },
     ];
 
-    partials.forEach(({ type, frequency, peak, decay }) => {
-      const oscillator = context.createOscillator();
-      const gainNode = context.createGain();
-
-      oscillator.type = type;
-      oscillator.frequency.setValueAtTime(frequency, now);
-      oscillator.frequency.exponentialRampToValueAtTime(frequency * 0.996, now + decay);
-      gainNode.gain.setValueAtTime(0.0001, now);
-      gainNode.gain.exponentialRampToValueAtTime(peak, now + 0.02);
-      gainNode.gain.exponentialRampToValueAtTime(0.0001, now + decay);
-
-      oscillator.connect(gainNode);
-      gainNode.connect(context.destination);
-      oscillator.start(now);
-      oscillator.stop(now + decay + 0.05);
+    partials.forEach(({ type, frequency, peak, duration }) => {
+      playTone(context, { type, frequency, start: now, duration, peak, endFrequency: frequency * 0.996 });
     });
   }
 
+  /** Full-screen "Preparados, listos, YA" overlay shared by host and player pages. */
   function createStartCountdownController() {
-    let startCountdownTimer = null;
+    let timer = null;
     let lastAnnouncedValue = null;
 
+    const getOverlay = () => document.getElementById("start-countdown-overlay");
+    const getLabel = () => document.getElementById("start-countdown-label");
+    const getDigits = () => Array.from(document.querySelectorAll("#start-countdown-number .start-countdown-digit"));
+
     function clearStartCountdownTimer() {
-      clearTimeout(startCountdownTimer);
-      startCountdownTimer = null;
+      clearTimeout(timer);
+      timer = null;
       lastAnnouncedValue = null;
     }
 
-    function swapStartCountdownDigit(value) {
-      const digits = Array.from(document.querySelectorAll("#start-countdown-number .start-countdown-digit"));
+    function swapDigit(value) {
+      const digits = getDigits();
       const activeDigit = digits.find((digit) => digit.classList.contains("active")) || digits[0];
       const nextDigit = digits.find((digit) => digit !== activeDigit) || digits[1];
 
       nextDigit.textContent = String(value);
       nextDigit.classList.remove("exit");
-      void nextDigit.offsetWidth;
+      nextDigit.getBoundingClientRect();
       nextDigit.classList.add("active");
 
       activeDigit.classList.remove("active");
       activeDigit.classList.add("exit");
     }
 
-    function getStartCountdownLabel(seconds, remaining) {
-      if (remaining <= 1) return "YA";
+    function getLabelText(seconds, remaining) {
+      if (remaining <= 1) return "¡Ya!";
       return remaining > Math.ceil(seconds / 2) ? "Preparados" : "Listos";
     }
 
-    function showStartCountdown(seconds, options = {}) {
-      const { startsAt = Date.now(), onEnd = null } = options;
-      const overlay = document.getElementById("start-countdown-overlay");
-      const label = document.getElementById("start-countdown-label");
-      const digits = Array.from(document.querySelectorAll("#start-countdown-number .start-countdown-digit"));
+    function hideStartCountdown() {
+      clearStartCountdownTimer();
+      const overlay = getOverlay();
+      overlay.classList.remove("show");
+      overlay.setAttribute("aria-hidden", "true");
+      getLabel().textContent = "";
+      getDigits().forEach((digit) => {
+        digit.classList.remove("active", "exit");
+        digit.textContent = "";
+      });
+    }
+
+    function showStartCountdown(seconds, { startsAt = Date.now(), onEnd = null } = {}) {
+      const overlay = getOverlay();
+      const label = getLabel();
+      const [firstDigit, secondDigit] = getDigits();
 
       clearStartCountdownTimer();
-      digits[0].textContent = String(seconds);
-      digits[0].classList.add("active");
-      digits[0].classList.remove("exit");
-      digits[1].classList.remove("active", "exit");
+      firstDigit.textContent = String(seconds);
+      firstDigit.classList.add("active");
+      firstDigit.classList.remove("exit");
+      secondDigit.classList.remove("active", "exit");
 
       const renderTick = () => {
         const elapsedSteps = Math.floor(Math.max(0, Date.now() - startsAt) / 1000);
         if (elapsedSteps >= seconds) {
           hideStartCountdown();
-          if (onEnd) onEnd();
+          onEnd?.();
           return;
         }
 
         const remaining = seconds - elapsedSteps;
         overlay.classList.add("show");
-        label.textContent = getStartCountdownLabel(seconds, remaining);
-        swapStartCountdownDigit(remaining);
+        overlay.removeAttribute("aria-hidden");
+        label.textContent = getLabelText(seconds, remaining);
+        swapDigit(remaining);
         if (lastAnnouncedValue !== remaining) {
           lastAnnouncedValue = remaining;
           playCountdownTick(remaining);
         }
 
         const nextTickAt = startsAt + ((elapsedSteps + 1) * 1000);
-        startCountdownTimer = setTimeout(renderTick, Math.max(0, nextTickAt - Date.now()));
+        timer = setTimeout(renderTick, Math.max(0, nextTickAt - Date.now()));
       };
 
-      startCountdownTimer = setTimeout(renderTick, Math.max(0, startsAt - Date.now()));
-    }
-
-    function hideStartCountdown() {
-      clearStartCountdownTimer();
-      document.getElementById("start-countdown-overlay").classList.remove("show");
-      document.getElementById("start-countdown-label").textContent = "";
-      document.querySelectorAll("#start-countdown-number .start-countdown-digit").forEach((digit) => {
-        digit.classList.remove("active", "exit");
-        digit.textContent = "";
-      });
+      timer = setTimeout(renderTick, Math.max(0, startsAt - Date.now()));
     }
 
     return { clearStartCountdownTimer, showStartCountdown, hideStartCountdown };
   }
 
   const shared = {
+    ANSWER_SHAPES,
+    MEDIA_FOLDERS,
     createStartCountdownController,
     escapeHtml,
+    formatQuestionCounter,
+    normalizeQuestion,
     parseDateParts,
     playCountdownTick,
     playQuestionEndGong,
+    randomInt,
     shuffle,
     syncBranding,
   };
@@ -219,4 +277,4 @@
   globalScope.RECUERDOOT_SHARED = shared;
 
   syncBranding();
-})(typeof globalThis !== "undefined" ? globalThis : window);
+})(globalThis);

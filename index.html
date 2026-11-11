@@ -2,16 +2,20 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title></title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<title>Recuerdoot</title>
 <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
 <link rel="stylesheet" href="assets/css/main.css">
+<script src="assets/js/ui-shell.js"></script>
 </head>
-<body>
+<body class="page-host" data-state="start" data-mode="idle">
 
-<div id="start-countdown-overlay" aria-live="assertive" aria-atomic="true">
-  <div id="start-countdown-inner">
-    <div id="start-countdown-label"></div>
+<div class="dot-grid" aria-hidden="true"></div>
+
+<div id="start-countdown-overlay" class="countdown-overlay" aria-live="assertive" aria-atomic="true" aria-hidden="true">
+  <div class="countdown-overlay-inner">
+    <div id="start-countdown-label" class="overline"></div>
     <div id="start-countdown-number" aria-hidden="true">
       <span class="start-countdown-digit active"></span>
       <span class="start-countdown-digit"></span>
@@ -19,146 +23,224 @@
   </div>
 </div>
 
-<!-- START -->
-<div id="start-screen" class="screen active">
-  <div class="brand"></div>
-  <div id="start-subtitle">Juego de recuerdos</div>
-  <div id="start-description">Preguntas sobre vuestros recuerdos con audios e imágenes. Adivina la respuesta correcta y descubre después el momento completo.</div>
-  <div class="button-row">
-    <button class="button" id="start-solo-button">Jugar solo</button>
-    <button class="button button-secondary" id="start-multiplayer-button">Multijugador</button>
+<header class="app-nav">
+  <div class="nav-start">
+    <img class="brand-mark" src="assets/favicon.svg" alt="" width="24" height="24">
+    <span class="brand"></span>
   </div>
-</div>
-
-<!-- LOBBY (multiplayer only) -->
-<div id="lobby" class="screen">
-  <div class="brand"></div>
-  <div id="pin-label">PIN de la partida</div>
-  <div id="pin-display"></div>
-  <div id="join-url-container">Unirse en: <a id="join-url" target="_blank" rel="noopener"></a></div>
-  <canvas id="qr-canvas" style="margin:1rem auto;display:block;"></canvas>
-  <div id="player-grid"></div>
-  <button class="button" id="lobby-start-button" disabled>Esperando jugadores...</button>
-</div>
-
-<!-- QUESTION -->
-<div id="question-screen" class="screen">
-  <div class="question-top">
-    <span class="question-info" id="question-counter"></span>
-    <div class="question-card">
-      <div class="question-text" id="question-text"></div>
-    </div>
+  <div class="nav-center" id="nav-progress" hidden>
+    <span class="overline" id="nav-progress-label"></span>
+    <div class="progress-track" aria-hidden="true"><div class="progress-fill" id="nav-progress-fill"></div></div>
   </div>
-  <div id="question-body">
-    <div id="countdown-container">
-      <svg id="countdown-ring" width="100" height="100" viewBox="0 0 100 100">
-        <circle id="countdown-ring-track" cx="50" cy="50" r="44"/>
-        <circle id="countdown-ring-progress" cx="50" cy="50" r="44"
-          stroke-dasharray="276.46" stroke-dashoffset="0"/>
-      </svg>
-      <div id="countdown-number"></div>
+  <div class="nav-end">
+    <span class="chip" id="nav-pin-chip" hidden>PIN <span class="mono" id="nav-pin"></span></span>
+    <button type="button" class="button button-ghost button-icon" id="theme-toggle-button" aria-label="Cambiar tema" aria-pressed="false">
+      <svg class="icon-moon" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M21 14.5A9 9 0 0 1 9.5 3a9 9 0 1 0 11.5 11.5Z"/></svg>
+      <svg class="icon-sun" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><circle cx="12" cy="12" r="4.5" fill="currentColor"/><path stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+    </button>
+    <button type="button" class="button button-secondary button-sm" id="exit-button" hidden>Salir</button>
+  </div>
+</header>
+
+<main class="app-main">
+
+  <!-- START -->
+  <section id="start-screen" class="screen screen-hero" aria-labelledby="start-title">
+    <div class="hero">
+      <div class="hero-copy">
+        <p class="overline"><span class="brand"></span> · <span id="start-question-count">Juego de recuerdos</span></p>
+        <h1 class="display" id="start-title">Vuestros recuerdos, <span class="brand-highlight">en juego</span>.</h1>
+        <p class="lede">Preguntas sobre vuestros recuerdos con audios e imágenes. Adivina la respuesta correcta y descubre después el momento completo.</p>
+        <div class="button-row">
+          <button type="button" class="button button-primary button-lg" id="start-multiplayer-button">Multijugador</button>
+          <button type="button" class="button button-secondary button-lg" id="start-solo-button">Jugar solo</button>
+        </div>
+        <p class="hint">Atajos: <kbd class="kbd">→</kbd> avanzar · <kbd class="kbd">1</kbd>–<kbd class="kbd">6</kbd> responder en solitario</p>
+      </div>
+      <ol class="card step-list" aria-label="Cómo se juega">
+        <li class="step"><span class="step-index mono">01</span><div><p class="step-title">Crea la partida</p><p class="step-text">La pantalla grande muestra un PIN y un código QR.</p></div></li>
+        <li class="step"><span class="step-index mono">02</span><div><p class="step-title">Uníos desde el móvil</p><p class="step-text">Hasta 10 jugadores, cada uno con su nombre.</p></div></li>
+        <li class="step"><span class="step-index mono">03</span><div><p class="step-title">Escuchad y responded</p><p class="step-text">Cuanto antes aciertes, más puntos sumas.</p></div></li>
+        <li class="step"><span class="step-index mono">04</span><div><p class="step-title">Revivid el momento</p><p class="step-text">Tras cada pregunta llega el audio o la foto original.</p></div></li>
+      </ol>
     </div>
-    <div id="question-media">
-      <img id="question-image" style="display:none;" alt="Imagen de la pregunta">
-      <video id="question-video" style="display:none;" playsinline preload="metadata" controls aria-label="Video de la pregunta"></video>
-      <div id="host-audio-area" style="display:none;">
-        <button class="play-button" id="host-play-button" aria-label="Reproducir o pausar audio de la pregunta">
-          <svg class="icon-play" width="28" height="28" viewBox="0 0 24 24"><polygon points="6,3 20,12 6,21"/></svg>
-          <svg class="icon-pause" width="28" height="28" viewBox="0 0 24 24"><rect x="5" y="3" width="5" height="18" rx="1"/><rect x="14" y="3" width="5" height="18" rx="1"/></svg>
+  </section>
+
+  <!-- LOBBY (multiplayer) -->
+  <section id="lobby-screen" class="screen" aria-labelledby="lobby-title" hidden>
+    <div class="lobby">
+      <div class="card lobby-join">
+        <p class="overline" id="lobby-title">PIN de la partida</p>
+        <p class="pin mono" id="pin-display"></p>
+        <p class="lobby-url">Entra en <a id="join-url" class="link mono" target="_blank" rel="noopener"></a></p>
+        <figure class="qr-frame">
+          <div id="qr-code" class="qr-code"></div>
+          <figcaption class="caption">Escanea para unirte</figcaption>
+        </figure>
+      </div>
+      <div class="lobby-players">
+        <div class="section-header">
+          <h2 class="section-title">Jugadores</h2>
+          <span class="chip mono" id="player-count">0/10</span>
+        </div>
+        <ul id="player-grid" class="chip-list" aria-live="polite"></ul>
+        <p id="player-empty" class="muted">Aún no hay nadie. Escanead el código para uniros.</p>
+        <button type="button" class="button button-primary button-lg" id="lobby-start-button" data-shortcut="next" disabled>
+          <span class="button-label">Esperando jugadores…</span><kbd class="kbd">→</kbd>
         </button>
       </div>
     </div>
-    <div id="answer-count">
-      <span id="answer-count-number"></span>
-      <span id="answer-count-label">Respuestas</span>
-    </div>
-  </div>
-  <div id="stage-answer-grid"></div>
-  <div id="question-feedback-area">
-    <div id="result-modal">
-      <div id="result-modal-content">
-        <div id="result-modal-status"></div>
-        <div id="result-modal-detail"></div>
-        <div id="result-modal-media">
-          <img class="reveal-element" id="reveal-image" style="display:none;" alt="Imagen revelada tras responder">
-          <video class="reveal-element" id="reveal-video" style="display:none;" playsinline preload="metadata" controls aria-label="Video revelado tras responder"></video>
-          <div id="result-modal-audio-row" style="display:none;">
-            <button class="play-button" id="reveal-play-button" aria-label="Reproducir o pausar audio revelado">
-              <svg class="icon-play" width="28" height="28" viewBox="0 0 24 24"><polygon points="6,3 20,12 6,21"/></svg>
-              <svg class="icon-pause" width="28" height="28" viewBox="0 0 24 24"><rect x="5" y="3" width="5" height="18" rx="1"/><rect x="14" y="3" width="5" height="18" rx="1"/></svg>
-            </button>
-            <div class="reveal-label" id="reveal-label"></div>
-          </div>
+  </section>
+
+  <!-- QUESTION (solo + multiplayer) -->
+  <section id="question-screen" class="screen screen-stage" aria-labelledby="question-text" hidden>
+    <header class="stage-header">
+      <div class="stage-meta">
+        <span class="overline" id="question-counter"></span>
+        <span class="chip chip-status" id="question-phase" hidden></span>
+      </div>
+      <h1 class="question-text" id="question-text">Pregunta</h1>
+    </header>
+    <div class="stage-body">
+      <div class="countdown" id="countdown" role="timer" aria-label="Tiempo restante">
+        <svg class="countdown-ring" viewBox="0 0 100 100" aria-hidden="true">
+          <circle class="countdown-ring-track" cx="50" cy="50" r="44"/>
+          <circle class="countdown-ring-progress" id="countdown-ring-progress" cx="50" cy="50" r="44" stroke-dasharray="276.46" stroke-dashoffset="0"/>
+        </svg>
+        <span class="countdown-number" id="countdown-number"></span>
+      </div>
+      <figure class="media-frame" id="question-media" hidden>
+        <img id="question-image" alt="Imagen de la pregunta" hidden>
+        <video id="question-video" playsinline preload="metadata" controls aria-label="Vídeo de la pregunta" hidden></video>
+        <div class="audio-row" id="host-audio-area" hidden>
+          <button type="button" class="play-button" id="host-play-button" aria-label="Reproducir o pausar el audio de la pregunta" aria-pressed="false">
+            <svg class="icon-play" viewBox="0 0 24 24" aria-hidden="true"><polygon points="7,4 20,12 7,20" fill="currentColor"/></svg>
+            <svg class="icon-pause" viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="4" width="4" height="16" rx="1" fill="currentColor"/><rect x="14" y="4" width="4" height="16" rx="1" fill="currentColor"/></svg>
+          </button>
         </div>
-        <button class="button" id="solo-next-button">Siguiente</button>
+      </figure>
+      <div class="stat" id="answer-count" hidden>
+        <span class="stat-value mono" id="answer-count-number" aria-live="polite"></span>
+        <span class="overline">Respuestas</span>
       </div>
     </div>
-  </div>
-</div>
+    <div id="stage-answer-grid" class="answer-grid"></div>
+  </section>
 
-<!-- REVEAL (multiplayer only) -->
-<div id="reveal-screen" class="screen">
-  <div class="question-top">
-    <div class="question-info" id="reveal-question-meta"></div>
-    <div class="question-card">
-      <div class="question-text" id="reveal-text"></div>
+  <!-- REVEAL (multiplayer) -->
+  <section id="reveal-screen" class="screen screen-stage" aria-labelledby="reveal-text" hidden>
+    <header class="stage-header">
+      <div class="stage-meta"><span class="overline" id="reveal-question-meta"></span></div>
+      <h1 class="question-text" id="reveal-text">Pregunta</h1>
+    </header>
+    <div class="reveal-body">
+      <figure class="media-frame media-frame-reveal" id="reveal-media" hidden>
+        <img id="reveal-media-image" alt="Imagen revelada de la pregunta" hidden>
+        <video id="reveal-media-video" playsinline preload="metadata" controls aria-label="Vídeo revelado de la pregunta" hidden></video>
+        <div class="audio-row" id="reveal-media-audio-row" hidden>
+          <button type="button" class="play-button" id="reveal-media-play-button" aria-label="Reproducir o pausar el audio revelado" aria-pressed="false">
+            <svg class="icon-play" viewBox="0 0 24 24" aria-hidden="true"><polygon points="7,4 20,12 7,20" fill="currentColor"/></svg>
+            <svg class="icon-pause" viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="4" width="4" height="16" rx="1" fill="currentColor"/><rect x="14" y="4" width="4" height="16" rx="1" fill="currentColor"/></svg>
+          </button>
+          <p class="caption mono" id="reveal-media-label" hidden></p>
+        </div>
+      </figure>
+      <div id="reveal-chart" class="chart" aria-label="Respuestas por opción"></div>
     </div>
-  </div>
-  <div id="reveal-body">
-    <div id="reveal-media">
-      <img class="reveal-element" id="reveal-media-image" style="display:none;" alt="Imagen revelada de la pregunta">
-      <video class="reveal-element" id="reveal-media-video" style="display:none;" playsinline preload="metadata" controls aria-label="Video revelado de la pregunta"></video>
-      <button class="play-button" id="reveal-media-play-button" aria-label="Reproducir o pausar audio revelado">
-        <svg class="icon-play" width="28" height="28" viewBox="0 0 24 24"><polygon points="6,3 20,12 6,21"/></svg>
-        <svg class="icon-pause" width="28" height="28" viewBox="0 0 24 24"><rect x="5" y="3" width="5" height="18" rx="1"/><rect x="14" y="3" width="5" height="18" rx="1"/></svg>
+    <div class="stage-actions">
+      <button type="button" class="button button-primary button-lg" id="reveal-next-button" data-shortcut="next">
+        <span class="button-label">Ver marcador</span><kbd class="kbd">→</kbd>
       </button>
-      <div class="reveal-label" id="reveal-media-label"></div>
     </div>
-    <div id="reveal-chart"></div>
-  </div>
-  <button class="button" id="reveal-next-button">Siguiente</button>
+  </section>
+
+  <!-- SCOREBOARD (multiplayer) -->
+  <section id="scoreboard-screen" class="screen screen-stage" aria-labelledby="scoreboard-title" hidden>
+    <header class="stage-header">
+      <div class="stage-meta"><span class="overline" id="scoreboard-meta"></span></div>
+      <h1 class="section-title" id="scoreboard-title">Marcador</h1>
+    </header>
+    <ol class="leaderboard leaderboard-stage" id="scoreboard-leaderboard"></ol>
+    <div class="stage-actions">
+      <button type="button" class="button button-primary button-lg" id="scoreboard-next-button" data-shortcut="next">
+        <span class="button-label">Siguiente pregunta</span><kbd class="kbd">→</kbd>
+      </button>
+    </div>
+  </section>
+
+  <!-- END (solo) -->
+  <section id="solo-end-screen" class="screen screen-centered" aria-labelledby="solo-end-title" hidden>
+    <p class="overline" id="solo-end-title">Fin del juego</p>
+    <p class="display mono-figures" id="final-score"></p>
+    <p class="lede" id="end-message"></p>
+    <div class="button-row">
+      <button type="button" class="button button-primary button-lg" id="solo-restart-button">Jugar otra vez</button>
+      <button type="button" class="button button-secondary button-lg" id="solo-back-button">Volver al inicio</button>
+    </div>
+  </section>
+
+  <!-- END (multiplayer) -->
+  <section id="multiplayer-end-screen" class="screen screen-stage screen-podium" aria-labelledby="winner-name" hidden>
+    <div class="podium-header">
+      <span class="trophy" aria-hidden="true">
+        <svg viewBox="0 0 64 64" width="48" height="48" focusable="false"><path fill="currentColor" d="M20 8h24v8h8c0 8.8-5.2 16.1-12 18.7V42h6a4 4 0 0 1 4 4v2H14v-2a4 4 0 0 1 4-4h6v-7.3C17.2 32.1 12 24.8 12 16h8V8Zm-2 12c0 4.9 2.6 9.1 6.5 11.4A19.8 19.8 0 0 1 20 20h-2Zm28 0c0 4.1-1.6 8-4.5 11.4C45.4 29.1 48 24.9 48 20h-2Z"/></svg>
+      </span>
+      <p class="overline">Ganador</p>
+      <h1 class="headline" id="winner-name">Ganador</h1>
+      <p class="muted mono" id="winner-score"></p>
+    </div>
+    <ol class="leaderboard" id="end-leaderboard"></ol>
+    <div class="stage-actions">
+      <button type="button" class="button button-primary button-lg" id="multiplayer-back-button">Nueva partida</button>
+    </div>
+  </section>
+
+</main>
+
+<!-- Solo feedback sheet: lives outside <main> so its fixed scrim covers the whole viewport. -->
+<div id="result-modal" class="sheet-backdrop" hidden>
+  <dialog class="card sheet" open aria-labelledby="result-modal-status">
+    <p id="result-modal-status" class="sheet-title"></p>
+    <p id="result-modal-detail" class="sheet-detail" hidden></p>
+    <figure id="result-modal-media" class="media-frame media-frame-reveal" hidden>
+      <img id="reveal-image" alt="Imagen revelada tras responder" hidden>
+      <video id="reveal-video" playsinline preload="metadata" controls aria-label="Vídeo revelado tras responder" hidden></video>
+      <div class="audio-row" id="result-modal-audio-row" hidden>
+        <button type="button" class="play-button" id="reveal-play-button" aria-label="Reproducir o pausar el audio revelado" aria-pressed="false">
+          <svg class="icon-play" viewBox="0 0 24 24" aria-hidden="true"><polygon points="7,4 20,12 7,20" fill="currentColor"/></svg>
+          <svg class="icon-pause" viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="4" width="4" height="16" rx="1" fill="currentColor"/><rect x="14" y="4" width="4" height="16" rx="1" fill="currentColor"/></svg>
+        </button>
+        <p class="caption mono" id="reveal-label" hidden></p>
+      </div>
+    </figure>
+    <button type="button" class="button button-primary button-lg button-block" id="solo-next-button" data-shortcut="next">
+      <span class="button-label">Siguiente</span><kbd class="kbd">→</kbd>
+    </button>
+  </dialog>
 </div>
 
-<!-- SCOREBOARD (multiplayer only) -->
-<div id="scoreboard-screen" class="screen">
-  <div class="question-card scoreboard-card">
-    <div class="question-text" id="scoreboard-title">Marcador</div>
-  </div>
-  <div class="leaderboard" id="scoreboard-leaderboard"></div>
-  <button class="button" id="scoreboard-next-button">Siguiente</button>
-</div>
+<dialog id="exit-dialog" class="card dialog" aria-labelledby="exit-dialog-title">
+  <form method="dialog">
+    <h2 class="dialog-title" id="exit-dialog-title">¿Salir de la partida?</h2>
+    <p class="dialog-text" id="exit-dialog-text"></p>
+    <div class="dialog-actions">
+      <button type="submit" class="button button-secondary" value="cancel" autofocus>Seguir jugando</button>
+      <button type="submit" class="button button-destructive" value="confirm">Salir</button>
+    </div>
+  </form>
+</dialog>
 
-<!-- END (solo) -->
-<div id="solo-end-screen" class="screen">
-  <div class="brand"></div>
-  <h1 style="font-size:2.2rem;font-weight:800;margin-bottom:12px;">Fin del juego</h1>
-  <div id="final-score"></div>
-  <div id="end-message"></div>
-  <button class="button" id="solo-restart-button">Jugar otra vez</button>
-  <button class="button button-secondary" id="solo-back-button" style="margin-top:12px;">Volver</button>
-</div>
-
-<!-- END (multiplayer) -->
-<div id="multiplayer-end-screen" class="screen">
-  <div class="brand"></div>
-  <div id="trophy" aria-hidden="true">
-    <svg viewBox="0 0 64 64" width="64" height="64" role="img" focusable="false">
-      <path fill="currentColor" d="M20 8h24v8h8c0 8.8-5.2 16.1-12 18.7V42h6a4 4 0 0 1 4 4v2H14v-2a4 4 0 0 1 4-4h6v-7.3C17.2 32.1 12 24.8 12 16h8V8Zm-2 12c0 4.9 2.6 9.1 6.5 11.4A19.8 19.8 0 0 1 20 20h-2Zm28 0c0 4.1-1.6 8-4.5 11.4C45.4 29.1 48 24.9 48 20h-2Z"/>
-    </svg>
-  </div>
-  <div id="winner-name"></div>
-  <div id="winner-score"></div>
-  <div class="leaderboard" id="end-leaderboard"></div>
-  <button class="button" id="multiplayer-back-button" style="margin-top:24px;">Nueva partida</button>
-</div>
+<output id="toast" class="toast" aria-live="polite" hidden></output>
 
 <audio id="game-audio"></audio>
 <audio id="background-music" loop></audio>
 
-<script src="https://cdn.jsdelivr.net/npm/qrious@4.0.2/dist/qrious.min.js"></script>
 <script src="socket.io/socket.io.js"></script>
 <script src="assets/js/game-config.js"></script>
+<script src="assets/js/state-machines.js"></script>
 <script src="assets/js/game-shared.js"></script>
+<script src="assets/js/host-media.js"></script>
+<script src="assets/js/host-leaderboard.js"></script>
 <script src="assets/js/host.js"></script>
 </body>
 </html>

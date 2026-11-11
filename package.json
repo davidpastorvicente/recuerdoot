@@ -2,16 +2,24 @@
   "name": "recuerdoot",
   "version": "1.0.0",
   "private": true,
+  "engines": {
+    "node": ">=20.11"
+  },
   "scripts": {
     "start": "node server.js",
-    "start-external": "node start-external.js"
+    "start-external": "node start-external.js",
+    "test": "node --test",
+    "validate:questions": "node scripts/validate-questions.js",
+    "check": "npm run validate:questions && npm test"
   },
   "dependencies": {
     "express": "^4.18.2",
+    "qrcode": "^1.5.4",
     "socket.io": "^4.7.4"
   },
   "devDependencies": {
     "connect-livereload": "^0.6.1",
-    "livereload": "^0.10.3"
+    "livereload": "^0.10.3",
+    "socket.io-client": "^4.8.4"
   }
 }
