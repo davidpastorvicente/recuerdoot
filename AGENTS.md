@@ -10,7 +10,7 @@ A Kahoot-style multiplayer quiz about shared memories, built with Node.js (Expre
 npm install
 npm start                    # server on :8000 with live reload
 npm test                     # node --test: unit + Socket.IO end-to-end
-npm run validate:questions   # schema + media existence check for questions.json
+npm run validate:questions   # schema + media existence check for questions.json (or QUESTIONS_PATH)
 npm run check                # validate:questions && test
 ```
 

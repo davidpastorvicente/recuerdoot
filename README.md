@@ -29,7 +29,7 @@ npm run validate:questions
 | `npm start` | Starts the server on port 8000 with live reload. |
 | `npm run start-external` | Opens a Cloudflare quick tunnel and starts the server with its public URL, so players can join from outside your network. |
 | `npm test` | Runs the test suite (`node --test`): state machines, shared helpers, question validation, game logic and an end-to-end Socket.IO match. |
-| `npm run validate:questions [path]` | Validates `questions.json` (or another `.json` file inside the project) and checks that every referenced media file exists. |
+| `npm run validate:questions` | Validates the questions file (`QUESTIONS_PATH`, or `questions.json` by default) and checks that every referenced media file exists. |
 | `npm run check` | `validate:questions` followed by `test`. |
 
 ### Environment variables
@@ -38,7 +38,7 @@ npm run validate:questions
 |----------|---------|---------|
 | `PORT` | `8000` | HTTP port. |
 | `PUBLIC_BASE_URL` | LAN address | Base URL used for the join link and QR code. Set automatically by `start-external`. |
-| `QUESTIONS_PATH` | `./questions.json` | Questions file to load. |
+| `QUESTIONS_PATH` | `./questions.json` | Questions file to load (and to check with `validate:questions`). |
 | `LIVERELOAD` | enabled | Set to `0` to disable live reload (it only loads if the dev dependencies are installed). |
 | `CLOUDFLARED_PATH` | — | Absolute path to `cloudflared`. Otherwise it is looked up in `/opt/homebrew/bin`, `/usr/local/bin` and `/usr/bin`. |
 
