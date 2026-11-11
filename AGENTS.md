@@ -2,85 +2,94 @@
 
 ## What is this project?
 
-A Kahoot-style multiplayer quiz game built with Node.js (Express + Socket.IO). A host displays questions on a big screen while players answer from their phones in real-time.
+A Kahoot-style multiplayer quiz about shared memories, built with Node.js (Express + Socket.IO) and plain browser JavaScript (no bundler, no framework). A host shows questions on a big screen while players answer from their phones; there is also a solo mode. User-facing docs are in `README.md`, the design system in `DESIGN.md`, and every state machine in `docs/state-machines.md`.
+
+## Commands
+
+```bash
+npm install
+npm start                    # server on :8000 with live reload
+npm test                     # node --test: unit + Socket.IO end-to-end
+npm run validate:questions   # schema + media existence check for questions.json
+npm run check                # validate:questions && test
+```
+
+Useful env vars: `PORT`, `PUBLIC_BASE_URL`, `QUESTIONS_PATH` (for example `test/fixtures/questions.json` to try the app with 3 short questions), `LIVERELOAD=0`.
+
+Live reload reloads both pages whenever an HTML, CSS or JS file under `assets/` changes. A host reload disconnects the host and ends the match, so expect that while editing during a manual test.
 
 ## Architecture
 
-- **server.js** — Single Node.js server handling both static file serving and WebSocket game logic. Express serves files, Socket.IO manages real-time multiplayer communication.
-- **index.html** — HTML structure only: start screen, solo mode, and multiplayer host screens (lobby, question, reveal, scoreboard, end)
-- **player.html** — HTML structure for multiplayer player screen (phone-optimized, join via PIN or QR)
-- **assets/js/game-config.js** — Shared game constants loaded by both the server and the host page
-- **assets/js/game-shared.js** — Shared helpers for countdown UI, escaping, shuffling, and date parsing used across server/client code
-- **assets/js/host.js** — Client-side JavaScript for index.html (solo mode and multiplayer host logic)
-- **assets/js/player.js** — Client-side JavaScript for player.html
-- **assets/css/main.css** — Shared styles for both host and player screens
-- **questions.json** — Ordered array of questions with a unified structure (no types/subtypes)
+- **server.js**: entry point only (env vars, `listen`, logs).
+- **lib/app.js**: `createApp(options)` builds Express + Socket.IO without listening (tests use port 0). Holds the single active `Game`, maps socket events to `Game` methods, generates the PIN (`crypto.randomInt`) and the join QR code (server-side SVG). Serves only `index.html`, `player.html`, `questions.json`, `/assets` and `GET /api/state`.
+- **lib/game.js**: `Game` class with all match rules (joining, scoring, timers, reveal, reconnection). It never touches Socket.IO; everything goes through the injected `emit(target, event, payload)`.
+- **lib/questions.js**: reads and validates `questions.json` (`validateQuestions` returns readable messages with the question number).
+- **lib/network.js**: LAN IP and join URL resolution.
+- **scripts/validate-questions.js**: CLI behind `npm run validate:questions`.
+- **index.html / player.html**: markup only. Screens are `<section class="screen">` toggled with the `hidden` attribute.
+- **assets/js/** (classic scripts exposing `globalThis.RECUERDOOT_*`; the shared ones also `module.exports` for Node):
+  - `game-config.js`: every shared constant (timings, scoring, limits, default music). Server and browser.
+  - `state-machines.js`: `MACHINES.game | host | player` transition tables + `createStateMachine()`. Server and browser.
+  - `game-shared.js`: `normalizeQuestion`, CSPRNG `randomInt`/`shuffle`, `parseDateParts`, `escapeHtml`, `ANSWER_SHAPES`, sound cues, start-countdown overlay.
+  - `ui-shell.js`: loaded in `<head>`: theme before first paint, dot-grid spotlight, `showToast`.
+  - `host-media.js`: foreground clip + ducked background music with fades.
+  - `host-leaderboard.js`: leaderboard rendering, FLIP row movement, score count-up; pure helpers are unit-tested.
+  - `host.js` / `player.js`: page controllers.
+- **assets/css/main.css**: all styles; Genesis tokens at the top (`light-dark()` for both themes).
+- **test/**: `node:test` suites; `test/fixtures/questions.json` is a generic 3-question fixture.
 
-## questions.json format
+## State machines (read before changing any flow)
 
-Every question has the same structure:
+All flows are explicit; see `docs/state-machines.md` for diagrams and the meaning of each state.
+
+- Add or rename states only in `assets/js/state-machines.js`, then update the controller's lookup maps (`SCREEN_BY_STATE`, `PHASE_LABEL_BY_STATE`, etc.), the docs and the tests.
+- Server: guard every command with an explicit phase check before calling `transition()`. Invalid server transitions throw on purpose.
+- Host and player: change screens only by transitioning the machine. The `subscribe` callback shows the right screen and syncs nav, chips and `document.body.dataset.state`. Don't toggle screens or keep parallel boolean flags.
+- Re-entering the current state is allowed and notifies listeners (used for rejoins). So guard user actions with `machine.is(...)` before transitioning, never with the return value of `transition()`.
+- Inspect state with `GET /api/state`, `getHostState()`, `getPlayerState()` or `body[data-state]`.
+
+## questions.json
+
+Private and gitignored (the format and a generic example are in `README.md`). Never commit it or real media, and never copy real questions, names or file names into tests or docs; use generic ones.
 
 ```json
 {
   "question": "The question text",
-  "answers": { "right": "Correct answer", "wrong": ["Wrong 1", "Wrong 2", "Wrong 3", "Wrong 4", "Wrong 5"] },
-  "before": { "audio": "PTT-20140627-WA0012.mp3", "image": "image.jpg", "video": "clip.mp4", "music": "intro.mp3" },
-  "after": { "audio": "PTT-20140627-WA0012.mp3", "video": "clip.mp4", "music": "reveal.mp3" }
+  "answers": { "right": "Correct answer", "wrong": ["Wrong 1", "Wrong 2", "Wrong 3"] },
+  "before": { "audio": "clip_filtered.mp3", "image": "photo.jpg", "video": "clip.mp4", "music": "loop.mp3" },
+  "after": { "audio": "clip.mp3", "image": "photo.jpg", "video": "clip.mp4", "music": "loop.mp3" }
 }
 ```
 
-- `question` — Always present. The full question text as shown to users.
-- `answers` — Always present. `right` is the correct answer string, `wrong` is an array of 3 to 5 wrong answers.
-- `before` (optional) — Media shown/played with the question before answering. Can contain `audio` (filename string in `assets/audios/`), `image` (filename string in `assets/images/`), `video` (filename string in `assets/videos/`), and/or `music` (filename string in `assets/music/`).
-- `after` (optional) — Media revealed after answering. Can contain `audio` (filename string in `assets/audios/`), `image` (filename string in `assets/images/`), `video` (filename string in `assets/videos/`), and/or `music` (filename string in `assets/music/`).
-- For filtered audio questions: the `_filtered` version plays before answering, the original is revealed after.
-- A question can have any mix of audio, image, video, and music in `before`.
-- Questions can have 4, 5, or 6 total answer options.
-- Options are shuffled at runtime by the code; questions.json stores them in a fixed structure.
-- Five-option questions render as two rows plus a centered final answer with the same width as the others; six-option questions render as three rows of two.
+- `answers.wrong` has 3 to 5 entries (4 to 6 options in total), and all options must be different.
+- `before` and `after` are optional; any mix of `audio`, `image`, `video` and `music`, resolved to `assets/audios|images|videos|music/`.
+- `before.audio` makes it an audio question (filtered clip before, original after).
+- Options are shuffled at runtime by `normalizeQuestion`; questions play in file order.
+- Dates for reveal captions come from `YYYYMMDD` in the audio file name.
 
 ## Key conventions
 
-- All UI text is in Spanish
-- Dark theme with Archivo Black display typography, Outfit body typography, and a blue accent (`#4f8cff`)
-- Audio files live in `assets/audios/` (originals and filtered versions with `_filtered` suffix). Music lives in `assets/music/`. Images live in `assets/images/`. Videos live in `assets/videos/`.
-- Questions play in the order defined in questions.json (no shuffle)
-- For filtered audio questions: filtered audio plays before answering, original revealed after
-- Multiplayer scoring: faster correct answers = more points (1000 max, 100 min, linear)
-- No inline JavaScript in HTML files — all JS lives in separate `.js` files
-- Multiplayer lobby shows a QR code for easy player joining
-- The multiplayer lobby plays `assets/music/waiting.mp3` in the background before the game starts
-- The full visual system and UI behavior guidance live in `DESIGN.md`
-- Naming convention: use ids for singleton UI hooks and classes for shared/repeated styling patterns
-- Host gameplay screens should be viewport-constrained with no page scrolling
-- Reveal flow order is question -> revealed media -> chart -> scoreboard
-- Audio-only reveal media should shrink to fit content; image and video reveals can use a larger framed box
-- Host leaderboard views are capped to the top 5 players
-- The game-start countdown plays a short audio cue each second on both host and player screens
-- If a question has no `before.music`, the host uses `assets/music/default.mp3` as the default question loop
-- When foreground question/reveal audio plays over background music, the background music ducks and then returns
-- The multiplayer question countdown plays a deeper gong when it ends, including when the round ends early because everyone answered
+- All UI text is in Spanish.
+- No inline JavaScript or inline styles in HTML; no `innerHTML` with unescaped data (use `escapeHtml` or DOM nodes).
+- Ids for singleton hooks, classes for shared styling.
+- Never use `Math.random` (SonarCloud S2245): use `randomInt`/`shuffle` from `game-shared.js` or `crypto` on the server.
+- Never spawn binaries through `PATH` (S4036): use `process.execPath` or absolute paths.
+- No remote `<script>` tags without SRI; the QR code is generated on the server.
+- Keep functions small (SonarCloud cognitive complexity) and don't duplicate logic between server and browser; put it in a shared `assets/js` module.
+- Design follows `DESIGN.md` (Genesis): indigo only for interactive elements, 12px cards / 6px buttons, General Sans + DM Sans + JetBrains Mono, at most two weights (500/700) per screen, shadows only on hover and popovers, the dot grid is the only decoration. Answer colours and shapes are fixed per slot.
+- Host gameplay screens (`.screen-stage`) must fit the viewport with no page scrolling.
+- Reveal order: question → revealed media → chart → scoreboard. The first scoreboard appears directly; later ones animate from the previous order. Leaderboards show the top 5.
+- Audio: without `before.music` the host loops `assets/music/default.mp3`; the lobby loops `assets/music/waiting.mp3`; foreground clips duck the music; the start countdown ticks each second on host and phones; a gong marks the end of every multiplayer question, including early ends.
+- Multiplayer scoring: correct answers earn 1000 → 100 points, linear over 20 s from when the question appeared.
 
-## Running
+## Testing expectations
 
-```bash
-npm install
-node server.js
-# Server on port 8000
-```
+- Run `npm test` before finishing; add or adjust tests for any change to `lib/`, `state-machines.js`, `game-shared.js` or `host-leaderboard.js`.
+- `test/game.test.js` drives `Game` with `t.mock.timers`; `test/server.test.js` plays a full match over real sockets (about 6 s because of the real start countdown).
+- For UI changes, verify both pages in a browser (light and dark themes, a phone-sized viewport for `player.html`) with `QUESTIONS_PATH=test/fixtures/questions.json` for a quick run.
 
 ## Audio filter command (sox)
 
 ```bash
 sox -v 0.5 input.mp3 input_filtered.mp3 pitch -320 highpass 120 lowpass 3200 bass 3 equalizer 500 1.0q 4 overdrive 8 compand 0.005,0.08 -24,-24,-12,-10,-6,-5 0 -24
 ```
-
-## Multiplayer flow
-
-1. Host opens `/` and clicks Multijugador → creates game → shows PIN + QR code
-2. Players open `/player.html` (or scan QR) → enter PIN + name → wait in lobby
-3. Host starts game → questions cycle through:
-   - Audio-before questions: 3s read → host auto-plays audio → 10s countdown to answer after the audio ends
-   - Other questions: 30s countdown immediately
-4. After each question: reveal screen with media/chart, then a separate scoreboard screen
-5. End: winner crowned with the final top-5 leaderboard view

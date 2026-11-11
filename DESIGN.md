@@ -1,324 +1,180 @@
 ---
-version: "alpha"
+version: "genesis-1"
 name: Recuerdoot
-description: Dark, nostalgic quiz interface for a Kahoot-style memories game with a blue accent system, bold display typography, and phone-first multiplayer interactions.
+base: "Genesis (designmd.ai/chef/genesis)"
+description: Editorial-precision interface for a Kahoot-style memories quiz. Bold display type, generous spacing, gallery-frame cards, a single indigo accent reserved for interaction, and a fixed multicolour answer palette for gameplay.
 colors:
-  primary: "#0A0E1A"
-  secondary: "#141928"
-  tertiary: "#4F8CFF"
-  tertiary-soft: "#3D6FD1"
-  neutral: "#EAE6DF"
-  neutral-muted: "#7A8599"
-  surface: "#141928"
-  surface-hover: "#1C2237"
-  border: "#1E2640"
-  border-strong: "#2A3A5E"
-  success: "#5EE6A0"
-  success-surface: "rgba(94, 230, 160, 0.12)"
-  error: "#F07070"
-  error-surface: "rgba(240, 112, 112, 0.12)"
-  option-red: "#D94545"
-  option-blue: "#3B7DD8"
-  option-yellow: "#E6B830"
-  option-green: "#30B870"
-  scrim: "rgba(10, 14, 26, 0.45)"
-  on-primary: "#EAE6DF"
-  on-tertiary: "#0A0E1A"
+  primary: "#6366F1"
+  primary-hover: "#4F46E5"
+  primary-text: "light #4F46E5 / dark #A5B4FC"
+  on-primary: "#FAFAFA"
+  secondary: "#20970B"
+  neutral: "#9C9C9C"
+  background: "light #FAFAFA / dark #0B0B0D"
+  surface: "light #FFFFFF / dark #141417"
+  surface-alt: "light #F4F4F5 / dark #1D1D21"
+  text-primary: "light #0A0A0A / dark #F4F4F5"
+  text-secondary: "light #6B6B6B / dark #A1A1AA"
+  border: "light #E8E8EC / dark #27272B"
+  success: "#10B981"
+  warning: "#F59E0B"
+  error: "#EF4444"
+  highlight: "rgba(245, 158, 11, 0.24)"
+answer-palette:
+  option-0: "#DC3E42"
+  option-1: "#0D74CE"
+  option-2: "#FFC53D"
+  option-3: "#218358"
+  option-4: "#067A6F"
+  option-5: "#8145B5"
 typography:
-  display-xl:
-    fontFamily: "Archivo Black"
-    fontSize: 3.4rem
-    fontWeight: 800
-    lineHeight: 1
-    letterSpacing: -0.03em
-  display-lg:
-    fontFamily: "Archivo Black"
-    fontSize: 2.8rem
-    fontWeight: 800
-    lineHeight: 1.05
-    letterSpacing: -0.02em
-  heading-md:
-    fontFamily: "Outfit"
-    fontSize: 1.6rem
-    fontWeight: 700
-    lineHeight: 1.5
-    letterSpacing: 0
-  body-md:
-    fontFamily: "Outfit"
-    fontSize: 1rem
-    fontWeight: 400
-    lineHeight: 1.6
-    letterSpacing: 0
-  body-lg:
-    fontFamily: "Outfit"
-    fontSize: 1.15rem
-    fontWeight: 700
-    lineHeight: 1.4
-    letterSpacing: 0
-  label-caps:
-    fontFamily: "Archivo Black"
-    fontSize: 0.85rem
-    fontWeight: 700
-    lineHeight: 1.2
-    letterSpacing: 0.08em
+  display: { fontFamily: "General Sans", fontSize: 72px, fontWeight: 700, letterSpacing: -0.04em }
+  headline: { fontFamily: "General Sans", fontSize: 60px, fontWeight: 700, letterSpacing: -0.04em }
+  section: { fontFamily: "General Sans", fontSize: 32px, fontWeight: 700, letterSpacing: -0.03em }
+  subhead: { fontFamily: "General Sans", fontSize: 24px, fontWeight: 700 }
+  body: { fontFamily: "DM Sans", fontSize: 15px, fontWeight: 500 }
+  small: { fontFamily: "DM Sans", fontSize: 13px, fontWeight: 500 }
+  caption: { fontFamily: "DM Sans", fontSize: 12px, fontWeight: 500 }
+  overline: { fontFamily: "DM Sans", fontSize: 11px, fontWeight: 700, letterSpacing: 0.08em, textTransform: uppercase }
+  code: { fontFamily: "JetBrains Mono", fontWeight: 500 }
+spacing: [4, 8, 12, 16, 20, 24, 32, 40, 48, 64, 80, 96]
 rounded:
-  sm: 10px
-  md: 14px
-  lg: 20px
-  xl: 24px
-  pill: 999px
-spacing:
-  xs: 8px
-  sm: 12px
-  md: 16px
-  lg: 20px
-  xl: 24px
-  xxl: 32px
-  section: 40px
+  xs: 4px
+  sm: 6px
+  md: 8px
+  lg: 12px
+  full: 9999px
+elevation:
+  hover: "0 8px 30px rgba(0,0,0,0.08) + translateY(-2px)"
+  primary-hover: "0 4px 12px rgba(99,102,241,0.35)"
+  popover: "shadow-lg"
+  focus: "2px indigo outline + 0 0 0 3px rgba(99,102,241,0.12)"
 components:
-  button-primary:
-    backgroundColor: "{colors.tertiary}"
-    textColor: "{colors.on-tertiary}"
-    typography: "{typography.body-lg}"
-    rounded: "{rounded.md}"
-    padding: 18px
-  button-secondary:
-    backgroundColor: "{colors.surface}"
-    textColor: "{colors.tertiary}"
-    rounded: "{rounded.md}"
-    padding: 18px
-  card-question:
-    backgroundColor: "{colors.surface}"
-    textColor: "{colors.on-primary}"
-    rounded: "{rounded.lg}"
-    padding: 28px
-  modal-result:
-    backgroundColor: "{colors.surface}"
-    textColor: "{colors.on-primary}"
-    rounded: "{rounded.xl}"
-    padding: 32px
-  option-tile:
-    textColor: "#FFFFFF"
-    rounded: "{rounded.md}"
-    padding: 24px
-  play-button:
-    backgroundColor: "{colors.tertiary}"
-    textColor: "{colors.on-tertiary}"
-    rounded: "{rounded.pill}"
-    size: 60px
-  player-input:
-    backgroundColor: "{colors.surface}"
-    textColor: "{colors.on-primary}"
-    rounded: "{rounded.md}"
-    padding: 16px
+  button: { radius: 6px, sizes: { sm: 32px, md: 38px, lg: 44px }, weight: 500 }
+  card: { background: surface, border: "1px border", radius: 12px }
+  input: { radius: 6px, padding: "10px 14px", focus: "indigo border + ring" }
+  chip: { radius: full, padding: "4px 12px", fontSize: 12px }
+  nav: { height: 56px, background: "blurred background", border: "1px bottom" }
+  answer-tile: { radius: 12px, background: answer-palette, font: subhead }
+  play-button: { size: 56px, radius: full, background: primary }
 ---
 
 ## Overview
 
-Recuerdoot is a memories quiz, not a neutral enterprise dashboard. The interface should feel like a playful late-night game session built from dark surfaces, bold typography, and bright quiz colors, while still reading clearly from a distance on the host screen and quickly on a phone.
+Recuerdoot is a memories quiz built on the **Genesis** design system: editorial, quietly confident, high information density balanced by breathing room. Two contexts share one system:
 
-The visual identity balances three ideas:
+- **Host / big screen** (`index.html`): legible from across a room, every gameplay screen fits the viewport with no scrolling.
+- **Player / phone** (`player.html`): phone-first, big tap targets, one decision per screen.
 
-- Big-screen legibility for the host and reveal moments.
-- Fast, tap-friendly interaction for player phones.
-- Warm nostalgia through atmospheric texture and celebratory motion, without becoming messy or cartoonish.
+Product copy is always Spanish, short and direct.
 
-All visible product copy is in Spanish. The UI should stay confident and concise rather than verbose.
+Implementation notes:
 
-Implementation note:
-
-- Prefer ids for singleton UI hooks that exist once per screen.
-- Prefer classes for shared or repeated styling patterns.
+- Tokens live as CSS custom properties at the top of `assets/css/main.css`. Light and dark values are declared once with `light-dark()`.
+- The theme follows the OS. The host nav has a toggle that stores an explicit choice in `localStorage` (`recuerdoot-theme`); `assets/js/ui-shell.js` applies it before first paint.
+- Use ids for singleton hooks and classes for shared styling.
 
 ## Colors
 
-The palette is built around a dark foundation with a single blue accent system for primary actions and progress states.
+- **Primary indigo (`#6366F1`)**: interactive elements only: primary buttons, links, focus rings, play buttons. Never for static text, scores, timers or decoration.
+- **Secondary green (`#20970B`)**: reserved for the one brand highlight in the start hero ("en juego").
+- **Neutrals**: background `#FAFAFA`, surface `#FFFFFF`, text `#0A0A0A` / `#6B6B6B`, border `#E8E8EC`. Never pure black or pure white text.
+- **Semantic**: success (correct, answers open), warning (listening, reconnecting), error (wrong, urgent countdown, destructive). Each has a `-text` variant with accessible contrast and a `-soft` background for chips.
+- **Highlight**: a soft amber marker behind quoted phrases in questions (`<mark class="quote">`).
+- **Medals**: gold, silver, bronze tinted chips for ranks 1 to 3.
 
-- **Primary (`#0A0E1A`)**: main page background and deepest canvas.
-- **Secondary / Surface (`#141928`)**: cards, sheets, and elevated containers.
-- **Tertiary / Accent (`#4F8CFF`)**: primary buttons, progress, active highlights, and branded emphasis.
-- **Neutral (`#EAE6DF`)**: main text on dark surfaces.
-- **Neutral Muted (`#7A8599`)**: metadata, helper copy, labels, and secondary information.
-- **Success (`#5EE6A0`)** and **Error (`#F07070`)**: correctness and failure states only.
+### Answer palette
 
-The answer palette is intentionally multicolor and should remain fixed to the familiar quiz pattern:
+Answer colours are structural gameplay signals, not decoration, so they are exempt from the indigo-only rule. Keep them fixed per slot and always paired with their shape:
 
-- Option 1: red
-- Option 2: blue
-- Option 3: yellow
-- Option 4: green
-
-Use the accent blue for the product identity, but do not replace the answer colors with the accent system. Those option colors communicate gameplay structure.
-
-The solo result modal uses a scrim behind the modal content. It should dim the background enough to protect readability, but not fully black out the question underneath.
+| Slot | Colour | Shape |
+|------|--------|-------|
+| 0 | red `#DC3E42` | triangle |
+| 1 | blue `#0D74CE` | square |
+| 2 | yellow `#FFC53D` (dark ink) | circle |
+| 3 | green `#218358` | diamond |
+| 4 | teal `#067A6F` | pentagon |
+| 5 | purple `#8145B5` | inverted triangle |
 
 ## Typography
 
-Typography is split into two roles:
-
-- **Archivo Black** for brand moments, counters, scores, labels that need punch, and large display text.
-- **Outfit** for everything else: question copy, buttons, metadata, labels, and form input.
-
-Usage rules:
-
-- Brand wordmark and major results should feel oversized and graphic.
-- Question text should be bold and highly legible, not decorative.
-- Metadata uses compact uppercase styling with increased letter spacing.
-- Body copy should keep comfortable line height and avoid dense paragraphs.
-
-Do not introduce additional font families unless there is a strong, explicit reason.
+- **General Sans** (Fontshare): display, headlines, question text, answer tiles, leaderboard names. Bold with tight tracking (−0.02 to −0.04em).
+- **DM Sans** (Google Fonts): body, buttons, labels, inputs.
+- **JetBrains Mono**: PIN, scores, counts, dates, keyboard hints: anything that reads as data.
+- Two weights per screen at most: 500 and 700.
+- Scale: Display 72, Headline 60, Section 32, Subhead 24, Body 15, Small 13, Caption 12, Overline 11 (uppercase). Host question text clamps between 24 and 40px.
 
 ## Layout
 
-The application has two layout modes that must feel related but optimized for different devices.
+- 4px spacing grid; container max width 1280px with 24px side padding.
+- Sticky 56px nav with backdrop blur: brand left, question progress centre, context (PIN chip, theme toggle, Salir) right.
+- Host gameplay screens (`.screen-stage`: question, reveal, scoreboard, multiplayer end) use `100dvh - nav` and `overflow: hidden`. When space is tight, shrink internals before overflowing.
+- Question stage: header (overline counter + phase chip + question), body grid `[countdown | media | answer count]`, answer grid.
+- Player screens are a centred single column (max 480px), except the answer grid, which fills the viewport.
+- Respect safe areas (`viewport-fit=cover` + `env(safe-area-inset-*)`).
 
-Host / solo layout:
+## Elevation
 
-- Center the main content group within the viewport unless solo mode intentionally shifts the question stack upward.
-- Keep the question header visually detached and pinned near the top.
-- Use wide cards with generous padding and strong whitespace.
-- Prevent horizontal overflow.
-
-Player layout:
-
-- Design mobile-first with full-width controls and strong vertical rhythm.
-- Prioritize touch targets and readability over density.
-- Respect safe areas at the top and bottom.
-
-Shared layout rules:
-
-- Use `dvh`-aware sizing where full-screen sections are needed.
-- Host gameplay screens should fit inside the viewport without page scrolling.
-- Maintain an 8px-based spacing rhythm.
-- Keep primary controls comfortably separated.
-- When vertical space is tight, shrink internal components before allowing the host layout to overflow.
-
-## Elevation & Depth
-
-Depth in Recuerdoot comes from surface contrast, borders, glow, and shadow rather than heavy skeuomorphism.
-
-- Cards use dark surfaces with subtle borders.
-- The brand and accent states can use glow sparingly.
-- Buttons and tiles can scale slightly on interaction, but should not jump or reflow layout.
-- Overlays and result states should use a restrained scrim instead of blur-heavy effects.
-
-The grain layer and radial glow are part of the visual atmosphere. Keep them subtle enough that they never compete with text.
+- Cards rest flat with a 1px border. Shadows only on hover (lift −2px) and on popovers or dialogs (`shadow-lg`).
+- Primary buttons gain an indigo glow on hover. All buttons rise 1px on hover.
+- Focus: 2px indigo outline plus the 3px indigo ring.
 
 ## Shapes
 
-Rounded corners are soft but not bubbly.
-
-- Inputs and standard buttons: medium radius.
-- Large cards: large radius.
-- Result modal: extra-large radius.
-- Circular audio controls: full pill / circle.
-
-Quiz answer shapes inside the tiles are structural identity elements. Preserve the triangle, square, circle, diamond, pentagon, and inverted triangle language across host and player UIs. For five-option layouts, keep the last answer centered on its own row with the same width as the other answers; for six-option layouts, use three rows of two.
+- 4px: chips' inner badges, `kbd`, inline highlights.
+- 6px: buttons, inputs.
+- 8px: media inside frames, QR panel, toasts.
+- 12px: cards, answer tiles, leaderboard, dialogs.
+- Full: chips, avatars, rank badges, status dots, play buttons.
 
 ## Components
 
-### Brand
-
-The `Recuerdoot` wordmark is a display treatment, not ordinary heading text. It uses a blue gradient fill and light glow. Keep it centered and prominent on major entry and ending screens.
-
 ### Buttons
+Primary (indigo fill), secondary (1px border), ghost (text only), destructive (red border and text). Sizes 32/38/44px. Only one primary button per screen section. Buttons that advance the game carry `data-shortcut="next"` and a `→` key hint.
 
-- Primary buttons use the accent blue with dark text.
-- Secondary buttons sit on the surface color with an accent border and accent text.
-- Hover and press states should scale subtly from the center.
-- Disabled buttons reduce emphasis without looking broken.
-- Shared button styling belongs on classes; one-off button hooks can use ids.
+### Gallery frame (`.media-frame`)
+Media is shown like a print in a gallery: white surface, 1px border, 12px radius, 12px padding, media at 8px radius. A revealed clip's date sits in a mono caption next to its play button. Audio-only frames shrink to their content; image or video frames take a larger viewport-relative box.
 
-### Question Card
+### Answer tiles
+Large, colourful, shape plus label. Interactive tiles (solo) lift on hover and show a `1` to `6` key hint. After answering: the correct tile gets a success ring plus ✓, a wrong pick gets an error ring plus ✕, everything else dims. Never rely on colour alone.
 
-The question card is the core container for the host and solo experience. It should always feel stable, readable, and visually heavier than the surrounding UI.
+### Countdown ring
+Neutral ring in text colour; switches to error colour and pulses for the last 5 seconds.
 
-- Use a dark elevated surface.
-- Keep generous padding.
-- Support optional image and optional audio.
-- Question text must remain the focal point.
+### Chips and status
+Pill chips for players, PIN, phase ("Atentos al audio", "Escuchando", "¡A responder!") and connection state. Status dots: success = live, warning = pending, neutral = offline.
 
-### Question Header
+### Reveal chart
+Flat bars in answer colours; the correct column gets a "✓ Correcta" chip, the others dim. Order: question, revealed media, chart, next action.
 
-The question header is pinned above the content group and contains progress metadata.
+### Leaderboard
+One bordered card with divided rows: medal rank badge, name, movement chip (▲/▼ with places, "Nuevo"), mono score. The first scoreboard appears directly; later ones show the previous order, then rows travel to their new positions while scores count up. Top 5 only.
 
-- Counter on the left.
-- Progress track in the center.
-- Contextual status on the right.
+### Solo feedback sheet
+Bottom-anchored card (a native `<dialog open>` outside `<main>`) over a scrim that leaves the question visible.
 
-It should read as HUD-like information, lighter than the main card but always visible.
+### Dialog and toast
+Exit confirmation uses a native modal `<dialog>` with secondary "Seguir jugando" and destructive "Salir". Toasts are bottom-centred cards with a coloured left rule.
 
-### Answer Tiles
+### Start countdown overlay
+Full-screen blurred background with a giant General Sans digit and an overline label (Preparados, Listos, ¡Ya!).
 
-Answer tiles are large, colorful, and immediate.
+## Decoration
 
-- Two-column grid on host and solo.
-- Strong color identity per tile.
-- Large icon shape plus answer text.
-- Hover or press states can scale slightly but must stay centered.
-- After selection, dimming and correctness states should be visually obvious.
-
-### Audio Controls
-
-Audio buttons are circular accent controls with a clear play/pause swap. They should feel tactile and distinct from generic buttons.
-
-- Minimum size stays large enough for touch.
-- Playing state may pulse.
-- Icon-only controls must always have accessible labels.
-
-### Solo Result Modal
-
-Solo feedback appears in a bottom-anchored modal rather than shifting the question layout.
-
-- Use a centered modal with a bottom inset.
-- Support status text, revealed image, revealed audio, and the next action.
-- The background should remain partially visible behind the scrim.
-
-### Reveal and Leaderboard
-
-Reveal moments are performance screens.
-
-- Keep the reveal sequence ordered as: question card, reveal media, chart, then next action.
-- If reveal media contains only audio controls and metadata, the container should shrink to content instead of occupying the full media frame.
-- If reveal media contains an image, use a larger framed treatment sized with viewport-relative limits.
-- The bar chart should feel simple and bold, not analytical.
-- Correct answers should be reinforced with both text/icon treatment and color.
-- The first multiplayer scoreboard should appear directly without rank-change indicators; later scoreboards should briefly show the previous standings before transitioning to the updated order.
-- When ranks change, leaderboard rows should visibly travel to their new positions instead of only fading between states.
-- Rank changes can be reinforced with compact up/down indicators and the score should count up from the previous total to the new one.
-- Leaderboard views should show only the top 5 players.
-- Rank numerals should use medal colors for places 1-3: gold, silver, and bronze.
-
-### Player Result Screen
-
-- After each multiplayer question, the player phone should show correctness state, points earned, total score, current rank, and streak.
-- Reuse the medal-style rank badge for places 1-3 and show numeric position for lower ranks.
-
-### Player Join Form
-
-The join screen should feel fast and frictionless.
-
-- Clear labels above inputs.
-- Large centered values.
-- Full-width join CTA.
-- Errors appear inline and remain easy to spot.
+The dot grid behind every page is the only decorative element. It fades towards the bottom and gets a soft spotlight that follows the mouse. No gradients, glows or illustrations elsewhere.
 
 ## Do's and Don'ts
 
 Do:
-
-- Keep the dark, immersive quiz-night mood.
-- Use blue as the product accent consistently.
-- Preserve the red / blue / yellow / green answer tile language.
-- Favor bold hierarchy and large touch targets.
-- Respect safe areas, reduced motion, and keyboard/screen-reader basics.
-- Use SVG icons or simple geometric shapes instead of emoji for structural UI.
+- Keep indigo for interaction only.
+- Keep the answer palette and shapes in sync between host and phones.
+- Use mono for numbers and codes.
+- Test light and dark themes and reduced motion.
+- Keep every host gameplay screen inside the viewport.
 
 Don't:
-
-- Reintroduce the old purple or yellow accent system as the default identity.
-- Add extra fonts, glassy blur, or decorative gradients everywhere.
-- Make answer tiles animate by shifting away from their center.
-- Hide critical content behind fixed headers, bottom controls, or viewport clipping.
-- Use color alone to communicate correctness or state.
-- Treat the player UI like a miniature desktop page; it must stay phone-first.
+- Add shadows to resting elements.
+- Mix radii (cards 12px, buttons/inputs 6px).
+- Use more than two font weights on a screen.
+- Put more than one filled indigo button in the same section.
+- Use colour alone for correctness or state.
