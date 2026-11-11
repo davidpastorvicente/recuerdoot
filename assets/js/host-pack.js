@@ -26,6 +26,25 @@
 
   const plural = (count, singular, pluralForm) => `${count} ${count === 1 ? singular : pluralForm}`;
 
+  /** A ready-to-paste message for the user's AI assistant, pointing at the published guide. */
+  function assistantPrompt() {
+    const guideUrl = new URL("quiz-guide.md", location.href).href;
+    return [
+      "Quiero crear un quiz de Recuerdoot sobre recuerdos de mi grupo.",
+      `Lee esta guía y sigue su flujo guiado: ${guideUrl}`,
+      "Hazme las preguntas de la entrevista, propón un guion de preguntas y ayúdame a preparar los archivos, el questions.json y el .zip.",
+      "Si no puedes abrir el enlace, dímelo y te adjunto el archivo.",
+    ].join("\n");
+  }
+
+  async function copyAssistantPrompt() {
+    try {
+      await navigator.clipboard.writeText(assistantPrompt());
+      showToast("Instrucciones copiadas: pégalas en tu asistente de IA.");
+    } catch {
+      showToast("No se han podido copiar. Abre la guía y pásale el enlace a tu IA.", { tone: "error" });
+    }
+  }
 
   function createPackPanel({ onChange }) {
     const machine = createStateMachine(MACHINES.pack);
@@ -182,6 +201,7 @@
       $("pack-folder-button").addEventListener("click", () => folderInput.click());
       $("pack-file-button").addEventListener("click", () => fileInput.click());
       $("pack-clear-button").addEventListener("click", clear);
+      $("pack-ai-copy-button").addEventListener("click", copyAssistantPrompt);
       folderInput.addEventListener("change", () => {
         const files = Array.from(folderInput.files);
         folderInput.value = "";

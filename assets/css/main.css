@@ -794,6 +794,15 @@ svg {
   font-size: var(--text-small);
 }
 
+.pack-ai {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-2);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--color-border);
+}
+
 .pack-help {
   font-size: var(--text-small);
   color: var(--color-text-secondary);

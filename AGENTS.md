@@ -2,7 +2,7 @@
 
 ## What is this project?
 
-A Kahoot-style multiplayer quiz about shared memories, built with plain browser JavaScript (no bundler, no framework) and deployed as a static site on GitHub Pages. A host shows questions on a big screen while players answer from their phones; there is also a solo mode. The host's browser runs the match and phones connect to it over WebRTC (PeerJS). Quizzes ("packs": `questions.json` plus media) are loaded in the host's browser and never uploaded. A small Node server exists only for local development. User-facing docs are in `README.md`, the design system in `DESIGN.md` and every state machine in `docs/state-machines.md`.
+A Kahoot-style multiplayer quiz about shared memories, built with plain browser JavaScript (no bundler, no framework) and deployed as a static site on GitHub Pages. A host shows questions on a big screen while players answer from their phones; there is also a solo mode. The host's browser runs the match and phones connect to it over WebRTC (PeerJS). Quizzes ("packs": `questions.json` plus media) are loaded in the host's browser and never uploaded. A small Node server exists only for local development. User-facing docs are in `README.md`, the design system in `DESIGN.md`, every state machine in `docs/state-machines.md`, and the quiz creation guide for people and AI assistants in `docs/quiz-guide.md`.
 
 ## Commands
 
@@ -23,7 +23,7 @@ Deployment: `.github/workflows/pages.yml` runs the tests, `npm run build` and de
 
 ## Architecture
 
-- **Static site**: `index.html`, `player.html`, `assets/`, `config.json` and `assets/vendor/*` (PeerJS, qrcode-generator, fflate, copied from `node_modules`). `scripts/build.js` copies an explicit allowlist into `dist/`, so private media under `assets/` or a root `questions.json` can never be published.
+- **Static site**: `index.html`, `player.html`, `assets/`, `quiz-guide.md` (from `docs/`), `config.json` and `assets/vendor/*` (PeerJS, qrcode-generator, fflate, copied from `node_modules`). `scripts/build.js` copies an explicit allowlist into `dist/`, so private media under `assets/` or a root `questions.json` can never be published.
 - **Dev server** (`server.js` + `lib/app.js`): serves the same files, the vendor scripts straight from `node_modules` (`lib/vendor.js` is the single list), a local `questions.json` with media under `assets/`, and a dynamic `config.json` (`{ joinBaseUrl, serverQuestions }`: LAN or tunnel address for the QR, and whether to offer the local questions). The build writes a static `config.json` with neither. There is no game logic on the server.
 - **lib/questions.js**: reads `questions.json` from disk for the CLI and tests (validation itself is shared). **lib/network.js**: LAN IP and join URL resolution.
 - **index.html / player.html**: markup only. Screens are `<section class="screen">` toggled with the `hidden` attribute.
@@ -36,7 +36,7 @@ Deployment: `.github/workflows/pages.yml` runs the tests, `npm run build` and de
   - `peer-transport.js`: PeerJS `listen` for the host and `createPeerClient` for phones (heartbeat, reconnection, wrong-PIN and failure callbacks). Browser only.
   - `quiz-pack.js`: Spanish `validateQuestions`, `listMediaReferences`, pack path indexing and media lookup (`indexPackPaths`, `resolvePackPath`, `findMissingMedia`). Browser + Node.
   - `pack-loader.js`: reads folders, zips (fflate) and drops; builds packs with `blob:` URLs; IndexedDB persistence. Browser only.
-  - `host-pack.js`: the quiz card on the start screen, driven by `MACHINES.pack`.
+  - `host-pack.js`: the quiz card on the start screen, driven by `MACHINES.pack`; also copies the AI-assistant prompt.
   - `ui-shell.js`: loaded in `<head>`: theme before first paint, dot-grid spotlight, `showToast`.
   - `host-media.js`: foreground clip + ducked background music with fades.
   - `host-leaderboard.js`: leaderboard rendering, FLIP row movement, score count-up; pure helpers are unit-tested.
@@ -56,7 +56,7 @@ All flows are explicit; see `docs/state-machines.md` for diagrams and the meanin
 
 ## Quiz packs and questions.json
 
-A pack is a folder or `.zip` with `questions.json` and `audios/`, `images/`, `videos/`, `music/`. Real quizzes are private: never commit a root `questions.json` or real media, and never copy real questions, names or file names into tests or docs; use generic ones. The format is described in `README.md`.
+A pack is a folder or `.zip` with `questions.json` and `audios/`, `images/`, `videos/`, `music/`. Real quizzes are private: never commit a root `questions.json` or real media, and never copy real questions, names or file names into tests or docs; use generic ones. The format is described in `README.md` and, for end users and their AI assistants, in `docs/quiz-guide.md`.
 
 ```json
 {
@@ -73,11 +73,11 @@ A pack is a folder or `.zip` with `questions.json` and `audios/`, `images/`, `vi
 - `before.audio` makes it an audio question (filtered clip before, original after).
 - Options are shuffled at runtime by `normalizeQuestion`; questions play in file order.
 - Dates for reveal captions come from `YYYYMMDD` in the audio file name.
-- `assets/js/quiz-pack.js` is the source of truth for the rules and messages.
+- `assets/js/quiz-pack.js` is the source of truth for the rules and messages. When they change, update `docs/quiz-guide.md` too, including its embedded Python validator.
 
 ## Key conventions
 
-- All UI text is in Spanish (so are validation messages).
+- All UI text is in Spanish (so are validation messages and `docs/quiz-guide.md`).
 - No inline JavaScript or inline styles in HTML; no `innerHTML` with unescaped data (use `escapeHtml` or DOM nodes).
 - Ids for singleton hooks, classes for shared styling.
 - Never use `Math.random` (SonarCloud S2245): use `randomInt`/`shuffle`/`randomId` from `game-shared.js`.

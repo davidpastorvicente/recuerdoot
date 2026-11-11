@@ -72,6 +72,10 @@
             <button type="button" class="button button-ghost" id="pack-clear-button" hidden>Quitar</button>
           </div>
           <p class="hint pack-drop-hint">O arrastra aquí la carpeta, el .zip o un questions.json.</p>
+          <div class="pack-ai">
+            <p class="hint">¿Lo preparas con una IA (ChatGPT, Claude, Gemini…)? Pásale la <a class="link" id="pack-guide-link" href="quiz-guide.md" target="_blank" rel="noopener">guía para crear el quiz</a> y te guiará paso a paso.</p>
+            <button type="button" class="button button-secondary button-sm" id="pack-ai-copy-button">Copiar instrucciones para la IA</button>
+          </div>
           <input type="file" id="pack-folder-input" webkitdirectory multiple hidden>
           <input type="file" id="pack-file-input" accept=".zip,.json,application/zip,application/json" hidden>
           <details class="pack-help">
@@ -83,7 +87,7 @@
 ├─ images/
 ├─ videos/
 └─ music/</pre>
-            <p>En <code class="mono">questions.json</code> escribe solo el nombre de cada archivo (<code class="mono">"image": "playa.jpg"</code>) o una dirección <code class="mono">https://</code>. Puedes partir de la <a class="link" href="assets/templates/questions.json" download>plantilla de ejemplo</a>.</p>
+            <p>En <code class="mono">questions.json</code> escribe solo el nombre de cada archivo (<code class="mono">"image": "playa.jpg"</code>) o una dirección <code class="mono">https://</code>. Puedes partir de la <a class="link" href="assets/templates/questions.json" download>plantilla de ejemplo</a>; en la <a class="link" href="quiz-guide.md" target="_blank" rel="noopener">guía completa</a> tienes ideas de preguntas, formatos y cómo preparar audios y fotos.</p>
           </details>
         </section>
         <ol class="card step-list" aria-label="Cómo se juega">

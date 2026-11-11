@@ -151,7 +151,7 @@ Flat bars in answer colours; the correct column gets a "✓ Correcta" chip, the 
 One bordered card with divided rows: medal rank badge, name, movement chip (▲/▼ with places, "Nuevo"), mono score. The first scoreboard appears directly; later ones show the previous order, then rows travel to their new positions while scores count up. Top 5 only.
 
 ### Quiz card
-Start-screen card (`#pack-card`) next to the hero: overline "Tu quiz", a status chip (success "Listo", error "Con errores"), the pack name as a subhead, secondary buttons for folder and zip plus a ghost "Quitar", a hint for drag and drop, and a collapsible "¿Cómo preparo el quiz?" with a mono folder tree. While a file is dragged over it, the border turns dashed indigo on `surface-alt`. Validation errors sit in an `error-soft` panel that scrolls after a few lines.
+Start-screen card (`#pack-card`) next to the hero: overline "Tu quiz", a status chip (success "Listo", error "Con errores"), the pack name as a subhead, secondary buttons for folder and zip plus a ghost "Quitar", a hint for drag and drop, a divided row pointing to the AI-assistant guide, and a collapsible "¿Cómo preparo el quiz?" with a mono folder tree. While a file is dragged over it, the border turns dashed indigo on `surface-alt`. Validation errors sit in an `error-soft` panel that scrolls after a few lines.
 
 ### Solo feedback sheet
 Bottom-anchored card (a native `<dialog open>` outside `<main>`) over a scrim that leaves the question visible.

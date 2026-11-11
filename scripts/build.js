@@ -17,6 +17,8 @@ const PUBLIC_FILES = [
   "assets/music/default.mp3",
   "assets/music/waiting.mp3",
 ];
+// Published under a different path: source -> destination.
+const RENAMED_FILES = Object.freeze({ "docs/quiz-guide.md": "quiz-guide.md" });
 
 function copy(from, to) {
   fs.mkdirSync(path.dirname(to), { recursive: true });
@@ -25,6 +27,7 @@ function copy(from, to) {
 
 fs.rmSync(OUT_DIR, { recursive: true, force: true });
 PUBLIC_FILES.forEach((file) => copy(path.join(ROOT_DIR, file), path.join(OUT_DIR, file)));
+Object.entries(RENAMED_FILES).forEach(([source, target]) => copy(path.join(ROOT_DIR, source), path.join(OUT_DIR, target)));
 Object.entries(VENDOR_FILES).forEach(([name, source]) => copy(path.join(ROOT_DIR, source), path.join(OUT_DIR, "assets/vendor", name)));
 // Serve files as they are, without Jekyll processing.
 fs.writeFileSync(path.join(OUT_DIR, ".nojekyll"), "");

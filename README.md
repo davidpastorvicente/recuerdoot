@@ -10,7 +10,7 @@ The UI is in Spanish and follows the Genesis design system (see [`DESIGN.md`](DE
 
 On the deployed site (or locally, see below):
 
-1. Prepare a quiz folder with `questions.json` and your media (see [Quiz packs](#quiz-packs)).
+1. Prepare a quiz folder with `questions.json` and your media (see [Quiz packs](#quiz-packs)). You can ask an AI assistant to build it with [`docs/quiz-guide.md`](docs/quiz-guide.md).
 2. Open the site on the computer connected to the big screen and click **Elegir carpeta** or **Elegir .zip**, or drag the folder or zip onto the card. The quiz is checked and saved in that browser.
 3. Click **Multijugador**. Players scan the QR code or open the address shown, type the PIN and their name.
 
@@ -126,6 +126,12 @@ my-quiz/
 
 The host loads it from the start screen as a **folder**, a **`.zip`** (with `questions.json` at the root or inside one top-level folder) or a lone **`questions.json`** (no media, or media as `https://` URLs), by picking it or dragging it onto the card. The pack is validated in the browser and every problem is listed with its question number. A valid pack is copied to IndexedDB (only `questions.json` and the files it references), so it is still there after a reload; **Quitar** deletes it. Media plays from `blob:` URLs and never leaves the host's browser. A starter file is published at `assets/templates/questions.json`.
 
+### Creating a quiz with an AI assistant
+
+[`docs/quiz-guide.md`](docs/quiz-guide.md) (in Spanish, published as `quiz-guide.md` next to the pages) is a self-contained guide written for AI assistants and people alike: an interview script, question types with examples, the exact `questions.json` rules, media formats and `ffmpeg`/`sox` recipes, and a stdlib-only Python script that validates a pack with the same rules and messages as the app and builds the zip. The start screen links to it and has a **Copiar instrucciones para la IA** button that copies a ready-to-paste prompt with the guide's URL.
+
+Keep the guide in sync when the format or its rules change (`assets/js/quiz-pack.js` is the source of truth).
+
 ### `questions.json`
 
 An ordered JSON array; questions play in that order. Example:
@@ -219,12 +225,13 @@ assets/
   js/player.js             Player controller (driven by the player state machine)
   templates/questions.json Starter questions file linked from the start screen
 test/                      node:test suites and fixtures
+docs/quiz-guide.md         Quiz creation guide for people and AI assistants (published as quiz-guide.md)
 docs/state-machines.md     Every state machine, its states and events
 DESIGN.md                  Design system
 AGENTS.md                  Guide for coding agents
 ```
 
-The dev server only serves `index.html`, `player.html`, `config.json`, `questions.json`, `assets/` and the allowlisted vendor scripts. Source files, `package.json` and `node_modules` are never exposed.
+The dev server only serves `index.html`, `player.html`, `quiz-guide.md`, `config.json`, `questions.json`, `assets/` and the allowlisted vendor scripts. Source files, `package.json` and `node_modules` are never exposed.
 
 ## Architecture
 
