@@ -29,7 +29,7 @@ npm run validate:questions
 | `npm start` | Starts the server on port 8000 with live reload. |
 | `npm run start-external` | Opens a Cloudflare quick tunnel and starts the server with its public URL, so players can join from outside your network. |
 | `npm test` | Runs the test suite (`node --test`): state machines, shared helpers, question validation, game logic and an end-to-end Socket.IO match. |
-| `npm run validate:questions [path]` | Validates `questions.json` (or the given file) and checks that every referenced media file exists. |
+| `npm run validate:questions [path]` | Validates `questions.json` (or another `.json` file inside the project) and checks that every referenced media file exists. |
 | `npm run check` | `validate:questions` followed by `test`. |
 
 ### Environment variables
