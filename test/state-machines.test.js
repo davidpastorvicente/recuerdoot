@@ -87,4 +87,12 @@ describe("MACHINES", () => {
       .sort();
     assert.deepEqual(sources, ["answering", "countdown", "joining", "result", "waiting"]);
   });
+
+  it("pack: a loaded or broken pack can always be replaced or cleared", () => {
+    const { transitions } = MACHINES.pack;
+    for (const state of ["ready", "invalid"]) {
+      assert.deepEqual([...transitions[state]].sort(), ["empty", "loading"]);
+    }
+    assert.deepEqual([...transitions.loading].sort(), ["empty", "invalid", "ready"]);
+  });
 });

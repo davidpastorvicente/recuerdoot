@@ -9,17 +9,18 @@
     "start": "node server.js",
     "start-external": "node start-external.js",
     "test": "node --test",
+    "build": "node scripts/build.js",
     "validate:questions": "node scripts/validate-questions.js",
     "check": "npm run validate:questions && npm test"
   },
   "dependencies": {
     "express": "^4.18.2",
-    "qrcode": "^1.5.4",
-    "socket.io": "^4.7.4"
+    "fflate": "^0.8.2",
+    "peerjs": "^1.5.5",
+    "qrcode-generator": "^1.4.4"
   },
   "devDependencies": {
     "connect-livereload": "^0.6.1",
-    "livereload": "^0.10.3",
-    "socket.io-client": "^4.8.4"
+    "livereload": "^0.10.3"
   }
 }

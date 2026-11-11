@@ -1,4 +1,5 @@
 // Host page: solo mode and multiplayer big screen. Every flow goes through the `host` state machine.
+// In multiplayer this browser runs the match itself (match-host.js) and phones connect over WebRTC.
 const CONFIG = globalThis.RECUERDOOT_CONFIG;
 const {
   ANSWER_SHAPES,
@@ -12,6 +13,9 @@ const {
 const { MACHINES, createStateMachine } = globalThis.RECUERDOOT_STATE_MACHINES;
 const { createMediaController, setMediaSource, stopVideo } = globalThis.RECUERDOOT_MEDIA;
 const LEADERBOARD = globalThis.RECUERDOOT_LEADERBOARD;
+const MATCH = globalThis.RECUERDOOT_MATCH;
+const PEER = globalThis.RECUERDOOT_PEER;
+const { createPackPanel } = globalThis.RECUERDOOT_HOST_PACK;
 const { showToast } = globalThis.RECUERDOOT_UI;
 
 const $ = (id) => document.getElementById(id);
@@ -64,7 +68,7 @@ const media = createMediaController({
 
 const solo = { questions: [], index: 0, score: 0, current: null };
 const multi = {
-  socket: null,
+  match: null,
   pin: null,
   question: null,
   players: [],
@@ -77,6 +81,7 @@ const multi = {
 };
 let activeScreenId = "start-screen";
 let progress = null;
+const packPanel = createPackPanel({ onChange: onPackChange });
 
 const modeOf = (state) => {
   if (state.startsWith("solo-")) return "solo";
@@ -113,11 +118,17 @@ function renderNav() {
 
 function renderStartScreen() {
   const connecting = host.is("multi-connecting");
+  const pack = packPanel.pack;
   const button = $("start-multiplayer-button");
-  button.disabled = connecting;
+  button.disabled = connecting || !pack;
   button.setAttribute("aria-busy", String(connecting));
   button.textContent = connecting ? "Creando partida…" : "Multijugador";
-  $("start-solo-button").disabled = connecting;
+  $("start-solo-button").disabled = connecting || !pack;
+  $("start-question-count").textContent = pack ? `${pack.questionCount} preguntas` : "Juego de recuerdos";
+}
+
+function onPackChange() {
+  renderStartScreen();
 }
 
 function renderPhaseChip() {
@@ -149,6 +160,7 @@ host.subscribe(({ from, to }) => {
   renderStartScreen();
   renderPhaseChip();
   renderNav();
+  packPanel.setLocked(to !== "start");
 });
 
 function setQuestionText(element, text) {
@@ -290,32 +302,22 @@ function renderRevealMedia({ frame, image, video, audioRow, label }, { after, da
 
 // ========== Solo mode ==========
 
-async function loadQuestionsFile() {
-  if (solo.questions.length > 0) return solo.questions;
-
-  const response = await fetch("questions.json");
-  if (!response.ok) {
-    throw new Error(`questions.json responded ${response.status}`);
-  }
-  solo.questions = await response.json();
-  return solo.questions;
+/** Fresh runtime questions from the loaded pack: options reshuffled, media resolved to playable URLs. */
+function questionsFromPack(pack) {
+  return pack.raw.map((entry) => normalizeQuestion(entry, { resolveMedia: pack.resolveMedia }));
 }
 
 function startSolo() {
-  if (!host.is("start", "solo-end")) return;
+  const pack = packPanel.pack;
+  if (!host.is("start", "solo-end") || !pack) return;
 
-  loadQuestionsFile().then(() => {
-    if (!host.is("start", "solo-end")) return;
-    Object.assign(solo, { index: 0, score: 0, current: null });
-    host.transition("solo-countdown");
-    startCountdown.showStartCountdown(CONFIG.COUNTDOWN_GAME_START_SECONDS, { onEnd: soloLoadRound });
-  }, () => {
-    showToast("No se han podido cargar las preguntas. Revisa questions.json.", { tone: "error" });
-  });
+  Object.assign(solo, { questions: questionsFromPack(pack), index: 0, score: 0, current: null });
+  host.transition("solo-countdown");
+  startCountdown.showStartCountdown(CONFIG.COUNTDOWN_GAME_START_SECONDS, { onEnd: soloLoadRound });
 }
 
 function soloLoadRound() {
-  solo.current = normalizeQuestion(solo.questions[solo.index]);
+  solo.current = solo.questions[solo.index];
   if (!host.transition("solo-question")) return;
   renderQuestion({ ...solo.current, index: solo.index, total: solo.questions.length }, { mode: "solo" });
 }
@@ -395,8 +397,34 @@ function clearScoreboardTimer() {
   multi.scoreboardTimer = null;
 }
 
-function startMultiplayer() {
-  if (!host.is("start")) return;
+const HOST_EVENT_HANDLERS = {
+  "host:playerList": onPlayerList,
+  "game:startCountdown": onStartCountdown,
+  "host:question": onHostQuestion,
+  "host:answerCount": onAnswerCount,
+  "host:reveal": onHostReveal,
+  "game:end": onGameEnd,
+};
+
+/** Match events are delivered on a microtask, like network messages, so commands never re-enter handlers. */
+function onMatchEvent(event, payload) {
+  const handler = HOST_EVENT_HANDLERS[event];
+  if (handler) queueMicrotask(() => handler(payload));
+}
+
+function sendCommand(name) {
+  return multi.match?.command(name) ?? false;
+}
+
+function closeMatch(reason, options) {
+  const { match } = multi;
+  multi.match = null;
+  return match?.close(reason, options);
+}
+
+async function startMultiplayer() {
+  const pack = packPanel.pack;
+  if (!host.is("start") || !pack) return;
   host.transition("multi-connecting");
 
   Object.assign(multi, {
@@ -408,7 +436,68 @@ function startMultiplayer() {
     currentLeaderboard: [],
     startRequested: false,
   });
-  ensureSocket().emit("host:create");
+
+  try {
+    const match = await MATCH.createMatchHost({ questions: questionsFromPack(pack), listen: PEER.listen, onEvent: onMatchEvent });
+    if (!host.is("multi-connecting")) {
+      match.close("El host ha cancelado la partida");
+      return;
+    }
+    multi.match = match;
+    onHostCreated({ pin: match.pin, joinUrl: await resolveJoinUrl(match.pin) });
+  } catch (error) {
+    console.error(error);
+    closeMatch("No se ha podido crear la partida");
+    onHostError("No se ha podido crear la partida. Comprueba la conexión a internet e inténtalo de nuevo.");
+  }
+}
+
+/**
+ * Site settings: the dev server answers with the LAN or tunnel address and whether it has a
+ * questions.json; the GitHub Pages build ships a static config.json with neither.
+ */
+const siteConfig = fetch("config.json", { cache: "no-store" })
+  .then((response) => (response.ok ? response.json() : {}))
+  .catch(() => ({}))
+  .then((config) => ({ joinBaseUrl: config.joinBaseUrl || null, serverQuestions: Boolean(config.serverQuestions) }));
+
+async function resolveJoinUrl(pin) {
+  const { joinBaseUrl } = await siteConfig;
+  const base = joinBaseUrl ? `${joinBaseUrl.replace(/\/$/, "")}/` : new URL(".", location.href).href;
+  const url = new URL("player.html", base);
+  url.searchParams.set("pin", pin);
+  return url;
+}
+
+/** Draws the QR code as one SVG path (no innerHTML). qrcode-generator only computes the modules. */
+function renderQrCode(container, text) {
+  const qr = globalThis.qrcode(0, "M");
+  qr.addData(text);
+  qr.make();
+
+  const size = qr.getModuleCount();
+  let path = "";
+  for (let row = 0; row < size; row++) {
+    for (let column = 0; column < size; column++) {
+      if (qr.isDark(row, column)) path += `M${column} ${row}h1v1h-1z`;
+    }
+  }
+
+  const SVG_NS = "http://www.w3.org/2000/svg";
+  const svg = document.createElementNS(SVG_NS, "svg");
+  svg.setAttribute("viewBox", `0 0 ${size} ${size}`);
+  svg.setAttribute("shape-rendering", "crispEdges");
+  svg.setAttribute("role", "img");
+  svg.setAttribute("aria-label", "Código QR para unirse a la partida");
+  const background = document.createElementNS(SVG_NS, "rect");
+  background.setAttribute("width", String(size));
+  background.setAttribute("height", String(size));
+  background.setAttribute("fill", "#FFFFFF");
+  const modules = document.createElementNS(SVG_NS, "path");
+  modules.setAttribute("d", path);
+  modules.setAttribute("fill", "#0A0A0A");
+  svg.append(background, modules);
+  container.replaceChildren(svg);
 }
 
 function renderLobbyPlayers(players) {
@@ -423,9 +512,9 @@ function renderLobbyPlayers(players) {
   setButtonLabel(button, players.length > 0 ? `Empezar (${players.length} jugador${plural})` : "Esperando jugadores…");
 }
 
-function onHostCreated({ pin, joinBaseUrl, joinUrl, qrSvg }) {
+function onHostCreated({ pin, joinUrl }) {
   if (!host.is("multi-connecting")) {
-    multi.socket.emit("host:end");
+    closeMatch("El host ha cancelado la partida");
     return;
   }
 
@@ -435,19 +524,16 @@ function onHostCreated({ pin, joinBaseUrl, joinUrl, qrSvg }) {
   $("pin-display").textContent = `${pin.slice(0, 3)} ${pin.slice(3)}`;
   $("pin-display").setAttribute("aria-label", pin.split("").join(" "));
   const link = $("join-url");
-  link.href = joinUrl;
-  link.textContent = `${joinBaseUrl.replace(/^https?:\/\//, "")}/player.html`;
-  $("qr-code").innerHTML = qrSvg;
-  const qrImage = $("qr-code").querySelector("svg");
-  qrImage?.setAttribute("role", "img");
-  qrImage?.setAttribute("aria-label", "Código QR para unirse a la partida");
+  link.href = joinUrl.href;
+  link.textContent = `${joinUrl.host}${joinUrl.pathname}`;
+  renderQrCode($("qr-code"), joinUrl.href);
   renderLobbyPlayers([]);
   renderNav();
 }
 
 function onHostError(message) {
   showToast(message, { tone: "error" });
-  if (host.is("multi-connecting")) host.transition("start");
+  if (modeOf(host.state) === "multi") backToStart();
 }
 
 function onPlayerList(players) {
@@ -466,7 +552,7 @@ function requestStart() {
   const button = $("lobby-start-button");
   button.disabled = true;
   setButtonLabel(button, "Empezando…");
-  multi.socket.emit("host:start");
+  sendCommand("host:start");
 }
 
 function onStartCountdown({ seconds, startsAt }) {
@@ -475,14 +561,14 @@ function onStartCountdown({ seconds, startsAt }) {
   startCountdown.showStartCountdown(seconds, { startsAt });
 }
 
-const emitTimeUp = () => multi.socket.emit("host:timeUp");
+const emitTimeUp = () => sendCommand("host:timeUp");
 
 function openAnswersAfterAudio() {
   if (!host.is("multi-listening")) return;
 
   host.transition("multi-answering");
   questionTimer.start(multi.question.countdownAfter, emitTimeUp);
-  multi.socket.emit("host:answersOpen");
+  sendCommand("host:answersOpen");
 }
 
 /** Plays the question clip; if the browser refuses or the file fails, answers open right away. */
@@ -614,7 +700,7 @@ function requestNextQuestion() {
 
   button.disabled = true;
   media.stopForeground();
-  multi.socket.emit("host:next");
+  sendCommand("host:next");
 }
 
 function onGameEnd({ leaderboard }) {
@@ -630,36 +716,10 @@ function onGameEnd({ leaderboard }) {
   LEADERBOARD.renderStatic($("end-leaderboard"), leaderboard, { limit: CONFIG.LEADERBOARD_DISPLAY_LIMIT });
 }
 
-function onSocketDisconnect() {
-  if (!isMultiInProgress()) return;
-  showToast("Se ha perdido la conexión con el servidor y la partida ha terminado.", { tone: "error" });
-  backToStart();
-}
-
-function ensureSocket() {
-  if (multi.socket) return multi.socket;
-
-  const socket = io();
-  multi.socket = socket;
-  socket.on("host:created", onHostCreated);
-  socket.on("host:error", onHostError);
-  socket.on("host:playerList", onPlayerList);
-  socket.on("game:startCountdown", onStartCountdown);
-  socket.on("host:question", onHostQuestion);
-  socket.on("host:answerCount", onAnswerCount);
-  socket.on("host:reveal", onHostReveal);
-  socket.on("game:end", onGameEnd);
-  socket.on("disconnect", onSocketDisconnect);
-  return socket;
-}
-
 // ========== Exit & navigation ==========
 
 function backToStart() {
-  if (isMultiInProgress()) {
-    multi.socket?.emit("host:end");
-  }
-
+  closeMatch("El host ha terminado la partida");
   clearAutoplayTimer();
   clearScoreboardTimer();
   questionTimer.stop();
@@ -722,22 +782,11 @@ function bindHostUi() {
   document.addEventListener("keydown", onKeyDown);
 }
 
-function showQuestionCount() {
-  loadQuestionsFile()
-    .then((questions) => {
-      $("start-question-count").textContent = `${questions.length} preguntas`;
-    })
-    .catch(() => {
-      showToast("No se encuentra questions.json. Consulta el README para crearlo.", { tone: "error" });
-    });
-}
-
 // ========== Console helpers (host browser console) ==========
 
 globalThis.purgeDisconnectedPlayers = function purgeDisconnectedPlayers() {
-  if (!multi.socket || !isMultiInProgress()) return false;
-  multi.socket.emit("host:purgeDisconnected");
-  return true;
+  if (!isMultiInProgress()) return false;
+  return sendCommand("host:purgeDisconnected") !== false;
 };
 
 globalThis.listDisconnectedPlayers = function listDisconnectedPlayers() {
@@ -752,10 +801,27 @@ globalThis.getCurrentRanking = function getCurrentRanking() {
 };
 
 globalThis.getHostState = function getHostState() {
-  return { state: host.state, mode: modeOf(host.state), pin: multi.pin, progress };
+  return { state: host.state, mode: modeOf(host.state), pin: multi.pin, progress, pack: packPanel.state };
 };
+
+/** The match engine's view: phase, question index, players and scores (no answers or player ids). */
+globalThis.getMatchState = function getMatchState() {
+  return multi.match ? multi.match.snapshot() : { phase: "idle" };
+};
+
+// Closing the tab ends the match; tell the phones right away instead of waiting for their heartbeat timeout.
+globalThis.addEventListener("pagehide", () => {
+  closeMatch("El host ha cerrado la partida", { flushMs: 0 });
+});
+
+// Back/forward cache: the match was closed on pagehide, so a restored page must not show its screens.
+globalThis.addEventListener("pageshow", (event) => {
+  if (!event.persisted || modeOf(host.state) !== "multi") return;
+  backToStart();
+  showToast("La partida terminó al salir de la página.", { tone: "error" });
+});
 
 bindHostUi();
 renderStartScreen();
 renderNav();
-showQuestionCount();
+packPanel.restore(siteConfig);

@@ -1,7 +1,8 @@
-// Player phone page. The server is authoritative; the `player` state machine mirrors where this phone is.
+// Player phone page. The host browser is authoritative; the `player` state machine mirrors where this phone is.
 const CONFIG = globalThis.RECUERDOOT_CONFIG;
 const { ANSWER_SHAPES, createStartCountdownController, escapeHtml, formatQuestionCounter } = globalThis.RECUERDOOT_SHARED;
 const { MACHINES, createStateMachine } = globalThis.RECUERDOOT_STATE_MACHINES;
+const { createPeerClient } = globalThis.RECUERDOOT_PEER;
 
 const $ = (id) => document.getElementById(id);
 
@@ -24,10 +25,16 @@ const RESULT_ICONS = {
   timeout: '<svg viewBox="0 0 64 64" focusable="false"><path fill="currentColor" d="M32 10a22 22 0 1 1 0 44 22 22 0 0 1 0-44Zm0 6a2 2 0 0 0-2 2v14.8l8.4 5.6a2 2 0 1 0 2.2-3.3L34 30.8V18a2 2 0 0 0-2-2Z"/></svg>',
 };
 
-const socket = io();
 const player = createStateMachine(MACHINES.player);
 const startCountdown = createStartCountdownController();
 const session = { pin: "", name: "", playerId: "" };
+const connection = createPeerClient({
+  onOpen: onConnectionOpen,
+  onEvent: onHostEvent,
+  onDrop: onConnectionDrop,
+  onUnavailable: onMatchUnavailable,
+  onFailure: onConnectionFailure,
+});
 let activeScreenId = "join-screen";
 
 // ========== Session storage ==========
@@ -132,13 +139,14 @@ function markSelectedAnswer(answer) {
 // ========== Join flow ==========
 
 function emitJoin() {
-  socket.emit("player:join", { pin: session.pin, name: session.name, playerId: session.playerId || undefined });
+  connection.send("player:join", { pin: session.pin, name: session.name, playerId: session.playerId || undefined });
 }
 
+/** Opens a fresh link to the host of `session.pin`; player:join is sent once it is open. */
 function requestJoin() {
   if (!player.transition("joining")) return;
   setJoinError("");
-  if (socket.connected) emitJoin();
+  connection.connect(session.pin);
 }
 
 function onJoinSubmit(event) {
@@ -165,6 +173,7 @@ function onJoinSubmit(event) {
 }
 
 function resetToJoin() {
+  connection.disconnect();
   clearSession();
   const url = new URL(location.href);
   if (url.searchParams.has("pin")) {
@@ -178,26 +187,55 @@ function resetToJoin() {
   pinInput.focus();
 }
 
-// ========== Server events ==========
-
-socket.on("connect", () => {
-  $("connection-chip").hidden = true;
-  if (player.is("joining") || session.playerId) emitJoin();
-});
-
-socket.on("disconnect", () => {
-  $("connection-chip").hidden = player.is("join", "ended");
-});
-
-socket.on("player:error", (message) => {
+function showJoinError(message) {
+  connection.disconnect();
   clearSession();
   startCountdown.hideStartCountdown();
+  $("connection-chip").hidden = true;
   $("pin-input").readOnly = false;
   setJoinError(message);
   player.transition("join");
-});
+}
 
-socket.on("player:joined", ({ name, pin, playerId }) => {
+function showMatchOver(message) {
+  connection.disconnect();
+  startCountdown.hideStartCountdown();
+  clearSession();
+  $("connection-chip").hidden = true;
+  if (!player.transition("ended")) return;
+
+  $("end-rank").textContent = "";
+  $("end-position").textContent = message;
+  $("end-score").textContent = "";
+}
+
+// ========== Connection ==========
+
+function onConnectionOpen() {
+  $("connection-chip").hidden = true;
+  if (player.is("joining") || session.playerId) emitJoin();
+}
+
+function onConnectionDrop() {
+  $("connection-chip").hidden = player.is("join", "ended");
+}
+
+/** Nobody is hosting that PIN: a typo, or the host closed the match while this phone was away. */
+function onMatchUnavailable() {
+  if (player.is("join", "joining")) {
+    showJoinError("PIN incorrecto");
+    return;
+  }
+  showMatchOver("La partida ha terminado: el host ya no está conectado");
+}
+
+function onConnectionFailure() {
+  showJoinError("No se ha podido conectar con la partida. Revisa tu conexión e inténtalo de nuevo.");
+}
+
+// ========== Host events ==========
+
+function onJoined({ name, pin, playerId }) {
   Object.assign(session, { name, pin, playerId });
   storeSession();
   $("my-name").textContent = name;
@@ -206,14 +244,14 @@ socket.on("player:joined", ({ name, pin, playerId }) => {
     player.transition("waiting");
   }
   renderNameChip();
-});
+}
 
-socket.on("game:startCountdown", ({ seconds, startsAt }) => {
+function onStartCountdown({ seconds, startsAt }) {
   if (!player.transition("countdown")) return;
   startCountdown.showStartCountdown(seconds, { startsAt });
-});
+}
 
-socket.on("player:question", (data) => {
+function onQuestion(data) {
   startCountdown.hideStartCountdown();
   if (!player.transition(data.hasAnswered ? "answered" : "answering")) return;
 
@@ -226,20 +264,20 @@ socket.on("player:question", (data) => {
   } else {
     setAnswerStatus("Escucha el audio", "listening");
   }
-});
+}
 
-socket.on("player:answersOpen", () => {
+function onAnswersOpen() {
   if (player.is("answering")) setAnswerStatus("¡Responde!", "open");
-});
+}
 
 function sendAnswer(button) {
   if (!player.is("answering")) return;
   player.transition("answered");
-  socket.emit("player:answer", { answer: button.dataset.answer });
+  connection.send("player:answer", { answer: button.dataset.answer });
   markSelectedAnswer(button.dataset.answer);
 }
 
-socket.on("player:result", (result) => {
+function onResult(result) {
   startCountdown.hideStartCountdown();
   if (!player.transition("result")) return;
 
@@ -254,10 +292,12 @@ socket.on("player:result", (result) => {
   $("result-score").textContent = String(result.score);
   $("result-streak").hidden = result.streak <= 1;
   $("result-streak").textContent = `Racha de ${result.streak}`;
-});
+}
 
-socket.on("game:end", ({ leaderboard }) => {
+function onGameEnd({ leaderboard }) {
+  connection.disconnect();
   startCountdown.hideStartCountdown();
+  $("connection-chip").hidden = true;
   const myIndex = leaderboard.findIndex((entry) => entry.playerId === session.playerId);
   clearSession();
   if (!player.transition("ended")) return;
@@ -269,17 +309,28 @@ socket.on("game:end", ({ leaderboard }) => {
   else if (rank > 1) positionText = `Puesto ${rank}`;
   $("end-position").textContent = positionText;
   $("end-score").textContent = myIndex >= 0 ? `${leaderboard[myIndex].score} puntos` : "";
-});
+}
 
-socket.on("player:gameOver", (message) => {
-  startCountdown.hideStartCountdown();
-  clearSession();
-  if (!player.transition("ended")) return;
+const HOST_EVENT_HANDLERS = {
+  "player:error": showJoinError,
+  "player:joined": onJoined,
+  "game:startCountdown": onStartCountdown,
+  "player:question": onQuestion,
+  "player:answersOpen": onAnswersOpen,
+  "player:result": onResult,
+  "game:end": onGameEnd,
+  "player:gameOver": showMatchOver,
+};
 
-  $("end-rank").textContent = "";
-  $("end-position").textContent = message;
-  $("end-score").textContent = "";
-});
+function onHostEvent(event, payload) {
+  if (!Object.hasOwn(HOST_EVENT_HANDLERS, event)) return;
+  try {
+    HOST_EVENT_HANDLERS[event](payload ?? {});
+  } catch (error) {
+    console.error(`Host event "${event}" failed:`, error);
+  }
+}
+
 
 // ========== Boot ==========
 
@@ -317,5 +368,5 @@ bindPlayerUi();
 restoreSession();
 
 globalThis.getPlayerState = function getPlayerState() {
-  return { state: player.state, name: session.name, pin: session.pin, connected: socket.connected };
+  return { state: player.state, name: session.name, pin: session.pin, connected: connection.connected };
 };

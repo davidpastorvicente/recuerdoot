@@ -13,6 +13,12 @@
     MIN_POINTS: 100,
     PIN_LENGTH: 6,
     PLAYER_NAME_MAX_LENGTH: 15,
+    // Peer-to-peer transport: the host browser registers `${PEER_ID_PREFIX}${pin}` on the PeerJS cloud.
+    PEER_ID_PREFIX: "recuerdoot-",
+    HEARTBEAT_INTERVAL_MS: 2000,
+    HEARTBEAT_TIMEOUT_MS: 10000,
+    CONNECT_TIMEOUT_MS: 12000,
+    RECONNECT_DELAY_MS: 2000,
   });
 
   if (typeof module !== "undefined" && module.exports) {

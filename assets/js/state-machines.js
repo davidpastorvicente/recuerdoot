@@ -1,7 +1,7 @@
 /*
  * Every stateful flow in Recuerdoot is declared here as an explicit transition table.
- * The server (game), the host page (host) and the player page (player) each drive one
- * machine; docs/state-machines.md explains every state and the events behind each edge.
+ * The match engine (game), the host page (host and pack) and the player page (player) each
+ * drive one machine; docs/state-machines.md explains every state and the events behind each edge.
  */
 (function initStateMachines(globalScope) {
   const MACHINES = Object.freeze({
@@ -50,6 +50,16 @@
         answered: ["answering", "result", "ended", "join"],
         result: ["answering", "answered", "ended", "join"],
         ended: ["join"],
+      }),
+    }),
+    pack: Object.freeze({
+      name: "pack",
+      initial: "empty",
+      transitions: Object.freeze({
+        empty: ["loading"],
+        loading: ["ready", "invalid", "empty"],
+        ready: ["loading", "empty"],
+        invalid: ["loading", "empty"],
       }),
     }),
   });

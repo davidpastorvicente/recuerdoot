@@ -2,7 +2,7 @@ const { describe, it } = require("node:test");
 const assert = require("node:assert/strict");
 const CONFIG = require("../assets/js/game-config.js");
 const { normalizeQuestion } = require("../assets/js/game-shared.js");
-const { Game, calculatePoints, sanitizePlayerName } = require("../lib/game");
+const { Game, calculatePoints, sanitizePlayerName } = require("../assets/js/game-engine.js");
 
 const PIN = "123456";
 const identity = (options) => options;

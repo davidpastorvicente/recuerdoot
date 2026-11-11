@@ -1,0 +1,18 @@
+[
+  {
+    "question": "¿De qué color era la primera bicicleta del grupo?",
+    "answers": { "right": "Roja", "wrong": ["Azul", "Verde", "Amarilla"] },
+    "before": { "image": "bicycle.jpg" }
+  },
+  {
+    "question": "¿Quién dijo \"mañana empiezo la dieta\"?",
+    "answers": { "right": "Laura", "wrong": ["Marta", "Sofía", "Carmen", "Elena"] },
+    "before": { "audio": "PTT-20190704-WA0001_filtered.mp3" },
+    "after": { "audio": "PTT-20190704-WA0001.mp3", "music": "reveal.mp3" }
+  },
+  {
+    "question": "¿Dónde fue la excursión de fin de curso?",
+    "answers": { "right": "Granada", "wrong": ["Lisboa", "Roma", "París", "Oporto", "Berlín"] },
+    "after": { "image": "trip.jpg", "video": "trip.mp4" }
+  }
+]

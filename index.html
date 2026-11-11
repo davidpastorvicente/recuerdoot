@@ -57,12 +57,42 @@
         </div>
         <p class="hint">Atajos: <kbd class="kbd">→</kbd> avanzar · <kbd class="kbd">1</kbd>–<kbd class="kbd">6</kbd> responder en solitario</p>
       </div>
-      <ol class="card step-list" aria-label="Cómo se juega">
-        <li class="step"><span class="step-index mono">01</span><div><p class="step-title">Crea la partida</p><p class="step-text">La pantalla grande muestra un PIN y un código QR.</p></div></li>
-        <li class="step"><span class="step-index mono">02</span><div><p class="step-title">Uníos desde el móvil</p><p class="step-text">Hasta 10 jugadores, cada uno con su nombre.</p></div></li>
-        <li class="step"><span class="step-index mono">03</span><div><p class="step-title">Escuchad y responded</p><p class="step-text">Cuanto antes aciertes, más puntos sumas.</p></div></li>
-        <li class="step"><span class="step-index mono">04</span><div><p class="step-title">Revivid el momento</p><p class="step-text">Tras cada pregunta llega el audio o la foto original.</p></div></li>
-      </ol>
+      <div class="start-side">
+        <section class="card pack-card" id="pack-card" aria-labelledby="pack-title" data-state="empty">
+          <div class="pack-header">
+            <p class="overline">Tu quiz</p>
+            <span class="chip pack-status" id="pack-status-chip" hidden></span>
+          </div>
+          <h2 class="pack-title" id="pack-title">Carga tus preguntas</h2>
+          <p class="pack-text" id="pack-text"></p>
+          <ul class="pack-errors" id="pack-errors" hidden></ul>
+          <div class="button-row">
+            <button type="button" class="button button-secondary" id="pack-folder-button">Elegir carpeta</button>
+            <button type="button" class="button button-secondary" id="pack-file-button">Elegir .zip</button>
+            <button type="button" class="button button-ghost" id="pack-clear-button" hidden>Quitar</button>
+          </div>
+          <p class="hint pack-drop-hint">O arrastra aquí la carpeta, el .zip o un questions.json.</p>
+          <input type="file" id="pack-folder-input" webkitdirectory multiple hidden>
+          <input type="file" id="pack-file-input" accept=".zip,.json,application/zip,application/json" hidden>
+          <details class="pack-help">
+            <summary>¿Cómo preparo el quiz?</summary>
+            <p>Crea una carpeta con <code class="mono">questions.json</code> y, si usas archivos, estas subcarpetas:</p>
+            <pre class="pack-tree mono">mi-quiz/
+├─ questions.json
+├─ audios/
+├─ images/
+├─ videos/
+└─ music/</pre>
+            <p>En <code class="mono">questions.json</code> escribe solo el nombre de cada archivo (<code class="mono">"image": "playa.jpg"</code>) o una dirección <code class="mono">https://</code>. Puedes partir de la <a class="link" href="assets/templates/questions.json" download>plantilla de ejemplo</a>.</p>
+          </details>
+        </section>
+        <ol class="card step-list" aria-label="Cómo se juega">
+          <li class="step"><span class="step-index mono">01</span><div><p class="step-title">Crea la partida</p><p class="step-text">La pantalla grande muestra un PIN y un código QR.</p></div></li>
+          <li class="step"><span class="step-index mono">02</span><div><p class="step-title">Uníos desde el móvil</p><p class="step-text">Hasta 10 jugadores, cada uno con su nombre.</p></div></li>
+          <li class="step"><span class="step-index mono">03</span><div><p class="step-title">Escuchad y responded</p><p class="step-text">Cuanto antes aciertes, más puntos sumas.</p></div></li>
+          <li class="step"><span class="step-index mono">04</span><div><p class="step-title">Revivid el momento</p><p class="step-text">Tras cada pregunta llega el audio o la foto original.</p></div></li>
+        </ol>
+      </div>
     </div>
   </section>
 
@@ -235,10 +265,18 @@
 <audio id="game-audio"></audio>
 <audio id="background-music" loop></audio>
 
-<script src="socket.io/socket.io.js"></script>
+<script src="assets/vendor/peerjs.min.js"></script>
+<script src="assets/vendor/qrcode.js"></script>
+<script src="assets/vendor/fflate.js"></script>
 <script src="assets/js/game-config.js"></script>
 <script src="assets/js/state-machines.js"></script>
 <script src="assets/js/game-shared.js"></script>
+<script src="assets/js/game-engine.js"></script>
+<script src="assets/js/match-host.js"></script>
+<script src="assets/js/peer-transport.js"></script>
+<script src="assets/js/quiz-pack.js"></script>
+<script src="assets/js/pack-loader.js"></script>
+<script src="assets/js/host-pack.js"></script>
 <script src="assets/js/host-media.js"></script>
 <script src="assets/js/host-leaderboard.js"></script>
 <script src="assets/js/host.js"></script>

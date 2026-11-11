@@ -1,0 +1,14 @@
+[
+  {
+    "question": "¿En qué ciudad fue nuestro primer viaje juntos?",
+    "answers": { "right": "Lisboa", "wrong": ["Roma", "París", "Oporto"] }
+  },
+  {
+    "question": "¿Quién dijo \"mañana empiezo la dieta\"?",
+    "answers": { "right": "Ana", "wrong": ["Bea", "Carla", "Dani", "Elena"] }
+  },
+  {
+    "question": "¿Qué canción sonaba siempre en el coche?",
+    "answers": { "right": "Canción A", "wrong": ["Canción B", "Canción C", "Canción D", "Canción E", "Canción F"] }
+  }
+]

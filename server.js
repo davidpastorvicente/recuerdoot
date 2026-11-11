@@ -12,7 +12,7 @@ const { server } = createApp({
 });
 
 server.listen(PORT, "0.0.0.0", () => {
-  console.log(`  ${APP_NAME} server running!\n`);
+  console.log(`  ${APP_NAME} dev server running!\n`);
   console.log(`  Local:   http://localhost:${PORT}`);
   console.log(`  Network: http://${getNetworkIp()}:${PORT}`);
   if (publicBaseUrl) {

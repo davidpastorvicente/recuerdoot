@@ -72,17 +72,28 @@
     };
   }
 
-  function resolveMedia(media = {}) {
+  function resolveMedia(media, resolveFile) {
     return Object.fromEntries(
-      Object.entries(MEDIA_FOLDERS).map(([kind, folder]) => [kind, media[kind] ? `${folder}/${media[kind]}` : null])
+      Object.keys(MEDIA_FOLDERS).map((kind) => [kind, media[kind] ? resolveFile(kind, media[kind]) : null])
     );
   }
 
+  /** Media can be a file name inside the quiz or a full http(s) URL. */
+  function isRemoteMedia(file) {
+    return /^https?:\/\//i.test(String(file));
+  }
+
+  /** Default resolver: files under assets/<kind folder>/, used by the dev server's questions.json. */
+  function resolveAssetMedia(kind, file) {
+    return isRemoteMedia(file) ? file : `${MEDIA_FOLDERS[kind]}/${file}`;
+  }
+
   /**
-   * Turns a raw questions.json entry into the runtime shape used by the server and solo mode.
+   * Turns a raw questions.json entry into the runtime shape used by the match engine and solo mode.
    * Options are shuffled once here; the stored file keeps answers in a fixed structure.
+   * `resolveMedia(kind, file)` maps file names to playable URLs (asset paths or blob: URLs of a quiz pack).
    */
-  function normalizeQuestion(entry, { shuffleOptions = shuffle } = {}) {
+  function normalizeQuestion(entry, { shuffleOptions = shuffle, resolveMedia: resolveFile = resolveAssetMedia } = {}) {
     const before = entry.before || {};
     const after = entry.after || {};
     const dateSource = before.audio || after.audio;
@@ -92,10 +103,17 @@
       options: shuffleOptions([entry.answers.right, ...entry.answers.wrong]),
       correct: entry.answers.right,
       audioBefore: Boolean(before.audio),
-      before: resolveMedia(before),
-      after: resolveMedia(after),
+      before: resolveMedia(before, resolveFile),
+      after: resolveMedia(after, resolveFile),
       date: dateSource ? parseDateParts(dateSource).date : "",
     };
+  }
+
+  /** Random hex identifier from the CSPRNG; unlike crypto.randomUUID it also works outside secure contexts. */
+  function randomId(bytes = 16) {
+    const buffer = new Uint8Array(bytes);
+    globalScope.crypto.getRandomValues(buffer);
+    return Array.from(buffer, (byte) => byte.toString(16).padStart(2, "0")).join("");
   }
 
   function formatQuestionCounter(index, total) {
@@ -261,11 +279,14 @@
     createStartCountdownController,
     escapeHtml,
     formatQuestionCounter,
+    isRemoteMedia,
     normalizeQuestion,
     parseDateParts,
     playCountdownTick,
     playQuestionEndGong,
+    randomId,
     randomInt,
+    resolveAssetMedia,
     shuffle,
     syncBranding,
   };

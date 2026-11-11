@@ -2,35 +2,41 @@
 
 ## What is this project?
 
-A Kahoot-style multiplayer quiz about shared memories, built with Node.js (Express + Socket.IO) and plain browser JavaScript (no bundler, no framework). A host shows questions on a big screen while players answer from their phones; there is also a solo mode. User-facing docs are in `README.md`, the design system in `DESIGN.md`, and every state machine in `docs/state-machines.md`.
+A Kahoot-style multiplayer quiz about shared memories, built with plain browser JavaScript (no bundler, no framework) and deployed as a static site on GitHub Pages. A host shows questions on a big screen while players answer from their phones; there is also a solo mode. The host's browser runs the match and phones connect to it over WebRTC (PeerJS). Quizzes ("packs": `questions.json` plus media) are loaded in the host's browser and never uploaded. A small Node server exists only for local development. User-facing docs are in `README.md`, the design system in `DESIGN.md` and every state machine in `docs/state-machines.md`.
 
 ## Commands
 
 ```bash
 npm install
-npm start                    # server on :8000 with live reload
-npm test                     # node --test: unit + Socket.IO end-to-end
+npm start                    # dev server on :8000 with live reload
+npm test                     # node --test: unit, match over an in-memory transport, dev server routes
+npm run build                # static site into dist/ (what GitHub Pages serves)
 npm run validate:questions   # schema + media existence check for questions.json (or QUESTIONS_PATH)
 npm run check                # validate:questions && test
 ```
 
-Useful env vars: `PORT`, `PUBLIC_BASE_URL`, `QUESTIONS_PATH` (for example `test/fixtures/questions.json` to try the app with 3 short questions), `LIVERELOAD=0`.
+Useful env vars (dev server): `PORT`, `PUBLIC_BASE_URL`, `QUESTIONS_PATH` (for example `test/fixtures/questions.json` to try the app with 3 short questions), `LIVERELOAD=0`.
 
-Live reload reloads both pages whenever an HTML, CSS or JS file under `assets/` changes. A host reload disconnects the host and ends the match, so expect that while editing during a manual test.
+Live reload reloads both pages whenever an HTML, CSS or JS file under `assets/` changes. A host reload ends the match, so expect that while editing during a manual test.
+
+Deployment: `.github/workflows/pages.yml` runs the tests, `npm run build` and deploys `dist/` on every push to `main` (Pages source must be "GitHub Actions").
 
 ## Architecture
 
-- **server.js**: entry point only (env vars, `listen`, logs).
-- **lib/app.js**: `createApp(options)` builds Express + Socket.IO without listening (tests use port 0). Holds the single active `Game`, maps socket events to `Game` methods, generates the PIN (`crypto.randomInt`) and the join QR code (server-side SVG). Serves only `index.html`, `player.html`, `questions.json`, `/assets` and `GET /api/state`.
-- **lib/game.js**: `Game` class with all match rules (joining, scoring, timers, reveal, reconnection). It never touches Socket.IO; everything goes through the injected `emit(target, event, payload)`.
-- **lib/questions.js**: reads and validates `questions.json` (`validateQuestions` returns readable messages with the question number).
-- **lib/network.js**: LAN IP and join URL resolution.
-- **scripts/validate-questions.js**: CLI behind `npm run validate:questions`.
+- **Static site**: `index.html`, `player.html`, `assets/`, `config.json` and `assets/vendor/*` (PeerJS, qrcode-generator, fflate, copied from `node_modules`). `scripts/build.js` copies an explicit allowlist into `dist/`, so private media under `assets/` or a root `questions.json` can never be published.
+- **Dev server** (`server.js` + `lib/app.js`): serves the same files, the vendor scripts straight from `node_modules` (`lib/vendor.js` is the single list), a local `questions.json` with media under `assets/`, and a dynamic `config.json` (`{ joinBaseUrl, serverQuestions }`: LAN or tunnel address for the QR, and whether to offer the local questions). The build writes a static `config.json` with neither. There is no game logic on the server.
+- **lib/questions.js**: reads `questions.json` from disk for the CLI and tests (validation itself is shared). **lib/network.js**: LAN IP and join URL resolution.
 - **index.html / player.html**: markup only. Screens are `<section class="screen">` toggled with the `hidden` attribute.
-- **assets/js/** (classic scripts exposing `globalThis.RECUERDOOT_*`; the shared ones also `module.exports` for Node):
-  - `game-config.js`: every shared constant (timings, scoring, limits, default music). Server and browser.
-  - `state-machines.js`: `MACHINES.game | host | player` transition tables + `createStateMachine()`. Server and browser.
-  - `game-shared.js`: `normalizeQuestion`, CSPRNG `randomInt`/`shuffle`, `parseDateParts`, `escapeHtml`, `ANSWER_SHAPES`, sound cues, start-countdown overlay.
+- **assets/js/** (classic scripts exposing `globalThis.RECUERDOOT_*`; the shared ones also `module.exports` for Node and `require` their dependencies there):
+  - `game-config.js`: every shared constant (timings, scoring, limits, default music, transport timeouts). Browser + Node.
+  - `state-machines.js`: `MACHINES.game | host | player | pack` transition tables + `createStateMachine()`. Browser + Node.
+  - `game-shared.js`: `normalizeQuestion` (with a pluggable `resolveMedia`), `isRemoteMedia`, CSPRNG `randomInt`/`shuffle`/`randomId`, `parseDateParts`, `escapeHtml`, `ANSWER_SHAPES`, sound cues, start-countdown overlay. Browser + Node.
+  - `game-engine.js`: `Game` class with all match rules (joining, scoring, timers, reveal, reconnection). It never touches the network; everything goes through the injected `emit(target, event, payload)`. Browser + Node.
+  - `match-host.js`: `createMatchHost({ questions, listen, onEvent })` runs one match in the host browser: draws the PIN (retrying when the peer id is taken), owns the `Game`, accepts only `player:join`/`player:answer` from phones and routes `emit` to the host page, one connection or the room. Network injected, so tests use an in-memory transport. Browser + Node.
+  - `peer-transport.js`: PeerJS `listen` for the host and `createPeerClient` for phones (heartbeat, reconnection, wrong-PIN and failure callbacks). Browser only.
+  - `quiz-pack.js`: Spanish `validateQuestions`, `listMediaReferences`, pack path indexing and media lookup (`indexPackPaths`, `resolvePackPath`, `findMissingMedia`). Browser + Node.
+  - `pack-loader.js`: reads folders, zips (fflate) and drops; builds packs with `blob:` URLs; IndexedDB persistence. Browser only.
+  - `host-pack.js`: the quiz card on the start screen, driven by `MACHINES.pack`.
   - `ui-shell.js`: loaded in `<head>`: theme before first paint, dot-grid spotlight, `showToast`.
   - `host-media.js`: foreground clip + ducked background music with fades.
   - `host-leaderboard.js`: leaderboard rendering, FLIP row movement, score count-up; pure helpers are unit-tested.
@@ -42,15 +48,15 @@ Live reload reloads both pages whenever an HTML, CSS or JS file under `assets/` 
 
 All flows are explicit; see `docs/state-machines.md` for diagrams and the meaning of each state.
 
-- Add or rename states only in `assets/js/state-machines.js`, then update the controller's lookup maps (`SCREEN_BY_STATE`, `PHASE_LABEL_BY_STATE`, etc.), the docs and the tests.
-- Server: guard every command with an explicit phase check before calling `transition()`. Invalid server transitions throw on purpose.
-- Host and player: change screens only by transitioning the machine. The `subscribe` callback shows the right screen and syncs nav, chips and `document.body.dataset.state`. Don't toggle screens or keep parallel boolean flags.
+- Add or rename states only in `assets/js/state-machines.js`, then update the controller's lookup maps (`SCREEN_BY_STATE`, `PHASE_LABEL_BY_STATE`, `TITLE_BY_STATE`, etc.), the docs and the tests.
+- Match engine: guard every command with an explicit phase check before calling `transition()`. Invalid engine transitions throw on purpose (match-host catches and logs them so a bug cannot kill the transport).
+- Host, pack card and player: change screens only by transitioning the machine. The `subscribe` callback shows the right screen and syncs nav, chips and `document.body.dataset.state`. Don't toggle screens or keep parallel boolean flags.
 - Re-entering the current state is allowed and notifies listeners (used for rejoins). So guard user actions with `machine.is(...)` before transitioning, never with the return value of `transition()`.
-- Inspect state with `GET /api/state`, `getHostState()`, `getPlayerState()` or `body[data-state]`.
+- Inspect state with `getHostState()`, `getMatchState()` (host console), `getPlayerState()` or `body[data-state]`.
 
-## questions.json
+## Quiz packs and questions.json
 
-Private and gitignored (the format and a generic example are in `README.md`). Never commit it or real media, and never copy real questions, names or file names into tests or docs; use generic ones.
+A pack is a folder or `.zip` with `questions.json` and `audios/`, `images/`, `videos/`, `music/`. Real quizzes are private: never commit a root `questions.json` or real media, and never copy real questions, names or file names into tests or docs; use generic ones. The format is described in `README.md`.
 
 ```json
 {
@@ -62,20 +68,23 @@ Private and gitignored (the format and a generic example are in `README.md`). Ne
 ```
 
 - `answers.wrong` has 3 to 5 entries (4 to 6 options in total), and all options must be different.
-- `before` and `after` are optional; any mix of `audio`, `image`, `video` and `music`, resolved to `assets/audios|images|videos|music/`.
+- `before` and `after` are optional; any mix of `audio`, `image`, `video` and `music`, as file names or `https://` URLs.
+- File lookup in a pack: `<kind folder>/<file>`, `assets/<kind folder>/<file>`, `<file>` at the root, then a unique file with that name anywhere (case-insensitive). The dev server's own `questions.json` resolves to `assets/audios|images|videos|music/`.
 - `before.audio` makes it an audio question (filtered clip before, original after).
 - Options are shuffled at runtime by `normalizeQuestion`; questions play in file order.
 - Dates for reveal captions come from `YYYYMMDD` in the audio file name.
+- `assets/js/quiz-pack.js` is the source of truth for the rules and messages.
 
 ## Key conventions
 
-- All UI text is in Spanish.
+- All UI text is in Spanish (so are validation messages).
 - No inline JavaScript or inline styles in HTML; no `innerHTML` with unescaped data (use `escapeHtml` or DOM nodes).
 - Ids for singleton hooks, classes for shared styling.
-- Never use `Math.random` (SonarCloud S2245): use `randomInt`/`shuffle` from `game-shared.js` or `crypto` on the server.
+- Never use `Math.random` (SonarCloud S2245): use `randomInt`/`shuffle`/`randomId` from `game-shared.js`.
 - Never spawn binaries through `PATH` (S4036): use `process.execPath` or absolute paths.
-- No remote `<script>` tags without SRI; the QR code is generated on the server.
-- Keep functions small (SonarCloud cognitive complexity) and don't duplicate logic between server and browser; put it in a shared `assets/js` module.
+- No remote `<script>` tags: third-party browser code is vendored from `node_modules` via `lib/vendor.js` (dev) and `scripts/build.js` (build). The QR code is drawn in the browser as one SVG path.
+- Phones must never receive the correct answer or media; only the host page gets `host:*` payloads.
+- Keep functions small (SonarCloud cognitive complexity) and don't duplicate logic between Node and browser; put it in a shared `assets/js` module.
 - Design follows `DESIGN.md` (Genesis): indigo only for interactive elements, 12px cards / 6px buttons, General Sans + DM Sans + JetBrains Mono, at most two weights (500/700) per screen, shadows only on hover and popovers, the dot grid is the only decoration. Answer colours and shapes are fixed per slot.
 - Host gameplay screens (`.screen-stage`) must fit the viewport with no page scrolling.
 - Reveal order: question → revealed media → chart → scoreboard. The first scoreboard appears directly; later ones animate from the previous order. Leaderboards show the top 5.
@@ -84,9 +93,10 @@ Private and gitignored (the format and a generic example are in `README.md`). Ne
 
 ## Testing expectations
 
-- Run `npm test` before finishing; add or adjust tests for any change to `lib/`, `state-machines.js`, `game-shared.js` or `host-leaderboard.js`.
-- `test/game.test.js` drives `Game` with `t.mock.timers`; `test/server.test.js` plays a full match over real sockets (about 6 s because of the real start countdown).
-- For UI changes, verify both pages in a browser (light and dark themes, a phone-sized viewport for `player.html`) with `QUESTIONS_PATH=test/fixtures/questions.json` for a quick run.
+- Run `npm test` before finishing; add or adjust tests for any change to `lib/`, `state-machines.js`, `game-shared.js`, `game-engine.js`, `match-host.js`, `quiz-pack.js` or `host-leaderboard.js`.
+- `test/game.test.js` drives `Game` with `t.mock.timers`; `test/match-host.test.js` plays a full match over an in-memory transport; `test/server.test.js` checks the dev server routes.
+- For UI changes, verify both pages in a browser (light and dark themes, a phone-sized viewport for `player.html`) with `QUESTIONS_PATH=test/fixtures/questions.json` for a quick run, or load a generic pack. To test the deployed flow, `npm run build` and serve `dist/` with any static server.
+- WebRTC needs a real Chrome/Safari/Firefox: embedded app browsers may gather no ICE candidates, so phones never connect there. Multiplayer also needs internet access for the PeerJS signalling server.
 
 ## Audio filter command (sox)
 

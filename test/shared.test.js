@@ -60,6 +60,25 @@ describe("game-shared", () => {
     assert.deepEqual([...question.options].sort(), ["A", "B", "C", "D"]);
   });
 
+  it("resolves media through a custom resolver and keeps remote URLs", () => {
+    const entry = {
+      question: "Q",
+      answers: { right: "A", wrong: ["B", "C", "D"] },
+      before: { image: "pic.jpg", video: "https://example.com/clip.mp4" },
+    };
+    const resolveMedia = (kind, file) => `blob:${kind}/${file}`;
+    assert.deepEqual(shared.normalizeQuestion(entry, { resolveMedia }).before.image, "blob:image/pic.jpg");
+    assert.equal(shared.normalizeQuestion(entry).before.video, "https://example.com/clip.mp4");
+    assert.equal(shared.isRemoteMedia("HTTPS://x.test/a.mp3"), true);
+    assert.equal(shared.isRemoteMedia("a.mp3"), false);
+  });
+
+  it("creates random hex ids", () => {
+    const id = shared.randomId();
+    assert.match(id, /^[0-9a-f]{32}$/);
+    assert.notEqual(id, shared.randomId());
+  });
+
   it("formats question counters", () => {
     assert.equal(shared.formatQuestionCounter(0, 12), "Pregunta 1 de 12");
   });

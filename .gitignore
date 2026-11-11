@@ -3,7 +3,7 @@ node_modules/
 
 # ── Private game content ──────────────────────
 # Real questions and media stay local; see README.md for the questions.json format.
-questions.json
+/questions.json
 assets/audios/
 assets/images/
 assets/videos/
@@ -11,6 +11,9 @@ assets/music/*
 # Default tracks the app needs out of the box.
 !assets/music/default.mp3
 !assets/music/waiting.mp3
+
+# ── Build output (GitHub Pages) ───────────────
+dist/
 
 # ── Agent tooling ─────────────────────────────
 .agents/
