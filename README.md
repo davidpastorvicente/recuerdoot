@@ -35,7 +35,7 @@ npm run validate:questions
 
 `.github/workflows/pages.yml` runs the tests, builds the site with `npm run build` and deploys `dist/` on every push to `main`. Enable it once in the repository: **Settings → Pages → Build and deployment → Source: GitHub Actions**.
 
-The build copies an explicit allowlist (the two pages, `assets/css`, `assets/js`, `assets/templates`, the two default music tracks and the vendor scripts from `node_modules`), so a local `questions.json` or private media can never be published. Any static host works the same way: serve the contents of `dist/`.
+The build copies an explicit allowlist (the two pages, `assets/css`, `assets/js`, the two default music tracks and the vendor scripts from `node_modules`), so a local `questions.json` or private media can never be published. Any static host works the same way: serve the contents of `dist/`.
 
 ### Network requirements
 
@@ -124,7 +124,7 @@ my-quiz/
 └─ music/
 ```
 
-The host loads it from the start screen as a **folder**, a **`.zip`** (with `questions.json` at the root or inside one top-level folder) or a lone **`questions.json`** (no media, or media as `https://` URLs), by picking it or dragging it onto the card. The pack is validated in the browser and every problem is listed with its question number. A valid pack is copied to IndexedDB (only `questions.json` and the files it references), so it is still there after a reload; **Quitar** deletes it. Media plays from `blob:` URLs and never leaves the host's browser. A starter file is published at `assets/templates/questions.json`.
+The host loads it from the start screen as a **folder**, a **`.zip`** (with `questions.json` at the root or inside one top-level folder) or a lone **`questions.json`** (no media, or media as `https://` URLs), by picking it or dragging it onto the card. The pack is validated in the browser and every problem is listed with its question number. A valid pack is copied to IndexedDB (only `questions.json` and the files it references), so it is still there after a reload; **Quitar** deletes it. Media plays from `blob:` URLs and never leaves the host's browser.
 
 ### Creating a quiz with an AI assistant
 
@@ -223,7 +223,6 @@ assets/
   js/host-leaderboard.js   Leaderboard rendering, rank movement, score count-up
   js/host.js               Host controller (driven by the host state machine)
   js/player.js             Player controller (driven by the player state machine)
-  templates/questions.json Starter questions file linked from the start screen
 test/                      node:test suites and fixtures
 docs/quiz-guide.md         Quiz creation guide for people and AI assistants (published as quiz-guide.md)
 docs/state-machines.md     Every state machine, its states and events

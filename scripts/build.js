@@ -13,7 +13,6 @@ const PUBLIC_FILES = [
   "assets/favicon.svg",
   "assets/css",
   "assets/js",
-  "assets/templates",
   "assets/music/default.mp3",
   "assets/music/waiting.mp3",
 ];

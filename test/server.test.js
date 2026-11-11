@@ -27,7 +27,6 @@ describe("dev server", () => {
       "/assets/vendor/peerjs.min.js",
       "/assets/vendor/qrcode.js",
       "/assets/vendor/fflate.js",
-      "/assets/templates/questions.json",
       "/quiz-guide.md",
       "/questions.json",
     ];
