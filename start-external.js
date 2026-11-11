@@ -1,15 +1,36 @@
-const { spawn } = require("child_process");
+const { spawn } = require("node:child_process");
+const fs = require("node:fs");
+const path = require("node:path");
 
 const PORT = process.env.PORT || "8000";
 const targetUrl = `http://localhost:${PORT}`;
+const SERVER_ENTRY = path.join(__dirname, "server.js");
+const CLOUDFLARED_DIRECTORIES = ["/opt/homebrew/bin", "/usr/local/bin", "/usr/bin"];
 
 function exitWithError(message) {
   console.error(message);
   process.exit(1);
 }
 
+// Absolute paths only: never let PATH decide which binary runs.
+function resolveCloudflaredBinary() {
+  const configuredPath = process.env.CLOUDFLARED_PATH?.trim();
+  if (configuredPath) {
+    return path.isAbsolute(configuredPath) && fs.existsSync(configuredPath) ? configuredPath : null;
+  }
+
+  return CLOUDFLARED_DIRECTORIES
+    .map((directory) => path.join(directory, "cloudflared"))
+    .find((candidate) => fs.existsSync(candidate)) ?? null;
+}
+
+const cloudflaredBinary = resolveCloudflaredBinary();
+if (!cloudflaredBinary) {
+  exitWithError(`cloudflared not found in ${CLOUDFLARED_DIRECTORIES.join(", ")}. Install it or set CLOUDFLARED_PATH to its absolute path.`);
+}
+
 const cloudflared = spawn(
-  "cloudflared",
+  cloudflaredBinary,
   ["tunnel", "--url", targetUrl, "--no-autoupdate"],
   { stdio: ["ignore", "pipe", "pipe"] }
 );
@@ -25,7 +46,7 @@ function stopChildren(signal = "SIGTERM") {
 function startServer(publicBaseUrl) {
   if (server) return;
 
-  server = spawn("node", ["server.js"], {
+  server = spawn(process.execPath, [SERVER_ENTRY], {
     stdio: "inherit",
     env: {
       ...process.env,
@@ -47,11 +68,9 @@ function startServer(publicBaseUrl) {
 }
 
 function handleCloudflaredOutput(chunk) {
-  const text = chunk.toString();
-
   if (resolved) return;
 
-  const match = text.match(/https:\/\/[a-z0-9.-]+\.trycloudflare\.com/i);
+  const match = /https:\/\/[a-z0-9.-]+\.trycloudflare\.com/i.exec(chunk.toString());
   if (!match) return;
 
   resolved = true;
@@ -67,7 +86,7 @@ cloudflared.on("error", (error) => {
 
 cloudflared.on("exit", (code) => {
   if (!resolved) {
-    exitWithError(code === 127 ? "cloudflared is not installed or not on PATH." : `cloudflared exited before a public URL was ready (code ${code ?? "unknown"}).`);
+    exitWithError(`cloudflared exited before a public URL was ready (code ${code ?? "unknown"}).`);
   }
 });
 
