@@ -81,8 +81,8 @@
             <p class="hint" data-i18n-html="pack.aiHint">¿Lo preparas con una IA (ChatGPT, Claude, Gemini…)? Pásale la <a class="link" href="quiz-guide.md" target="_blank" rel="noopener">guía para crear el quiz</a> y te guiará paso a paso.</p>
             <button type="button" class="button button-secondary button-sm" id="pack-ai-copy-button" data-i18n="pack.aiCopy">Copiar instrucciones para la IA</button>
           </div>
-          <input type="file" id="pack-folder-input" webkitdirectory multiple hidden>
-          <input type="file" id="pack-file-input" accept=".zip,.json,application/zip,application/json" hidden>
+          <input type="file" id="pack-folder-input" webkitdirectory multiple hidden aria-label="Elegir carpeta" data-i18n-aria-label="pack.chooseFolder">
+          <input type="file" id="pack-file-input" aria-label="Elegir .zip" data-i18n-aria-label="pack.chooseZip" accept=".zip,.json,application/zip,application/json" hidden>
           <details class="pack-help">
             <summary data-i18n="pack.help.summary">¿Cómo preparo el quiz?</summary>
             <p data-i18n-html="pack.help.intro">Crea una carpeta con <code class="mono">questions.json</code> y, si usas archivos, estas subcarpetas:</p>

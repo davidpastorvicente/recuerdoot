@@ -168,7 +168,7 @@
       const entries = items.map((item) => item.webkitGetAsEntry?.() ?? null);
       const files = Array.from(event.dataTransfer.files ?? []);
       if (files.length === 0 && entries.every((entry) => !entry)) return;
-      load(() => LOADER.fromDrop({ entries, files }), { persist: true });
+      void load(() => LOADER.fromDrop({ entries, files }), { persist: true });
     }
 
     function bindDropZone() {
@@ -203,19 +203,19 @@
       folderInput.addEventListener("change", () => {
         const files = Array.from(folderInput.files);
         folderInput.value = "";
-        if (files.length > 0) load(() => LOADER.fromFileList(files), { persist: true });
+        if (files.length > 0) void load(() => LOADER.fromFileList(files), { persist: true });
       });
       fileInput.addEventListener("change", () => {
         const [file] = fileInput.files;
         fileInput.value = "";
-        if (file) load(() => LOADER.fromFile(file), { persist: true });
+        if (file) void load(() => LOADER.fromFile(file), { persist: true });
       });
     }
 
     /** Texts follow the language; validation problems are re-checked so they are listed in it too. */
     function onLocaleChange() {
       if (machine.is("invalid") && lastLoader && !locked) {
-        load(lastLoader, { persist: false });
+        void load(lastLoader, { persist: false });
         return;
       }
       render();
