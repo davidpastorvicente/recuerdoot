@@ -1,13 +1,26 @@
+# ── Dependencies ──────────────────────────────
 node_modules/
+
+# ── Private game content ──────────────────────
+# Real questions and media stay local; see README.md for the questions.json format.
+questions.json
 assets/audios/
 assets/images/
-assets/music/
 assets/videos/
-.agents/
-.idea/
-.DS_Store
-*.log
+assets/music/*
+# Default tracks the app needs out of the box.
 !assets/music/default.mp3
 !assets/music/waiting.mp3
+
+# ── Agent tooling ─────────────────────────────
+.agents/
 skills-lock.json
-questions.json
+
+# ── Editors & OS ──────────────────────────────
+.idea/
+.vscode/
+.DS_Store
+
+# ── Logs ──────────────────────────────────────
+*.log
+npm-debug.log*
