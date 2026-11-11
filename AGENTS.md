@@ -2,7 +2,7 @@
 
 ## What is this project?
 
-A Kahoot-style multiplayer quiz about shared memories, built with plain browser JavaScript (no bundler, no framework) and deployed as a static site on GitHub Pages. A host shows questions on a big screen while players answer from their phones; there is also a solo mode. The host's browser runs the match and phones connect to it over WebRTC (PeerJS). Quizzes ("packs": `questions.json` plus media) are loaded in the host's browser and never uploaded. A small Node server exists only for local development. User-facing docs are in `README.md`, the design system in `DESIGN.md`, every state machine in `docs/state-machines.md`, and the quiz creation guide for people and AI assistants in `docs/quiz-guide.md`.
+A Kahoot-style multiplayer quiz about shared memories, built with plain browser JavaScript (no bundler, no framework) and deployed as a static site on GitHub Pages. A host shows questions on a big screen while players answer from their phones; there is also a solo mode. The host's browser runs the match and phones connect to it over WebRTC (PeerJS). Quizzes ("packs": `questions.json` plus media) are loaded in the host's browser and never uploaded. A small Node server exists only for local development. User-facing docs are in `README.md`, the design system in `DESIGN.md`, every state machine in `docs/state-machines.md`, and the quiz creation guide for people and AI assistants in `docs/quiz-guide.md` (Spanish) and `docs/quiz-guide.en.md` (English).
 
 ## Commands
 
@@ -34,9 +34,10 @@ Deployment: `.github/workflows/pages.yml` runs the tests, `npm run build` and de
   - `game-engine.js`: `Game` class with all match rules (joining, scoring, timers, reveal, reconnection). It never touches the network; everything goes through the injected `emit(target, event, payload)`. Browser + Node.
   - `match-host.js`: `createMatchHost({ questions, listen, onEvent })` runs one match in the host browser: draws the PIN (retrying when the peer id is taken), owns the `Game`, accepts only `player:join`/`player:answer` from phones and routes `emit` to the host page, one connection or the room. Network injected, so tests use an in-memory transport. Browser + Node.
   - `peer-transport.js`: PeerJS `listen` for the host and `createPeerClient` for phones (heartbeat, reconnection, wrong-PIN and failure callbacks). Browser only.
-  - `quiz-pack.js`: Spanish `validateQuestions`, `listMediaReferences`, pack path indexing and media lookup (`indexPackPaths`, `resolvePackPath`, `findMissingMedia`). Browser + Node.
+  - `quiz-pack.js`: `validateQuestions` (messages in the current language), `listMediaReferences`, pack path indexing and media lookup (`indexPackPaths`, `resolvePackPath`, `findMissingMedia`). Browser + Node.
   - `pack-loader.js`: reads folders, zips (fflate) and drops; builds packs with `blob:` URLs; IndexedDB persistence. Browser only.
   - `host-pack.js`: the quiz card on the start screen, driven by `MACHINES.pack`; also copies the AI-assistant prompt.
+  - `i18n.js`: loaded in `<head>` before everything else: Spanish and English `MESSAGES`, `t()`/`tHtml()` (params, plurals, `{x:date}`), language detection and switch, and `translateDom`/`setText`/`setHtml`/`setPlain`/`setAttr`. Browser + Node (Node is always Spanish unless `setLocale` is called).
   - `ui-shell.js`: loaded in `<head>`: theme before first paint, dot-grid spotlight, `showToast`.
   - `host-media.js`: foreground clip + ducked background music with fades.
   - `host-leaderboard.js`: leaderboard rendering, FLIP row movement, score count-up; pure helpers are unit-tested.
@@ -73,11 +74,12 @@ A pack is a folder or `.zip` with `questions.json` and `audios/`, `images/`, `vi
 - `before.audio` makes it an audio question (filtered clip before, original after).
 - Options are shuffled at runtime by `normalizeQuestion`; questions play in file order.
 - Dates for reveal captions come from `YYYYMMDD` in the audio file name.
-- `assets/js/quiz-pack.js` is the source of truth for the rules and messages. When they change, update `docs/quiz-guide.md` too, including its embedded Python validator.
+- `assets/js/quiz-pack.js` is the source of truth for the rules; the messages live in `assets/js/i18n.js`. When they change, update both `docs/quiz-guide.md` and `docs/quiz-guide.en.md`, including their embedded Python validators.
 
 ## Key conventions
 
-- All UI text is in Spanish (so are validation messages and `docs/quiz-guide.md`).
+- All UI text lives in `assets/js/i18n.js` in Spanish and English; never hard-code visible text. Add every key to both languages (a test checks keys and placeholders match). In HTML use `data-i18n`, `data-i18n-html` (trusted markup only) or `data-i18n-aria-label|alt|placeholder|title`, keeping the Spanish text as the default content. In scripts use `setText`/`setHtml`/`setAttr` so the text follows language changes, and `setPlain` for names, questions and numbers. Don't put static `data-i18n` on elements that scripts fill with quiz content.
+- Messages from the match to phones (`player:error`, `player:gameOver`) are `{ key, params }`, never text, so each device shows them in its own language. Dates travel as ISO strings and are formatted with `{date:date}`.
 - No inline JavaScript or inline styles in HTML; no `innerHTML` with unescaped data (use `escapeHtml` or DOM nodes).
 - Ids for singleton hooks, classes for shared styling.
 - Never use `Math.random` (SonarCloud S2245): use `randomInt`/`shuffle`/`randomId` from `game-shared.js`.

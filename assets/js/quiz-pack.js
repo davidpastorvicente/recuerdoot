@@ -6,6 +6,7 @@
 (function initQuizPack(globalScope) {
   const isNode = typeof module !== "undefined" && module.exports;
   const { MEDIA_FOLDERS, isRemoteMedia } = isNode ? require("./game-shared.js") : globalScope.RECUERDOOT_SHARED;
+  const { t } = isNode ? require("./i18n.js") : globalScope.RECUERDOOT_I18N;
 
   const QUESTIONS_FILE = "questions.json";
   const MEDIA_SLOTS = ["before", "after"];
@@ -25,27 +26,27 @@
 
   function validateAnswers(answers, label) {
     if (!answers || typeof answers !== "object") {
-      return [`${label}: "answers" debe ser un objeto con "right" y "wrong"`];
+      return [t("validation.answersObject", { label })];
     }
 
     const errors = [];
     if (!isNonEmptyString(answers.right)) {
-      errors.push(`${label}: "answers.right" debe ser un texto no vacío`);
+      errors.push(t("validation.rightText", { label }));
     }
 
     const { wrong } = answers;
     if (!Array.isArray(wrong) || wrong.length < MIN_WRONG_ANSWERS || wrong.length > MAX_WRONG_ANSWERS) {
-      errors.push(`${label}: "answers.wrong" debe tener entre ${MIN_WRONG_ANSWERS} y ${MAX_WRONG_ANSWERS} respuestas`);
+      errors.push(t("validation.wrongCount", { label, min: MIN_WRONG_ANSWERS, max: MAX_WRONG_ANSWERS }));
       return errors;
     }
 
     if (!wrong.every(isNonEmptyString)) {
-      errors.push(`${label}: cada respuesta de "answers.wrong" debe ser un texto no vacío`);
+      errors.push(t("validation.wrongText", { label }));
     }
 
     const options = [answers.right, ...wrong];
     if (new Set(options).size !== options.length) {
-      errors.push(`${label}: las respuestas no pueden repetirse`);
+      errors.push(t("validation.duplicates", { label }));
     }
     return errors;
   }
@@ -53,34 +54,34 @@
   function validateMedia(media, slot, label) {
     if (media === undefined) return [];
     if (!media || typeof media !== "object" || Array.isArray(media)) {
-      return [`${label}: "${slot}" debe ser un objeto`];
+      return [t("validation.mediaObject", { label, slot })];
     }
 
     return Object.entries(media).flatMap(([kind, file]) => {
       if (!MEDIA_KINDS.includes(kind)) {
-        return [`${label}: "${slot}.${kind}" no está permitido (usa ${MEDIA_KINDS.join(", ")})`];
+        return [t("validation.mediaKind", { label, slot, kind, kinds: MEDIA_KINDS.join(", ") })];
       }
-      return isNonEmptyString(file) ? [] : [`${label}: "${slot}.${kind}" debe ser un nombre de archivo`];
+      return isNonEmptyString(file) ? [] : [t("validation.mediaFile", { label, slot, kind })];
     });
   }
 
-  /** Returns a list of readable problems in Spanish; an empty list means the questions are valid. */
+  /** Returns a list of readable problems in the current language; an empty list means the questions are valid. */
   function validateQuestions(raw) {
     if (!Array.isArray(raw)) {
-      return ["questions.json debe contener una lista JSON de preguntas"];
+      return [t("validation.notList")];
     }
     if (raw.length === 0) {
-      return ["questions.json debe contener al menos una pregunta"];
+      return [t("validation.empty")];
     }
 
     return raw.flatMap((entry, index) => {
-      const label = `Pregunta ${index + 1}`;
+      const label = t("validation.label", { number: index + 1 });
       if (!entry || typeof entry !== "object") {
-        return [`${label}: debe ser un objeto`];
+        return [t("validation.entryObject", { label })];
       }
 
       return [
-        ...(isNonEmptyString(entry.question) ? [] : [`${label}: "question" debe ser un texto no vacío`]),
+        ...(isNonEmptyString(entry.question) ? [] : [t("validation.questionText", { label })]),
         ...validateAnswers(entry.answers, label),
         ...MEDIA_SLOTS.flatMap((slot) => validateMedia(entry[slot], slot, label)),
       ];
@@ -154,7 +155,8 @@
       const key = `${kind}:${file}`;
       if (seen.has(key) || resolvePackPath(index, kind, file)) return [];
       seen.add(key);
-      return [`Pregunta ${question}: falta el archivo "${PACK_FOLDERS[kind]}/${file}"`];
+      const label = t("validation.label", { number: question });
+      return [t("validation.missingFile", { label, path: `${PACK_FOLDERS[kind]}/${file}` })];
     });
   }
 

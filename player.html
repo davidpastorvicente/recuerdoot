@@ -7,9 +7,10 @@
 <title>Recuerdoot · Jugar</title>
 <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
 <link rel="stylesheet" href="assets/css/main.css">
+<script src="assets/js/i18n.js"></script>
 <script src="assets/js/ui-shell.js"></script>
 </head>
-<body class="page-player" data-page-title-suffix="Jugar" data-state="join">
+<body class="page-player" data-i18n-title="page.playerTitle" data-state="join">
 
 <div class="dot-grid" aria-hidden="true"></div>
 
@@ -29,8 +30,12 @@
     <span class="brand"></span>
   </div>
   <div class="nav-end">
-    <output class="chip chip-warning" id="connection-chip" hidden><span class="status-dot status-pending"></span>Reconectando…</output>
+    <output class="chip chip-warning" id="connection-chip" hidden><span class="status-dot status-pending"></span><span data-i18n="player.reconnecting">Reconectando…</span></output>
     <span class="chip" id="player-name-chip" hidden></span>
+    <div class="lang-switch" role="group" aria-label="Idioma" data-i18n-aria-label="lang.label">
+      <button type="button" class="lang-option" data-locale-option="es" lang="es" aria-label="Español" aria-pressed="false">ES</button>
+      <button type="button" class="lang-option" data-locale-option="en" lang="en" aria-label="English" aria-pressed="false">EN</button>
+    </div>
   </div>
 </header>
 
@@ -39,18 +44,18 @@
   <!-- JOIN -->
   <section id="join-screen" class="screen screen-phone" aria-labelledby="join-title">
     <div class="phone-stack">
-      <p class="overline">Únete a la partida</p>
-      <h1 class="headline" id="join-title">¿Listo para recordar?</h1>
+      <p class="overline" data-i18n="player.overline">Únete a la partida</p>
+      <h1 class="headline" id="join-title" data-i18n="player.title">¿Listo para recordar?</h1>
       <form id="join-form" class="card form-card" novalidate>
         <div class="field">
-          <label class="field-label" for="pin-input">PIN de la partida</label>
+          <label class="field-label" for="pin-input" data-i18n="lobby.pinLabel">PIN de la partida</label>
           <input class="input input-pin mono" id="pin-input" name="pin" type="text" inputmode="numeric" autocomplete="off" pattern="[0-9]{6}" maxlength="6" placeholder="000000" required>
         </div>
         <div class="field">
-          <label class="field-label" for="name-input">Tu nombre</label>
-          <input class="input" id="name-input" name="name" type="text" autocomplete="given-name" enterkeyhint="go" maxlength="15" placeholder="Nombre" required>
+          <label class="field-label" for="name-input" data-i18n="player.nameLabel">Tu nombre</label>
+          <input class="input" id="name-input" name="name" type="text" autocomplete="given-name" enterkeyhint="go" maxlength="15" placeholder="Nombre" data-i18n-placeholder="player.namePlaceholder" required>
         </div>
-        <button type="submit" class="button button-primary button-lg button-block" id="join-button">Unirse</button>
+        <button type="submit" class="button button-primary button-lg button-block" id="join-button" data-i18n="player.join">Unirse</button>
         <p id="error-msg" class="field-error" role="alert"></p>
       </form>
     </div>
@@ -59,9 +64,9 @@
   <!-- WAITING IN LOBBY -->
   <section id="waiting-screen" class="screen screen-phone" aria-labelledby="my-name" hidden>
     <div class="phone-stack phone-stack-center">
-      <p class="overline">Estás dentro</p>
+      <p class="overline" data-i18n="player.inside">Estás dentro</p>
       <h1 class="headline" id="my-name">Jugador</h1>
-      <span class="chip"><span class="status-dot status-live"></span>Esperando a que empiece la partida</span>
+      <span class="chip"><span class="status-dot status-live"></span><span data-i18n="player.waitingStart">Esperando a que empiece la partida</span></span>
     </div>
   </section>
 
@@ -82,28 +87,28 @@
       <p class="result-points mono" id="result-points"></p>
       <div class="card result-card">
         <div class="result-stat">
-          <span class="overline">Posición</span>
+          <span class="overline" data-i18n="player.rank">Posición</span>
           <span id="result-rank" class="result-rank"></span>
         </div>
         <div class="result-stat">
-          <span class="overline">Puntos</span>
+          <span class="overline" data-i18n="player.points">Puntos</span>
           <span id="result-score" class="result-score mono"></span>
         </div>
       </div>
       <p id="result-position" class="muted"></p>
       <span id="result-streak" class="chip chip-success" hidden></span>
-      <span class="chip"><span class="status-dot status-live"></span>Esperando la siguiente pregunta</span>
+      <span class="chip"><span class="status-dot status-live"></span><span data-i18n="player.waitingNext">Esperando la siguiente pregunta</span></span>
     </div>
   </section>
 
   <!-- GAME OVER -->
   <section id="end-screen" class="screen screen-phone" aria-labelledby="end-position" hidden>
     <div class="phone-stack phone-stack-center">
-      <p class="overline">Fin de la partida</p>
+      <p class="overline" data-i18n="player.gameOver">Fin de la partida</p>
       <div id="end-rank" class="end-rank"></div>
       <h1 class="headline" id="end-position">Fin de la partida</h1>
       <p class="muted mono" id="end-score"></p>
-      <button type="button" class="button button-primary button-lg button-block" id="player-reload-button">Volver</button>
+      <button type="button" class="button button-primary button-lg button-block" id="player-reload-button" data-i18n="player.back">Volver</button>
     </div>
   </section>
 

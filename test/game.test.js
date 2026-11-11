@@ -41,28 +41,28 @@ describe("Game: joining", () => {
   it("rejects bad PINs, empty names, duplicate names and full rooms", (t) => {
     const { game, last } = setup(t, { players: ["Ana"], config: { ...CONFIG, MAX_PLAYERS: 2 } });
     game.join("s1", { pin: "000000", name: "Bea" });
-    assert.equal(last("player:error", "s1"), "PIN incorrecto");
+    assert.deepEqual(last("player:error", "s1"), { key: "join.error.wrongPin" });
     game.join("s2", { pin: PIN, name: "   " });
-    assert.equal(last("player:error", "s2"), "Introduce tu nombre");
+    assert.deepEqual(last("player:error", "s2"), { key: "join.error.nameRequired" });
     game.join("s3", { pin: PIN, name: "ANA" });
-    assert.equal(last("player:error", "s3"), "Ese nombre ya está en uso");
+    assert.deepEqual(last("player:error", "s3"), { key: "join.error.nameTaken" });
     game.join("s4", { pin: PIN, name: "Bea" });
     game.join("s5", { pin: PIN, name: "Cris" });
-    assert.equal(last("player:error", "s5"), "Sala llena (máx 2)");
+    assert.deepEqual(last("player:error", "s5"), { key: "join.error.full", params: { max: 2 } });
   });
 
   it("does not crash on malformed payloads", (t) => {
     const { game, last } = setup(t, { players: [] });
     assert.equal(game.join("s1", undefined), false);
     assert.equal(game.join("s2", { pin: PIN, name: 42 }), false);
-    assert.equal(last("player:error", "s2"), "Introduce tu nombre");
+    assert.deepEqual(last("player:error", "s2"), { key: "join.error.nameRequired" });
   });
 
   it("refuses new players once the game has started", (t) => {
     const { game, last } = setup(t);
     game.start("host");
     game.join("late", { pin: PIN, name: "Late" });
-    assert.equal(last("player:error", "late"), "La partida ya ha comenzado");
+    assert.deepEqual(last("player:error", "late"), { key: "join.error.started" });
   });
 
   it("removes players who leave the lobby", (t) => {
@@ -122,7 +122,7 @@ describe("Game: phases", () => {
 
     t.mock.timers.tick(CONFIG.COUNTDOWN_AUDIO_AFTER_SECONDS * 1000);
     assert.equal(game.phase, "reveal");
-    assert.equal(last("host:reveal", "host").date, "4 julio 2019");
+    assert.equal(last("host:reveal", "host").date, "2019-07-04");
   });
 
   it("advances on host:next and ends after the last question", (t) => {

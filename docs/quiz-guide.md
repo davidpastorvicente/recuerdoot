@@ -3,12 +3,16 @@
 > **Para asistentes de IA (ChatGPT, Claude, Gemini, Copilot…):** esta guía es tu referencia para ayudar a una persona a crear un *quiz pack* de Recuerdoot: una carpeta o un `.zip` con un archivo `questions.json` y sus fotos, audios, vídeos y música. Sigue el [flujo guiado](#1-flujo-guiado-para-el-asistente), respeta el [formato exacto](#3-formato-de-questionsjson) y, si puedes ejecutar código, valida y empaqueta con el [script de la sección 7](#7-validar-y-crear-el-zip). Habla con la persona en su idioma; el texto de las preguntas y respuestas va en el idioma en que se jugará (normalmente español).
 >
 > **Para personas:** puedes leerla tú, o pasársela a tu asistente de IA con un mensaje como *"Lee esta guía y ayúdame paso a paso a crear un quiz de Recuerdoot"*. Si tu asistente no puede abrir enlaces, descarga este archivo y adjúntalo a la conversación.
+>
+> *This guide is also available [in English](quiz-guide.en.md).*
 
 ## Qué es Recuerdoot
 
 Un juego de preguntas al estilo Kahoot sobre recuerdos compartidos. Una pantalla grande (el *host*) muestra cada pregunta con su foto, audio o vídeo; los jugadores responden desde el móvil. Tras cada pregunta se revela el momento original (la foto sin recortar, el audio sin distorsionar, el vídeo…). También se puede jugar en solitario.
 
 Todo ocurre en el navegador del host: el quiz se carga desde la pantalla de inicio (**Elegir carpeta**, **Elegir .zip** o arrastrándolo) y **no se sube a ningún servidor**. Los archivos solo se reproducen en el ordenador del host.
+
+La aplicación está en español e inglés (selector **ES / EN** arriba de la página). Eso solo cambia la interfaz: las preguntas y respuestas se muestran tal como las escribas.
 
 ---
 
@@ -76,7 +80,7 @@ Notas sobre cómo se juega cada caso:
 - **Pregunta normal:** 20 segundos para responder. Cuanto antes se acierta, más puntos (de 1000 a 100).
 - **Pregunta con `before.audio`:** la pantalla da 3 segundos para leer, reproduce el audio y, cuando termina, abre 10 segundos para responder (los jugadores pueden responder mientras suena). Por eso los audios *antes* deben durar **entre 3 y 20 segundos**.
 - **`music`** suena en bucle y bajito de fondo (se atenúa cuando suena un `audio`). Sirve para ambientar o para preguntas de canciones. Sin `before.music` suena una música por defecto.
-- **Fechas automáticas:** si el nombre de un archivo de audio contiene una fecha `AAAAMMDD` (por ejemplo `PTT-20190704-WA0001.mp3`, el formato de WhatsApp), al revelar se muestra "4 julio 2019".
+- **Fechas automáticas:** si el nombre de un archivo de audio contiene una fecha `AAAAMMDD` (por ejemplo `PTT-20190704-WA0001.mp3`, el formato de WhatsApp), al revelar se muestra "4 julio 2019" (o "July 4, 2019" con la aplicación en inglés).
 - **Comillas:** una frase entre comillas dobles en la pregunta se resalta en pantalla. En JSON se escriben como `\"`.
 - Las respuestas se **barajan** automáticamente; no hace falta desordenarlas.
 
@@ -443,7 +447,7 @@ No hace falta zip: en Recuerdoot también puedes pulsar **Elegir carpeta** o arr
 
 ## 9. Errores frecuentes
 
-El juego muestra los problemas al cargar el quiz. Cómo arreglarlos:
+El juego muestra los problemas al cargar el quiz (en el idioma de la aplicación). Cómo arreglarlos:
 
 | Mensaje | Solución |
 |---------|----------|

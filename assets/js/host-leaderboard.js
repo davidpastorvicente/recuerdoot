@@ -4,6 +4,7 @@
   const ROW_STAGGER_MS = 80;
 
   const escapeHtml = (value) => globalScope.RECUERDOOT_SHARED.escapeHtml(value);
+  const i18n = () => globalScope.RECUERDOOT_I18N;
   const keyOf = (player) => player.playerId ?? player.name;
 
   function cloneLeaderboard(list) {
@@ -26,20 +27,31 @@
   function movementBadge(movement) {
     switch (movement?.direction) {
       case "new":
-        return '<span class="movement-chip movement-new">Nuevo</span>';
+        return `<span class="movement-chip movement-new" ${i18n().attrs("leaderboard.new")}>${escapeHtml(i18n().t("leaderboard.new"))}</span>`;
       case "up":
-        return `<span class="movement-chip movement-up" aria-label="Sube ${movement.places}">▲ ${movement.places}</span>`;
+        return movementChip("up", "▲", movement.places);
       case "down":
-        return `<span class="movement-chip movement-down" aria-label="Baja ${movement.places}">▼ ${movement.places}</span>`;
+        return movementChip("down", "▼", movement.places);
       default:
         return '<span class="movement-chip movement-idle" aria-hidden="true"></span>';
     }
   }
 
+  function movementChip(direction, arrow, places) {
+    const { attrs, t } = i18n();
+    const key = `leaderboard.${direction}`;
+    const params = { count: places };
+    return `<span class="movement-chip movement-${direction}" ${attrs(key, params, "aria-label")} aria-label="${escapeHtml(t(key, params))}">${arrow} ${places}</span>`;
+  }
+
+  function offlineDot() {
+    const { attrs, t } = i18n();
+    const label = escapeHtml(t("leaderboard.offline"));
+    return `<span class="status-dot status-offline" ${attrs("leaderboard.offline", null, "title")} title="${label}"><span class="visually-hidden" ${attrs("leaderboard.offline")}>${label}</span></span>`;
+  }
+
   function rowHtml(player, rank, movement) {
-    const offline = player.connected === false
-      ? '<span class="status-dot status-offline" title="Desconectado"><span class="visually-hidden">Desconectado</span></span>'
-      : "";
+    const offline = player.connected === false ? offlineDot() : "";
     return `<span class="rank-badge rank-${rank}">${rank}</span>
       <span class="leaderboard-name">${escapeHtml(player.name)}${offline}</span>
       ${movementBadge(movement)}

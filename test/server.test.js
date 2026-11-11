@@ -27,7 +27,9 @@ describe("dev server", () => {
       "/assets/vendor/peerjs.min.js",
       "/assets/vendor/qrcode.js",
       "/assets/vendor/fflate.js",
+      "/assets/js/i18n.js",
       "/quiz-guide.md",
+      "/quiz-guide.en.md",
       "/questions.json",
     ];
     for (const route of publicRoutes) {

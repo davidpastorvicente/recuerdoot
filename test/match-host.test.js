@@ -102,7 +102,7 @@ describe("match-host", () => {
     match.command("host:answersOpen");
     assert.ok(ana.last("player:answersOpen"));
     match.command("host:timeUp");
-    assert.equal(lastHost("host:reveal").date, "4 julio 2019");
+    assert.equal(lastHost("host:reveal").date, "2019-07-04");
 
     match.command("host:next");
     assert.equal(lastHost("host:question").options.length, 6);
@@ -117,7 +117,7 @@ describe("match-host", () => {
     const stranger = network.connect(match.peerId);
     stranger.send("host:start");
     stranger.send("player:join");
-    assert.equal(stranger.last("player:error"), "PIN incorrecto");
+    assert.deepEqual(stranger.last("player:error"), { key: "join.error.wrongPin" });
     stranger.send("player:join", "nope");
     stranger.send("player:answer", null);
     assert.equal(match.snapshot().phase, "lobby");
@@ -163,8 +163,8 @@ describe("match-host", () => {
     const ana = network.connect(match.peerId);
     ana.send("player:join", { pin: match.pin, name: "Ana" });
 
-    const closing = match.close("El host ha terminado la partida");
-    assert.equal(ana.last("player:gameOver"), "El host ha terminado la partida");
+    const closing = match.close("gameOver.hostEnded");
+    assert.deepEqual(ana.last("player:gameOver"), { key: "gameOver.hostEnded" });
     assert.equal(match.command("host:start"), false);
     t.mock.timers.tick(300);
     await closing;

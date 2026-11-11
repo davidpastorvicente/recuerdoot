@@ -28,7 +28,7 @@
   function syncThemeToggle(button) {
     const isDark = getEffectiveTheme() === "dark";
     button.setAttribute("aria-pressed", String(isDark));
-    button.title = isDark ? "Cambiar a tema claro" : "Cambiar a tema oscuro";
+    globalScope.RECUERDOOT_I18N.setAttr(button, "title", isDark ? "theme.toLight" : "theme.toDark");
   }
 
   function bindThemeToggle() {

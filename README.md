@@ -4,15 +4,15 @@ A Kahoot-style quiz about shared memories. A host shows the questions on a big s
 
 It is a static site: it runs on GitHub Pages with no backend. The host's browser runs the match and phones connect to it directly over WebRTC. Questions and media are loaded in the host's browser from a folder or `.zip` and are never uploaded anywhere.
 
-The UI is in Spanish and follows the Genesis design system (see [`DESIGN.md`](DESIGN.md)).
+The UI is available in Spanish and English (an **ES / EN** switch in the top bar; see [Languages](#languages)) and follows the Genesis design system (see [`DESIGN.md`](DESIGN.md)).
 
 ## Quick start
 
 On the deployed site (or locally, see below):
 
-1. Prepare a quiz folder with `questions.json` and your media (see [Quiz packs](#quiz-packs)). You can ask an AI assistant to build it with [`docs/quiz-guide.md`](docs/quiz-guide.md).
-2. Open the site on the computer connected to the big screen and click **Elegir carpeta** or **Elegir .zip**, or drag the folder or zip onto the card. The quiz is checked and saved in that browser.
-3. Click **Multijugador**. Players scan the QR code or open the address shown, type the PIN and their name.
+1. Prepare a quiz folder with `questions.json` and your media (see [Quiz packs](#quiz-packs)). You can ask an AI assistant to build it with [`docs/quiz-guide.en.md`](docs/quiz-guide.en.md) (English) or [`docs/quiz-guide.md`](docs/quiz-guide.md) (Spanish).
+2. Open the site on the computer connected to the big screen and click **Choose folder** or **Choose .zip**, or drag the folder or zip onto the card. The quiz is checked and saved in that browser.
+3. Click **Multiplayer**. Players scan the QR code or open the address shown, type the PIN and their name.
 
 ### Local development
 
@@ -68,13 +68,13 @@ The build copies an explicit allowlist (the two pages, `assets/css`, `assets/js`
 
 ### Solo
 
-Click **Jugar solo**. Answer each question by clicking a tile or pressing `1`–`6`. A feedback sheet shows whether you were right and reveals the media; press **Siguiente** or `→` to continue. There is no timer in solo mode.
+Click **Play solo**. Answer each question by clicking a tile or pressing `1`–`6`. A feedback sheet shows whether you were right and reveals the media; press **Next** or `→` to continue. There is no timer in solo mode.
 
 ### Multiplayer
 
-1. The host clicks **Multijugador**. The lobby shows a 6-digit PIN, the join address and a QR code, and plays waiting music.
+1. The host clicks **Multiplayer**. The lobby shows a 6-digit PIN, the join address and a QR code, and plays waiting music.
 2. Players open `/player.html` (the QR code fills in the PIN), type their name and join. Up to 10 players.
-3. The host clicks **Empezar** (or presses `→`). Everyone sees a 5-second countdown.
+3. The host clicks **Start** (or presses `→`). Everyone sees a 5-second countdown.
 4. Each question:
    - **Normal questions**: 20-second answer window.
    - **Audio questions** (`before.audio`): 3 seconds to read, then the clip plays on the host; when it ends, a 10-second answer window opens. Phones show the options from the start and players may answer while listening. Pressing the play button while the clip plays skips straight to the answers.
@@ -84,11 +84,11 @@ Click **Jugar solo**. Answer each question by clicking a tile or pressing `1`–
 
 Scoring: a correct answer is worth between 1000 and 100 points, falling linearly with the time since the question appeared (over 20 seconds). Wrong answers and timeouts score 0 and reset the streak. Each phone shows the result, points, position, total and streak after every round.
 
-The host can leave at any time with **Salir** (after confirmation), which ends the match for everyone. Closing or reloading the host tab ends the match too (phones are told right away, or notice within 10 seconds if the host lost its connection). Players who have already seen the final results keep them.
+The host can leave at any time with **Exit** (after confirmation), which ends the match for everyone. Closing or reloading the host tab ends the match too (phones are told right away, or notice within 10 seconds if the host lost its connection). Players who have already seen the final results keep them.
 
 Player phones keep their session in `sessionStorage`: refreshing, locking the screen or briefly losing the connection reconnects and rejoins the same player in the same state.
 
-Click **Jugar solo** or **Multijugador** only once a quiz is loaded (see [Quiz packs](#quiz-packs)); both buttons stay disabled until then.
+Click **Play solo** or **Multiplayer** only once a quiz is loaded (see [Quiz packs](#quiz-packs)); both buttons stay disabled until then.
 
 ### Keyboard shortcuts (host)
 
@@ -124,11 +124,15 @@ my-quiz/
 └─ music/
 ```
 
-The host loads it from the start screen as a **folder**, a **`.zip`** (with `questions.json` at the root or inside one top-level folder) or a lone **`questions.json`** (no media, or media as `https://` URLs), by picking it or dragging it onto the card. The pack is validated in the browser and every problem is listed with its question number. A valid pack is copied to IndexedDB (only `questions.json` and the files it references), so it is still there after a reload; **Quitar** deletes it. Media plays from `blob:` URLs and never leaves the host's browser.
+The host loads it from the start screen as a **folder**, a **`.zip`** (with `questions.json` at the root or inside one top-level folder) or a lone **`questions.json`** (no media, or media as `https://` URLs), by picking it or dragging it onto the card. The pack is validated in the browser and every problem is listed with its question number. A valid pack is copied to IndexedDB (only `questions.json` and the files it references), so it is still there after a reload; **Remove** deletes it. Media plays from `blob:` URLs and never leaves the host's browser.
 
 ### Creating a quiz with an AI assistant
 
-[`docs/quiz-guide.md`](docs/quiz-guide.md) (in Spanish, published as `quiz-guide.md` next to the pages) is a self-contained guide written for AI assistants and people alike: an interview script, question types with examples, the exact `questions.json` rules, media formats and `ffmpeg`/`sox` recipes, and a stdlib-only Python script that validates a pack with the same rules and messages as the app and builds the zip. The start screen links to it and has a **Copiar instrucciones para la IA** button that copies a ready-to-paste prompt with the guide's URL.
+[`docs/quiz-guide.md`](docs/quiz-guide.md) (Spanish) and [`docs/quiz-guide.en.md`](docs/quiz-guide.en.md) (English), published as `quiz-guide.md` and `quiz-guide.en.md` next to the pages, are a self-contained guide written for AI assistants and people alike: an interview script, question types with examples, the exact `questions.json` rules, media formats and `ffmpeg`/`sox` recipes, and a stdlib-only Python script that validates a pack with the same rules and messages as the app and builds the zip. The start screen links to the guide in the current language and has a **Copy instructions for your AI** button that copies a ready-to-paste prompt with that guide's URL.
+
+### Languages
+
+`assets/js/i18n.js` holds every interface text in Spanish and English and is shared by the browser and Node. The language comes from `?lang=es|en`, then the choice saved in the browser, then the browser languages (Spanish for Spanish and other Iberian languages, English otherwise). Static markup uses `data-i18n`, `data-i18n-html` and `data-i18n-<attribute>`; scripts use `t()`, `setText()`, `setHtml()` and `setAttr()`, so everything on screen switches language at once. The host and the phones each use their own language: the match sends message keys (such as `join.error.wrongPin`) instead of text. Quiz contents are never translated. To add a language, add its messages to `MESSAGES` (the test suite checks that every language has the same keys and placeholders) and a button to the language switch.
 
 Keep the guide in sync when the format or its rules change (`assets/js/quiz-pack.js` is the source of truth).
 
@@ -218,6 +222,7 @@ assets/
   js/quiz-pack.js          questions.json validation and pack media lookup; browser + Node
   js/pack-loader.js        Reads folders, zips and drops; blob URLs; IndexedDB storage
   js/host-pack.js          Quiz card on the start screen (driven by the pack state machine)
+  js/i18n.js               Spanish and English texts, t() and DOM translation helpers; browser + Node
   js/ui-shell.js           Theme (before first paint), dot grid, toasts
   js/host-media.js         Host audio: foreground clips, ducked background music, fades
   js/host-leaderboard.js   Leaderboard rendering, rank movement, score count-up
@@ -225,16 +230,17 @@ assets/
   js/player.js             Player controller (driven by the player state machine)
 test/                      node:test suites and fixtures
 docs/quiz-guide.md         Quiz creation guide for people and AI assistants (published as quiz-guide.md)
+docs/quiz-guide.en.md      The same guide in English (published as quiz-guide.en.md)
 docs/state-machines.md     Every state machine, its states and events
 DESIGN.md                  Design system
 AGENTS.md                  Guide for coding agents
 ```
 
-The dev server only serves `index.html`, `player.html`, `quiz-guide.md`, `config.json`, `questions.json`, `assets/` and the allowlisted vendor scripts. Source files, `package.json` and `node_modules` are never exposed.
+The dev server only serves `index.html`, `player.html`, `quiz-guide.md`, `quiz-guide.en.md`, `config.json`, `questions.json`, `assets/` and the allowlisted vendor scripts. Source files, `package.json` and `node_modules` are never exposed.
 
 ## Architecture
 
-There is no game server. When the host clicks **Multijugador**, `match-host.js` creates a `Game` (`game-engine.js`) in the host's browser and registers `recuerdoot-<PIN>` on the PeerJS signalling server (a new PIN is drawn if that id is taken). Phones open `player.html`, connect to that id over a WebRTC data channel and exchange `{ e: event, p: payload }` JSON messages. Both sides send a heartbeat every 2 s and drop a link that is silent for 10 s; phones reconnect automatically and rejoin with their `playerId`. The host is authoritative: phones only ever receive their options and results, never the correct answer or any media.
+There is no game server. When the host clicks **Multiplayer**, `match-host.js` creates a `Game` (`game-engine.js`) in the host's browser and registers `recuerdoot-<PIN>` on the PeerJS signalling server (a new PIN is drawn if that id is taken). Phones open `player.html`, connect to that id over a WebRTC data channel and exchange `{ e: event, p: payload }` JSON messages. Both sides send a heartbeat every 2 s and drop a link that is silent for 10 s; phones reconnect automatically and rejoin with their `playerId`. The host is authoritative: phones only ever receive their options and results, never the correct answer or any media.
 
 All flows are explicit state machines declared in `assets/js/state-machines.js` and documented in [`docs/state-machines.md`](docs/state-machines.md):
 

@@ -9,6 +9,7 @@
  */
 (function initPackLoader(globalScope) {
   const { isRemoteMedia, resolveAssetMedia } = globalScope.RECUERDOOT_SHARED;
+  const { t } = globalScope.RECUERDOOT_I18N;
   const {
     PACK_FOLDERS,
     QUESTIONS_FILE,
@@ -85,7 +86,7 @@
     try {
       return { raw: JSON.parse(await blob.text()) };
     } catch (error) {
-      return { error: `questions.json no es un JSON válido: ${error.message}` };
+      return { error: t("pack.error.invalidJson", { detail: error.message }) };
     }
   }
 
@@ -93,7 +94,7 @@
   async function buildPack(entries, meta) {
     const index = indexPackPaths(entries.map((entry) => entry.path));
     if (!index) {
-      return createPack({ ...meta, errors: ["No se encuentra questions.json en lo que has elegido"] });
+      return createPack({ ...meta, errors: [t("pack.error.noQuestions")] });
     }
 
     const blobs = new Map(entries.map((entry) => [normalizePath(entry.path), entry.blob]));
@@ -147,7 +148,7 @@
     try {
       data = await unzip(new Uint8Array(await file.arrayBuffer()));
     } catch (error) {
-      return createPack({ ...meta, errors: [`No se ha podido abrir el .zip: ${error.message}`] });
+      return createPack({ ...meta, errors: [t("pack.error.zip", { detail: error.message })] });
     }
     const entries = Object.entries(data).map(([path, bytes]) => ({ path, blob: new Blob([bytes], { type: mimeFor(path) }) }));
     return buildPack(entries, meta);
@@ -163,7 +164,7 @@
     return Promise.resolve(createPack({
       name: file.name,
       source: "file",
-      errors: ["Elige una carpeta, un .zip o un questions.json"],
+      errors: [t("pack.error.unsupported")],
     }));
   }
 

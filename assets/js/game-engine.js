@@ -65,7 +65,7 @@
 
     join(connectionId, { pin, name, playerId } = {}) {
       if (String(pin ?? "").trim() !== this.pin) {
-        return this.#rejectJoin(connectionId, "PIN incorrecto");
+        return this.#rejectJoin(connectionId, "join.error.wrongPin");
       }
 
       const existingPlayer = typeof playerId === "string" ? this.players.get(playerId) : undefined;
@@ -74,18 +74,18 @@
       }
 
       if (this.phase !== "lobby") {
-        return this.#rejectJoin(connectionId, "La partida ya ha comenzado");
+        return this.#rejectJoin(connectionId, "join.error.started");
       }
       if (this.#connectedPlayers().length >= this.config.MAX_PLAYERS) {
-        return this.#rejectJoin(connectionId, `Sala llena (máx ${this.config.MAX_PLAYERS})`);
+        return this.#rejectJoin(connectionId, "join.error.full", { max: this.config.MAX_PLAYERS });
       }
 
       const cleanName = sanitizePlayerName(name, this.config.PLAYER_NAME_MAX_LENGTH);
       if (!cleanName) {
-        return this.#rejectJoin(connectionId, "Introduce tu nombre");
+        return this.#rejectJoin(connectionId, "join.error.nameRequired");
       }
       if (this.#isNameTaken(cleanName)) {
-        return this.#rejectJoin(connectionId, "Ese nombre ya está en uso");
+        return this.#rejectJoin(connectionId, "join.error.nameTaken");
       }
 
       const player = { playerId: randomId(), name: cleanName, score: 0, streak: 0, connectionId, connected: true };
@@ -155,11 +155,14 @@
       return true;
     }
 
-    /** Ends the match for everyone. Players who already saw the final results keep that screen. */
+    /**
+     * Ends the match for everyone. Players who already saw the final results keep that screen.
+     * `reason` is a message key from i18n.js, translated on each phone.
+     */
     close(reason) {
       this.#clearTimer();
       if (!this.#machine.is("end", "closed")) {
-        this.emit(this.room, "player:gameOver", reason);
+        this.emit(this.room, "player:gameOver", { key: reason });
       }
       this.#machine.transition("closed");
     }
@@ -213,8 +216,9 @@
 
     // ---------- Internals ----------
 
-    #rejectJoin(connectionId, message) {
-      this.emit(connectionId, "player:error", message);
+    /** Phones get a message key (see i18n.js), so each one shows it in its own language. */
+    #rejectJoin(connectionId, key, params) {
+      this.emit(connectionId, "player:error", params ? { key, params } : { key });
       return false;
     }
 

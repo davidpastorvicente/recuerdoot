@@ -1,5 +1,5 @@
 (function initGameShared(globalScope) {
-  const MONTHS_ES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
+  const I18N = typeof module !== "undefined" && module.exports ? require("./i18n.js") : globalScope.RECUERDOOT_I18N;
   const APP_NAME = globalScope.RECUERDOOT_CONFIG?.APP_NAME;
   const MEDIA_FOLDERS = Object.freeze({
     audio: "assets/audios",
@@ -26,9 +26,6 @@
     document.querySelectorAll(".brand").forEach((element) => {
       element.textContent = APP_NAME;
     });
-
-    const pageTitleSuffix = document.body?.dataset.pageTitleSuffix?.trim();
-    document.title = pageTitleSuffix ? `${APP_NAME} · ${pageTitleSuffix}` : APP_NAME;
   }
 
   function escapeHtml(value) {
@@ -58,18 +55,15 @@
     return shuffled;
   }
 
+  /** Finds a YYYYMMDD date in a file name: `iso` is "YYYY-MM-DD", `date` is formatted in the current language. */
   function parseDateParts(key) {
     const match = /(\d{4})(\d{2})(\d{2})/.exec(String(key));
-    if (!match) return { date: "", year: "" };
+    const month = match ? Number.parseInt(match[2], 10) : 0;
+    if (month < 1 || month > 12) return { date: "", year: "", iso: "" };
 
-    const [, year, month, day] = match;
-    const monthName = MONTHS_ES[Number.parseInt(month, 10) - 1];
-    if (!monthName) return { date: "", year: "" };
-
-    return {
-      date: `${Number.parseInt(day, 10)} ${monthName} ${year}`,
-      year,
-    };
+    const [, year, monthDigits, day] = match;
+    const iso = `${year}-${monthDigits}-${day}`;
+    return { date: I18N.formatDate(iso), year, iso };
   }
 
   function resolveMedia(media, resolveFile) {
@@ -105,7 +99,8 @@
       audioBefore: Boolean(before.audio),
       before: resolveMedia(before, resolveFile),
       after: resolveMedia(after, resolveFile),
-      date: dateSource ? parseDateParts(dateSource).date : "",
+      // ISO date; pages format it in the viewer's language (I18N.formatDate).
+      date: dateSource ? parseDateParts(dateSource).iso : "",
     };
   }
 
@@ -117,7 +112,7 @@
   }
 
   function formatQuestionCounter(index, total) {
-    return `Pregunta ${index + 1} de ${total}`;
+    return I18N.t("question.counter", { current: index + 1, total });
   }
 
   let sharedAudioContext = null;
@@ -188,7 +183,7 @@
     });
   }
 
-  /** Full-screen "Preparados, listos, YA" overlay shared by host and player pages. */
+  /** Full-screen "Ready, set, go" overlay shared by host and player pages. */
   function createStartCountdownController() {
     let timer = null;
     let lastAnnouncedValue = null;
@@ -218,8 +213,8 @@
     }
 
     function getLabelText(seconds, remaining) {
-      if (remaining <= 1) return "¡Ya!";
-      return remaining > Math.ceil(seconds / 2) ? "Preparados" : "Listos";
+      if (remaining <= 1) return I18N.t("countdown.go");
+      return I18N.t(remaining > Math.ceil(seconds / 2) ? "countdown.ready" : "countdown.set");
     }
 
     function hideStartCountdown() {

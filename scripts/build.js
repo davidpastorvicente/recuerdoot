@@ -17,7 +17,7 @@ const PUBLIC_FILES = [
   "assets/music/waiting.mp3",
 ];
 // Published under a different path: source -> destination.
-const RENAMED_FILES = Object.freeze({ "docs/quiz-guide.md": "quiz-guide.md" });
+const RENAMED_FILES = Object.freeze({ "docs/quiz-guide.md": "quiz-guide.md", "docs/quiz-guide.en.md": "quiz-guide.en.md" });
 
 function copy(from, to) {
   fs.mkdirSync(path.dirname(to), { recursive: true });

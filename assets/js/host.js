@@ -5,7 +5,6 @@ const {
   ANSWER_SHAPES,
   createStartCountdownController,
   escapeHtml,
-  formatQuestionCounter,
   normalizeQuestion,
   playCountdownTick,
   playQuestionEndGong,
@@ -17,6 +16,8 @@ const MATCH = globalThis.RECUERDOOT_MATCH;
 const PEER = globalThis.RECUERDOOT_PEER;
 const { createPackPanel } = globalThis.RECUERDOOT_HOST_PACK;
 const { showToast } = globalThis.RECUERDOOT_UI;
+const I18N = globalThis.RECUERDOOT_I18N;
+const { setAttr, setHtml, setPlain, setText, t } = I18N;
 
 const $ = (id) => document.getElementById(id);
 
@@ -43,10 +44,10 @@ const SCREEN_BY_STATE = Object.freeze({
 });
 // Entering these states always restarts their screen, even when it is already visible.
 const FRESH_SCREEN_STATES = new Set(["solo-question"]);
-const PHASE_LABEL_BY_STATE = Object.freeze({
-  "multi-reading": "Atentos al audio",
-  "multi-listening": "Escuchando",
-  "multi-answering": "¡A responder!",
+const PHASE_LABEL_KEY_BY_STATE = Object.freeze({
+  "multi-reading": "phase.reading",
+  "multi-listening": "phase.listening",
+  "multi-answering": "phase.answering",
 });
 const PROGRESS_STATES = new Set(["solo-question", "solo-feedback", "multi-reading", "multi-listening", "multi-answering", "multi-reveal", "multi-scoreboard"]);
 const EXIT_HIDDEN_STATES = new Set(["start", "multi-connecting", "solo-end", "multi-end"]);
@@ -107,7 +108,7 @@ function renderNav() {
   const showProgress = PROGRESS_STATES.has(state) && progress;
   $("nav-progress").hidden = !showProgress;
   if (showProgress) {
-    $("nav-progress-label").textContent = formatQuestionCounter(progress.index, progress.total);
+    setQuestionCounter($("nav-progress-label"), progress.index, progress.total);
     $("nav-progress-fill").style.width = `${((progress.index + 1) / progress.total) * 100}%`;
   }
 
@@ -122,9 +123,13 @@ function renderStartScreen() {
   const button = $("start-multiplayer-button");
   button.disabled = connecting || !pack;
   button.setAttribute("aria-busy", String(connecting));
-  button.textContent = connecting ? "Creando partida…" : "Multijugador";
+  setText(button, connecting ? "start.creating" : "start.multiplayer");
   $("start-solo-button").disabled = connecting || !pack;
-  $("start-question-count").textContent = pack ? `${pack.questionCount} preguntas` : "Juego de recuerdos";
+  if (pack) {
+    setText($("start-question-count"), "start.questionCount", { count: pack.questionCount });
+  } else {
+    setText($("start-question-count"), "start.tagline");
+  }
 }
 
 function onPackChange() {
@@ -132,10 +137,11 @@ function onPackChange() {
 }
 
 function renderPhaseChip() {
-  const label = PHASE_LABEL_BY_STATE[host.state];
+  const key = PHASE_LABEL_KEY_BY_STATE[host.state];
   const chip = $("question-phase");
-  chip.hidden = !label;
-  chip.textContent = label ?? "";
+  chip.hidden = !key;
+  if (key) setText(chip, key);
+  else setPlain(chip, "");
   chip.dataset.phase = host.state;
 }
 
@@ -180,8 +186,13 @@ function setQuestionText(element, text) {
   );
 }
 
-function setButtonLabel(button, label) {
-  button.querySelector(".button-label").textContent = label;
+function setButtonLabel(button, key, params) {
+  setText(button.querySelector(".button-label"), key, params);
+}
+
+/** "Question 2 of 10", kept in sync with the page language. */
+function setQuestionCounter(element, index, total) {
+  setText(element, "question.counter", { current: index + 1, total });
 }
 
 // ========== Question countdown (idle -> running -> finished) ==========
@@ -267,7 +278,7 @@ function renderAnswerTiles(options, { interactive }) {
 
 function renderQuestion(data, { mode }) {
   progress = { index: data.index, total: data.total };
-  $("question-counter").textContent = formatQuestionCounter(data.index, data.total);
+  setQuestionCounter($("question-counter"), data.index, data.total);
   setQuestionText($("question-text"), data.question);
 
   const hasAudio = data.audioBefore && Boolean(data.before.audio);
@@ -295,7 +306,8 @@ function renderRevealMedia({ frame, image, video, audioRow, label }, { after, da
   frame.hidden = !(hasVisual || hasAudio);
   frame.classList.toggle("has-visual", hasVisual);
   audioRow.hidden = !hasAudio;
-  label.textContent = hasAudio && date ? date : "";
+  if (hasAudio && date) setText(label, "reveal.date", { date });
+  else setPlain(label, "");
   label.hidden = !label.textContent;
   media.loadForeground(after.audio);
 }
@@ -342,11 +354,12 @@ function soloAnswer(selected) {
   markSoloTiles(correct, selected);
 
   const status = $("result-modal-status");
-  status.textContent = isCorrect ? "¡Correcto!" : "¡Incorrecto!";
+  setText(status, isCorrect ? "solo.correct" : "solo.wrong");
   status.dataset.result = isCorrect ? "correct" : "wrong";
   const detail = $("result-modal-detail");
   detail.hidden = isCorrect;
-  detail.innerHTML = isCorrect ? "" : `La respuesta correcta era <strong class="text-success">${escapeHtml(correct)}</strong>`;
+  if (isCorrect) setPlain(detail, "");
+  else setHtml(detail, "solo.correctWas", { answer: correct });
 
   media.playMusic(after.music);
   renderRevealMedia({
@@ -357,16 +370,16 @@ function soloAnswer(selected) {
     label: $("reveal-label"),
   }, { after, date });
 
-  setButtonLabel($("solo-next-button"), solo.index < solo.questions.length - 1 ? "Siguiente" : "Ver resultado");
+  setButtonLabel($("solo-next-button"), solo.index < solo.questions.length - 1 ? "solo.next" : "solo.seeResult");
   $("result-modal").hidden = false;
   $("solo-next-button").focus();
 }
 
-function soloEndMessage(ratio) {
-  if (ratio === 1) return "Memoria perfecta. Conocéis a vuestras amigas mejor que nadie.";
-  if (ratio >= 0.75) return "¡Muy bien! Casi acertáis todas.";
-  if (ratio >= 0.5) return "No está mal, ¡pero hay que repasar esos audios!";
-  return "Uy… ¡toca volver a escuchar esos audios!";
+function soloEndMessageKey(ratio) {
+  if (ratio === 1) return "solo.end.perfect";
+  if (ratio >= 0.75) return "solo.end.great";
+  if (ratio >= 0.5) return "solo.end.ok";
+  return "solo.end.low";
 }
 
 function soloNext() {
@@ -382,7 +395,7 @@ function soloNext() {
   host.transition("solo-end");
   const total = solo.questions.length;
   $("final-score").textContent = `${solo.score} / ${total}`;
-  $("end-message").textContent = soloEndMessage(solo.score / total);
+  setText($("end-message"), soloEndMessageKey(solo.score / total));
 }
 
 // ========== Multiplayer mode ==========
@@ -440,15 +453,15 @@ async function startMultiplayer() {
   try {
     const match = await MATCH.createMatchHost({ questions: questionsFromPack(pack), listen: PEER.listen, onEvent: onMatchEvent });
     if (!host.is("multi-connecting")) {
-      match.close("El host ha cancelado la partida");
+      match.close("gameOver.hostCancelled");
       return;
     }
     multi.match = match;
     onHostCreated({ pin: match.pin, joinUrl: await resolveJoinUrl(match.pin) });
   } catch (error) {
     console.error(error);
-    closeMatch("No se ha podido crear la partida");
-    onHostError("No se ha podido crear la partida. Comprueba la conexión a internet e inténtalo de nuevo.");
+    closeMatch("gameOver.createFailed");
+    onHostError(t("host.createFailed"));
   }
 }
 
@@ -488,7 +501,7 @@ function renderQrCode(container, text) {
   svg.setAttribute("viewBox", `0 0 ${size} ${size}`);
   svg.setAttribute("shape-rendering", "crispEdges");
   svg.setAttribute("role", "img");
-  svg.setAttribute("aria-label", "Código QR para unirse a la partida");
+  setAttr(svg, "aria-label", "lobby.qrLabel");
   const background = document.createElementNS(SVG_NS, "rect");
   background.setAttribute("width", String(size));
   background.setAttribute("height", String(size));
@@ -508,13 +521,13 @@ function renderLobbyPlayers(players) {
   if (multi.startRequested) return;
   const button = $("lobby-start-button");
   button.disabled = players.length === 0;
-  const plural = players.length === 1 ? "" : "es";
-  setButtonLabel(button, players.length > 0 ? `Empezar (${players.length} jugador${plural})` : "Esperando jugadores…");
+  if (players.length > 0) setButtonLabel(button, "lobby.start", { count: players.length });
+  else setButtonLabel(button, "lobby.waiting");
 }
 
 function onHostCreated({ pin, joinUrl }) {
   if (!host.is("multi-connecting")) {
-    closeMatch("El host ha cancelado la partida");
+    closeMatch("gameOver.hostCancelled");
     return;
   }
 
@@ -551,7 +564,7 @@ function requestStart() {
   multi.startRequested = true;
   const button = $("lobby-start-button");
   button.disabled = true;
-  setButtonLabel(button, "Empezando…");
+  setButtonLabel(button, "lobby.starting");
   sendCommand("host:start");
 }
 
@@ -621,7 +634,9 @@ function renderRevealChart(options, { optionCounts, correct }) {
     const isCorrect = option === correct;
     const height = count > 0 ? Math.max(10, (count / maxCount) * 100) : 3;
     const stateClass = isCorrect ? "is-correct" : "is-dimmed";
-    const badge = isCorrect ? '<span class="chart-badge">✓ Correcta</span>' : '<span class="chart-badge chart-badge-empty" aria-hidden="true"></span>';
+    const badge = isCorrect
+      ? `<span class="chart-badge" ${I18N.attrs("reveal.correctBadge")}>${escapeHtml(t("reveal.correctBadge"))}</span>`
+      : '<span class="chart-badge chart-badge-empty" aria-hidden="true"></span>';
 
     return `<div class="chart-column option-${index} ${stateClass}">
       ${badge}
@@ -644,7 +659,7 @@ function onHostReveal(data) {
   multi.currentLeaderboard = LEADERBOARD.cloneLeaderboard(data.leaderboard);
   if (!host.transition("multi-reveal")) return;
 
-  $("reveal-question-meta").textContent = formatQuestionCounter(question.index, question.total);
+  setQuestionCounter($("reveal-question-meta"), question.index, question.total);
   setQuestionText($("reveal-text"), question.question);
   renderRevealChart(question.options, data);
   media.playMusic(data.after.music);
@@ -657,7 +672,7 @@ function onHostReveal(data) {
   }, data);
 
   const isLastQuestion = question.index >= question.total - 1;
-  setButtonLabel($("scoreboard-next-button"), isLastQuestion ? "Ver resultados" : "Siguiente pregunta");
+  setButtonLabel($("scoreboard-next-button"), isLastQuestion ? "scoreboard.results" : "scoreboard.next");
   $("reveal-next-button").focus();
 }
 
@@ -668,7 +683,7 @@ function showScoreboard() {
 
   media.stopForeground({ immediate: true });
   media.stopMusic({ immediate: true });
-  $("scoreboard-meta").textContent = formatQuestionCounter(multi.question.index, multi.question.total);
+  setQuestionCounter($("scoreboard-meta"), multi.question.index, multi.question.total);
 
   const previous = multi.previousLeaderboard;
   const next = multi.revealLeaderboard;
@@ -711,15 +726,20 @@ function onGameEnd({ leaderboard }) {
   if (!host.transition("multi-end")) return;
 
   const [winner] = leaderboard;
-  $("winner-name").textContent = winner ? winner.name : "Sin ganador";
-  $("winner-score").textContent = winner ? `${winner.score} puntos` : "";
+  if (winner) {
+    setPlain($("winner-name"), winner.name);
+    setText($("winner-score"), "score.points", { count: winner.score });
+  } else {
+    setText($("winner-name"), "end.noWinner");
+    setPlain($("winner-score"), "");
+  }
   LEADERBOARD.renderStatic($("end-leaderboard"), leaderboard, { limit: CONFIG.LEADERBOARD_DISPLAY_LIMIT });
 }
 
 // ========== Exit & navigation ==========
 
 function backToStart() {
-  closeMatch("El host ha terminado la partida");
+  closeMatch("gameOver.hostEnded");
   clearAutoplayTimer();
   clearScoreboardTimer();
   questionTimer.stop();
@@ -733,9 +753,7 @@ function requestExit() {
   const dialog = $("exit-dialog");
   // Escape closes without a value and keeps the previous returnValue, so reset it first.
   dialog.returnValue = "";
-  $("exit-dialog-text").textContent = modeOf(host.state) === "multi"
-    ? "La partida terminará para todos los jugadores."
-    : "Perderás el progreso de esta partida.";
+  setText($("exit-dialog-text"), modeOf(host.state) === "multi" ? "exit.multi" : "exit.solo");
   dialog.showModal();
 }
 
@@ -811,16 +829,17 @@ globalThis.getMatchState = function getMatchState() {
 
 // Closing the tab ends the match; tell the phones right away instead of waiting for their heartbeat timeout.
 globalThis.addEventListener("pagehide", () => {
-  closeMatch("El host ha cerrado la partida", { flushMs: 0 });
+  closeMatch("gameOver.hostClosed", { flushMs: 0 });
 });
 
 // Back/forward cache: the match was closed on pagehide, so a restored page must not show its screens.
 globalThis.addEventListener("pageshow", (event) => {
   if (!event.persisted || modeOf(host.state) !== "multi") return;
   backToStart();
-  showToast("La partida terminó al salir de la página.", { tone: "error" });
+  showToast(t("host.endedOnLeave"), { tone: "error" });
 });
 
+I18N.translateDom();
 bindHostUi();
 renderStartScreen();
 renderNav();

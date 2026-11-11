@@ -3,46 +3,42 @@
   const { MACHINES, createStateMachine } = globalScope.RECUERDOOT_STATE_MACHINES;
   const LOADER = globalScope.RECUERDOOT_PACK_LOADER;
   const { showToast } = globalScope.RECUERDOOT_UI;
+  const I18N = globalScope.RECUERDOOT_I18N;
+  const { t } = I18N;
 
   const $ = (id) => document.getElementById(id);
   const MAX_VISIBLE_ERRORS = 6;
-  const SOURCE_LABELS = Object.freeze({
-    folder: "Carpeta",
-    zip: "Archivo .zip",
-    json: "questions.json",
-    stored: "Guardado en este navegador",
-    server: "questions.json del servidor local",
+  // Message keys by pack source and card state (see i18n.js).
+  const SOURCE_KEYS = Object.freeze({
+    folder: "pack.source.folder",
+    zip: "pack.source.zip",
+    json: "pack.source.json",
+    stored: "pack.source.stored",
+    server: "pack.source.server",
   });
-  const TITLE_BY_STATE = Object.freeze({
-    empty: "Carga tus preguntas",
-    loading: "Cargando quiz…",
-    invalid: "Hay que revisar el quiz",
+  const TITLE_KEY_BY_STATE = Object.freeze({
+    empty: "pack.title.empty",
+    loading: "pack.title.loading",
+    invalid: "pack.title.invalid",
   });
-  const TEXT_BY_STATE = Object.freeze({
-    empty: "Elige una carpeta o un .zip con tu questions.json y sus fotos, audios y vídeos. Nada se sube a internet: todo se queda en este navegador.",
-    loading: "Leyendo las preguntas y comprobando los archivos.",
-    invalid: "Corrige estos puntos y vuelve a cargarlo:",
+  const TEXT_KEY_BY_STATE = Object.freeze({
+    empty: "pack.text.empty",
+    loading: "pack.text.loading",
+    invalid: "pack.text.invalid",
   });
 
-  const plural = (count, singular, pluralForm) => `${count} ${count === 1 ? singular : pluralForm}`;
-
-  /** A ready-to-paste message for the user's AI assistant, pointing at the published guide. */
+  /** A ready-to-paste message for the user's AI assistant, pointing at the published guide in the current language. */
   function assistantPrompt() {
-    const guideUrl = new URL("quiz-guide.md", location.href).href;
-    return [
-      "Quiero crear un quiz de Recuerdoot sobre recuerdos de mi grupo.",
-      `Lee esta guía y sigue su flujo guiado: ${guideUrl}`,
-      "Hazme las preguntas de la entrevista, propón un guion de preguntas y ayúdame a preparar los archivos, el questions.json y el .zip.",
-      "Si no puedes abrir el enlace, dímelo y te adjunto el archivo.",
-    ].join("\n");
+    const url = new URL(t("pack.guideFile"), location.href).href;
+    return t("pack.prompt", { url });
   }
 
   async function copyAssistantPrompt() {
     try {
       await navigator.clipboard.writeText(assistantPrompt());
-      showToast("Instrucciones copiadas: pégalas en tu asistente de IA.");
+      showToast(t("pack.toast.copied"));
     } catch {
-      showToast("No se han podido copiar. Abre la guía y pásale el enlace a tu IA.", { tone: "error" });
+      showToast(t("pack.toast.copyFailed"), { tone: "error" });
     }
   }
 
@@ -52,11 +48,12 @@
     let pack = null;
     let locked = false;
     let loadToken = 0;
+    let lastLoader = null;
 
     function readyText() {
-      const parts = [plural(pack.questionCount, "pregunta", "preguntas")];
-      if (pack.mediaCount > 0) parts.push(plural(pack.mediaCount, "archivo", "archivos"));
-      parts.push(SOURCE_LABELS[pack.source] ?? "");
+      const parts = [t("pack.count.questions", { count: pack.questionCount })];
+      if (pack.mediaCount > 0) parts.push(t("pack.count.files", { count: pack.mediaCount }));
+      parts.push(SOURCE_KEYS[pack.source] ? t(SOURCE_KEYS[pack.source]) : "");
       return parts.filter(Boolean).join(" · ");
     }
 
@@ -71,7 +68,7 @@
       });
       if (errors.length > visible.length) {
         const more = document.createElement("li");
-        more.textContent = `…y ${errors.length - visible.length} más`;
+        more.textContent = t("pack.moreErrors", { count: errors.length - visible.length });
         items.push(more);
       }
       list.replaceChildren(...items);
@@ -85,11 +82,11 @@
       card.dataset.state = state;
       card.setAttribute("aria-busy", String(busy));
 
-      $("pack-title").textContent = state === "ready" ? pack.name : TITLE_BY_STATE[state];
-      $("pack-text").textContent = state === "ready" ? readyText() : TEXT_BY_STATE[state];
+      $("pack-title").textContent = state === "ready" ? pack.name : t(TITLE_KEY_BY_STATE[state]);
+      $("pack-text").textContent = state === "ready" ? readyText() : t(TEXT_KEY_BY_STATE[state]);
       const chip = $("pack-status-chip");
       chip.hidden = state !== "ready" && state !== "invalid";
-      chip.textContent = state === "ready" ? "Listo" : "Con errores";
+      chip.textContent = t(state === "ready" ? "pack.status.ready" : "pack.status.invalid");
       renderErrors();
 
       $("pack-folder-button").hidden = !supportsFolders;
@@ -113,6 +110,7 @@
     async function load(loader, { persist }) {
       if (locked) return;
       const token = ++loadToken;
+      lastLoader = loader;
       machine.transition("loading");
 
       let next;
@@ -121,7 +119,7 @@
       } catch (error) {
         console.error(error);
         next = null;
-        if (token === loadToken) showToast("No se ha podido leer el quiz.", { tone: "error" });
+        if (token === loadToken) showToast(t("pack.toast.readFailed"), { tone: "error" });
       }
       if (token !== loadToken) {
         next?.release();
@@ -139,7 +137,7 @@
       if (valid && persist) {
         LOADER.saveStored(next).catch((error) => {
           console.warn(error);
-          showToast("El quiz funciona, pero no se ha podido guardar: tendrás que cargarlo otra vez si recargas.", { tone: "error" });
+          showToast(t("pack.toast.saveFailed"), { tone: "error" });
         });
       }
     }
@@ -214,8 +212,18 @@
       });
     }
 
+    /** Texts follow the language; validation problems are re-checked so they are listed in it too. */
+    function onLocaleChange() {
+      if (machine.is("invalid") && lastLoader && !locked) {
+        load(lastLoader, { persist: false });
+        return;
+      }
+      render();
+    }
+
     bindInputs();
     bindDropZone();
+    I18N.onChange(onLocaleChange);
     render();
 
     return {

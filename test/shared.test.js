@@ -27,10 +27,10 @@ describe("game-shared", () => {
   });
 
   it("parses Spanish dates from WhatsApp audio names", () => {
-    assert.deepEqual(shared.parseDateParts("PTT-20180122-WA0003.mp3"), { date: "22 enero 2018", year: "2018" });
-    assert.deepEqual(shared.parseDateParts("PTT-20190704-WA0001_filtered.mp3"), { date: "4 julio 2019", year: "2019" });
-    assert.deepEqual(shared.parseDateParts("clip.mp4"), { date: "", year: "" });
-    assert.deepEqual(shared.parseDateParts("20141399"), { date: "", year: "" });
+    assert.deepEqual(shared.parseDateParts("PTT-20180122-WA0003.mp3"), { date: "22 enero 2018", year: "2018", iso: "2018-01-22" });
+    assert.deepEqual(shared.parseDateParts("PTT-20190704-WA0001_filtered.mp3"), { date: "4 julio 2019", year: "2019", iso: "2019-07-04" });
+    assert.deepEqual(shared.parseDateParts("clip.mp4"), { date: "", year: "", iso: "" });
+    assert.deepEqual(shared.parseDateParts("20141399"), { date: "", year: "", iso: "" });
   });
 
   it("normalizes a questions.json entry into the runtime shape", () => {
@@ -48,7 +48,7 @@ describe("game-shared", () => {
       audioBefore: true,
       before: { audio: "assets/audios/PTT-20210315-WA0002_filtered.mp3", image: "assets/images/pic.jpg", music: null, video: null },
       after: { audio: "assets/audios/PTT-20210315-WA0002.mp3", image: null, music: "assets/music/reveal.mp3", video: null },
-      date: "15 marzo 2021",
+      date: "2021-03-15",
     });
   });
 
